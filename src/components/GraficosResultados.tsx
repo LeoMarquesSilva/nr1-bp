@@ -110,7 +110,7 @@ export function GraficosResultados({ scores }: Props) {
                   color: '#101F2E',
                   boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
                 }}
-                formatter={(value: number) => [value.toFixed(1), 'Média']}
+                formatter={(value: number | undefined) => [value != null ? value.toFixed(1) : '–', 'Média']}
                 labelFormatter={(label) => label}
               />
             </RadarChart>
@@ -149,7 +149,7 @@ export function GraficosResultados({ scores }: Props) {
                   color: '#101F2E',
                   boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
                 }}
-                formatter={(value: number) => [value.toFixed(1), 'Média']}
+                formatter={(value: number | undefined) => [value != null ? value.toFixed(1) : '–', 'Média']}
                 cursor={{ fill: 'rgba(213,177,112,0.12)' }}
               />
               <ReferenceLine x={3} stroke="#D5B170" strokeDasharray="4 4" />

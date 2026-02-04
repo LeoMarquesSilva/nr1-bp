@@ -75,8 +75,7 @@ export function Resultados({ answers, setor, onVoltar, isAdmin, scoresOverride }
               <div className="mb-3 h-2 w-full overflow-hidden rounded-full bg-dourado-light">
                 <div
                   className="dimension-bar h-full rounded-full"
-                  style={{ background: 'var(--escritorio-dourado)' }}
-                  style={{ width: `${barPercent}%` }}
+                  style={{ background: 'var(--escritorio-dourado)', width: `${barPercent}%` }}
                 />
               </div>
               <div className="flex flex-wrap gap-4 text-sm">
