@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* Identidade visual do escritório */
+:root {
+  --escritorio-escuro: #101F2E;
+  --escritorio-dourado: #D5B170;
+  --escritorio-dourado-hover: #c4a060;
+  --escritorio-dourado-light: rgba(213, 177, 112, 0.15);
+  --branco-gelo: #F5F7F6;
+  --branco-gelo-card: #ffffff;
+  --shadow-card: 0 1px 3px rgba(16, 31, 46, 0.06), 0 4px 12px rgba(16, 31, 46, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(16, 31, 46, 0.08), 0 8px 24px rgba(16, 31, 46, 0.06);
+  --radius-card: 16px;
+  --radius-btn: 12px;
+}
+
+@layer base {
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    background: var(--branco-gelo);
+    color: var(--escritorio-escuro);
+  }
+}
+
+/* Fundo com textura sutil (granular) */
+.app-bg {
+  background-color: var(--branco-gelo);
+  background-image:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(213, 177, 112, 0.06), transparent),
+    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(16, 31, 46, 0.02), transparent),
+    radial-gradient(ellipse 60% 40% at 0% 80%, rgba(213, 177, 112, 0.04), transparent);
+  min-height: 100vh;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.progress-fill {
+  transition: width 0.4s ease-out;
+}
+
+.dimension-bar {
+  transition: width 0.5s ease-out;
+}
+
+.input-escritorio:focus {
+  outline: none;
+  border-color: var(--escritorio-dourado);
+  box-shadow: 0 0 0 3px var(--escritorio-dourado-light);
+}
+
+.btn-escritorio {
+  background: linear-gradient(135deg, var(--escritorio-dourado) 0%, var(--escritorio-dourado-hover) 100%);
+  color: var(--escritorio-escuro);
+  border-radius: var(--radius-btn);
+  box-shadow: 0 2px 8px rgba(213, 177, 112, 0.25);
+}
+.btn-escritorio:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--escritorio-dourado-hover) 0%, var(--escritorio-dourado) 100%);
+  box-shadow: 0 4px 14px rgba(213, 177, 112, 0.35);
+  transform: translateY(-1px);
+}
+
+.bg-card-escritorio {
+  background: var(--branco-gelo-card);
+  border: 1px solid rgba(16, 31, 46, 0.06);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.bg-card-escritorio:hover {
+  box-shadow: var(--shadow-card-hover);
+  border-color: rgba(16, 31, 46, 0.08);
+}
+
+.text-escritorio { color: var(--escritorio-escuro); }
+.bg-dourado-light { background: var(--escritorio-dourado-light); }
+.border-dourado { border-color: var(--escritorio-dourado); }
+.bg-escuro { background: var(--escritorio-escuro); }
