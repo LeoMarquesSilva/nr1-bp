@@ -1,5 +1,6 @@
 import { motion } from 'motion/react'
 import { Info, Shield, Clock, BarChart3 } from 'lucide-react'
+import { getAppName } from '../lib/tenant'
 
 const DIMENSOES = [
   { id: 'demandas', label: 'Demandas', desc: 'Exigências, prazos e intensidade do trabalho.' },
@@ -71,10 +72,10 @@ export function Sobre({ onVoltar }: SobreProps) {
       <section className="bg-card-escritorio rounded-2xl border border-[rgba(16,31,46,0.06)] p-6">
         <h3 className="mb-3 flex items-center gap-2 font-semibold text-[var(--escritorio-escuro)]">
           <Info className="h-5 w-5 text-[var(--escritorio-dourado)]" />
-          Bismarchi Pires Sociedade de Advogados
+          {getAppName()}
         </h3>
         <p className="text-sm leading-relaxed text-[var(--escritorio-escuro)]/80">
-          Este diagnóstico faz parte do compromisso do escritório com a saúde e o bem-estar de seus colaboradores. Os resultados são utilizados de forma agregada para orientar ações internas e melhorias no ambiente de trabalho, sem identificação individual.
+          Este diagnóstico faz parte do compromisso da organização com a saúde e o bem-estar de seus colaboradores. Os resultados são utilizados de forma agregada para orientar ações internas e melhorias no ambiente de trabalho, sem identificação individual.
         </p>
       </section>
 

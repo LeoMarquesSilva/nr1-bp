@@ -66,7 +66,7 @@ export function Privacidade({ onVoltar }: PrivacidadeProps) {
           <div>
             <h3 className="font-semibold text-[var(--escritorio-escuro)]">Seus direitos</h3>
             <p className="mt-2 text-sm leading-relaxed text-[var(--escritorio-escuro)]/80">
-              A participação no diagnóstico é voluntária. Em caso de dúvidas sobre o tratamento dos dados ou pedidos relacionados à LGPD, entre em contato com o setor responsável pelo programa de saúde e bem-estar do escritório.
+              A participação no diagnóstico é voluntária. Em caso de dúvidas sobre o tratamento dos dados ou pedidos relacionados à LGPD, entre em contato com o setor responsável pelo programa de saúde e bem-estar da organização.
             </p>
           </div>
         </div>

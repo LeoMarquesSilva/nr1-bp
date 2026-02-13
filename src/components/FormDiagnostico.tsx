@@ -14,13 +14,14 @@ function preencherAleatorio(): { answers: Record<number, OptionKey> } {
 
 type Props = {
   setor: string
-  onSubmit: (answers: Record<number, OptionKey>, setor: string) => void
+  onSubmit: (answers: Record<number, OptionKey>, setor: string) => void | Promise<void>
   initialAnswers?: Record<number, OptionKey>
 }
 
 export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props) {
   const [answers, setAnswers] = useState<Record<number, OptionKey>>(initialAnswers)
   const [currentGroup, setCurrentGroup] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
 
   const groups = QUESTIONS.reduce<Question[][]>((acc, q) => {
     const last = acc[acc.length - 1]
@@ -41,10 +42,15 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
     setAnswers((prev) => ({ ...prev, [questionId]: option }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!allAnswered) return
-    onSubmit(answers, setor)
+    if (!allAnswered || submitting) return
+    setSubmitting(true)
+    try {
+      await onSubmit(answers, setor)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const goNext = () => {
@@ -186,10 +192,10 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
         ) : (
           <button
             type="submit"
-            disabled={!allAnswered}
+            disabled={!allAnswered || submitting}
             className="btn-escritorio inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Ver resultados
+            {submitting ? 'Enviando...' : 'Enviar diagnóstico'}
             <Send className="h-5 w-5" />
           </button>
         )}

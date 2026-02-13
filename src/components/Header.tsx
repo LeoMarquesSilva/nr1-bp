@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { Menu, X } from 'lucide-react'
 import type { View } from '../App'
+import { getAppLogoUrl, getAppName, getProductName } from '../lib/tenant'
 
 const NAV = [
   { id: 'identificacao' as const, label: 'Início' },
@@ -50,18 +51,18 @@ export function Header({
           type="button"
           onClick={() => handleNav('identificacao')}
           className="flex shrink-0 items-center gap-3 text-left"
-          aria-label="Ir para início"
+          aria-label={`${getAppName()} - Início`}
         >
           <img
-            src="/logo.png"
-            alt="Bismarchi Pires"
+            src={getAppLogoUrl()}
+            alt={getAppName()}
             className="h-8 w-auto sm:h-9"
             width={160}
             height={36}
           />
           <span className="hidden h-6 w-px flex-shrink-0 bg-white/20 sm:block" aria-hidden />
           <span className="hidden text-base font-semibold tracking-tight text-white sm:block">
-            Diagnóstico HSE-IT
+            {getProductName()}
           </span>
         </button>
 
