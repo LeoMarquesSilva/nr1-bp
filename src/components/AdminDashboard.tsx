@@ -343,7 +343,7 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
           </div>
           <button
             type="button"
-            onClick={copyLink}
+            onClick={() => copyLink()}
             disabled={!generatedLink}
             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--escritorio-dourado)] px-4 py-2.5 text-sm font-semibold text-[var(--escritorio-escuro)] transition disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
           >
