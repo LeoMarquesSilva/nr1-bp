@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ClipboardList, Send, Shuffle } from 'lucide-react'
 import { QUESTIONS, OPTIONS, type OptionKey, type Question } from '../data/hseIt'
 
@@ -22,6 +22,7 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
   const [answers, setAnswers] = useState<Record<number, OptionKey>>(initialAnswers)
   const [currentGroup, setCurrentGroup] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const sectionRef = useRef<HTMLDivElement>(null)
 
   const groups = QUESTIONS.reduce<Question[][]>((acc, q) => {
     const last = acc[acc.length - 1]
@@ -60,6 +61,14 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
   const goPrev = () => {
     if (currentGroup > 0) setCurrentGroup((i) => i - 1)
   }
+
+  useEffect(() => {
+    const el = sectionRef.current
+    if (!el) return
+    const top = el.getBoundingClientRect().top + window.scrollY
+    const headerOffset = 80
+    window.scrollTo({ top: Math.max(0, top - headerOffset), behavior: 'smooth' })
+  }, [currentGroup])
 
   const handlePreencherAleatorio = () => {
     const { answers: randomAnswers } = preencherAleatorio()
@@ -111,8 +120,8 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
         <p className="mt-2 text-lg font-semibold text-escritorio">{dimensionLabel}</p>
       </div>
 
-      {/* Perguntas */}
-      <div className="bg-card-escritorio rounded-2xl p-6 shadow-sm sm:p-8">
+      {/* Perguntas da dimensão atual — scroll ao trocar de dimensão */}
+      <div ref={sectionRef} className="bg-card-escritorio rounded-2xl p-6 shadow-sm sm:p-8">
         <fieldset className="space-y-8 border-0 p-0">
           <legend className="sr-only">{dimensionLabel}</legend>
           {questionsInGroup.map((q) => (
