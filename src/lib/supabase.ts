@@ -9,8 +9,9 @@ export function getSupabase(): SupabaseClient {
   if (client) return client
   if (!url || !anonKey) {
     throw new Error(
-      'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no .env. ' +
-      'Obtenha em: Projeto Supabase → Settings → API.'
+      'Defina VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY. ' +
+      'Local: arquivo .env. Vercel: Project → Settings → Environment Variables. ' +
+      'Chaves em: Supabase → Settings → API.'
     )
   }
   client = createClient(url, anonKey)

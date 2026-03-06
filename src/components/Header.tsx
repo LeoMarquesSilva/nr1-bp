@@ -5,7 +5,8 @@ import type { View } from '../App'
 import { getAppLogoUrl, getAppName, getProductName } from '../lib/tenant'
 
 const NAV = [
-  { id: 'identificacao' as const, label: 'Início' },
+  { id: 'landing' as const, label: 'Início' },
+  { id: 'relatos-buscar' as const, label: 'Canal de relatos' },
   { id: 'sobre' as const, label: 'Sobre' },
   { id: 'privacidade' as const, label: 'Privacidade' },
 ]
@@ -49,7 +50,7 @@ export function Header({
         {/* Logo + nome do produto (estilo referência: logo + marca) */}
         <button
           type="button"
-          onClick={() => handleNav('identificacao')}
+          onClick={() => handleNav('landing')}
           className="flex shrink-0 items-center gap-3 text-left"
           aria-label={`${getAppName()} - Início`}
         >

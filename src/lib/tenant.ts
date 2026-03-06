@@ -33,9 +33,9 @@ export function getTenantId(): string {
   return (id?.trim() || 'default').toLowerCase()
 }
 
-/** Nome da empresa/organização (ex.: "Bismarchi Pires Sociedade de Advogados"). */
+/** Nome da empresa/organização. Usa VITE_APP_NAME; fallback "NR1 Form". */
 export function getAppName(): string {
-  return (env.VITE_APP_NAME as string | undefined)?.trim() || 'Bismarchi Pires Sociedade de Advogados'
+  return (env.VITE_APP_NAME as string | undefined)?.trim() || 'NR1 Form'
 }
 
 /** URL do logo (caminho relativo ou URL absoluta). Ex.: /logo.png ou https://... */
@@ -43,7 +43,7 @@ export function getAppLogoUrl(): string {
   return (env.VITE_APP_LOGO_URL as string | undefined)?.trim() || '/logo.png'
 }
 
-/** Nome do produto exibido no header (ex.: "Diagnóstico HSE-IT"). */
+/** Nome do produto exibido no header. Usa VITE_PRODUCT_NAME; fallback "NR1 Form". */
 export function getProductName(): string {
-  return (env.VITE_PRODUCT_NAME as string | undefined)?.trim() || 'Diagnóstico HSE-IT'
+  return (env.VITE_PRODUCT_NAME as string | undefined)?.trim() || 'NR1 Form'
 }

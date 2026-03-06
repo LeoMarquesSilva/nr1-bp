@@ -25,56 +25,56 @@ export function Sobre({ onVoltar }: SobreProps) {
       className="mx-auto max-w-2xl space-y-10"
     >
       <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight text-[var(--escritorio-escuro)] sm:text-3xl">
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           Sobre o diagnóstico
         </h2>
-        <p className="mt-3 text-[var(--escritorio-escuro)]/80">
+        <p className="mt-3 text-slate-600">
           Avaliação psicossocial baseada no instrumento HSE-IT, utilizada para mapear o bem-estar e os fatores de risco no ambiente de trabalho.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="bg-card-escritorio flex gap-4 rounded-2xl p-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--escritorio-dourado-light)] text-[var(--escritorio-dourado)]">
+        <div className="bg-card-escritorio flex gap-4 rounded-2xl border border-slate-200/60 p-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
             <Clock className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-[var(--escritorio-escuro)]">Tempo estimado</h3>
-            <p className="mt-1 text-sm text-[var(--escritorio-escuro)]/70">Cerca de 5 a 10 minutos para responder às 35 perguntas.</p>
+            <h3 className="font-semibold text-slate-900">Tempo estimado</h3>
+            <p className="mt-1 text-sm text-slate-600">Cerca de 5 a 10 minutos para responder às 35 perguntas.</p>
           </div>
         </div>
-        <div className="bg-card-escritorio flex gap-4 rounded-2xl p-5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--escritorio-dourado-light)] text-[var(--escritorio-dourado)]">
+        <div className="bg-card-escritorio flex gap-4 rounded-2xl border border-slate-200/60 p-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
             <Shield className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold text-[var(--escritorio-escuro)]">Confidencialidade</h3>
-            <p className="mt-1 text-sm text-[var(--escritorio-escuro)]/70">Suas respostas são anônimas; apenas setores são identificados para análise agregada.</p>
+            <h3 className="font-semibold text-slate-900">Confidencialidade</h3>
+            <p className="mt-1 text-sm text-slate-600">Suas respostas são anônimas; apenas setores são identificados para análise agregada.</p>
           </div>
         </div>
       </div>
 
       <section>
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--escritorio-escuro)]">
-          <BarChart3 className="h-5 w-5 text-[var(--escritorio-dourado)]" />
+        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+          <BarChart3 className="h-5 w-5 text-violet-600" />
           As 7 dimensões avaliadas
         </h3>
         <ul className="space-y-3">
           {DIMENSOES.map((d) => (
-            <li key={d.id} className="bg-card-escritorio rounded-xl border border-[rgba(16,31,46,0.06)] p-4">
-              <span className="font-medium text-[var(--escritorio-escuro)]">{d.label}</span>
-              <p className="mt-1 text-sm text-[var(--escritorio-escuro)]/70">{d.desc}</p>
+            <li key={d.id} className="bg-card-escritorio rounded-xl border border-slate-200/60 p-4">
+              <span className="font-medium text-slate-900">{d.label}</span>
+              <p className="mt-1 text-sm text-slate-600">{d.desc}</p>
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="bg-card-escritorio rounded-2xl border border-[rgba(16,31,46,0.06)] p-6">
-        <h3 className="mb-3 flex items-center gap-2 font-semibold text-[var(--escritorio-escuro)]">
-          <Info className="h-5 w-5 text-[var(--escritorio-dourado)]" />
+      <section className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-6">
+        <h3 className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
+          <Info className="h-5 w-5 text-violet-600" />
           {getAppName()}
         </h3>
-        <p className="text-sm leading-relaxed text-[var(--escritorio-escuro)]/80">
+        <p className="text-sm leading-relaxed text-slate-600">
           Este diagnóstico faz parte do compromisso da organização com a saúde e o bem-estar de seus colaboradores. Os resultados são utilizados de forma agregada para orientar ações internas e melhorias no ambiente de trabalho, sem identificação individual.
         </p>
       </section>
@@ -83,7 +83,7 @@ export function Sobre({ onVoltar }: SobreProps) {
         <button
           type="button"
           onClick={onVoltar}
-          className="btn-escritorio px-6 py-3 text-sm font-medium"
+          className="btn-escritorio rounded-full px-6 py-3 text-sm font-medium"
         >
           Voltar ao início
         </button>

@@ -50,9 +50,9 @@ function ordenarScores(scores: DimensionSummary[]): DimensionSummary[] {
 }
 
 function corPorMedia(media: number): string {
-  if (media >= 4) return '#059669' // ok
-  if (media >= 3) return '#D5B170' // dourado (média)
-  return '#dc2626' // atenção
+  if (media >= 4) return '#10B981' // emerald-500 (ok)
+  if (media >= 3) return '#F59E0B' // amber-500 (média)
+  return '#EF4444' // red-500 (atenção)
 }
 
 export function GraficosResultados({ scores }: Props) {

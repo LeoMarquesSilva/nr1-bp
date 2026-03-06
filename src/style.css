@@ -1,34 +1,55 @@
 @import "tailwindcss";
 
-/* Identidade visual do escritório */
+/* Design system unificado — Hero/LP (SaaS premium: slate, violet, emerald) */
 :root {
-  --escritorio-escuro: #101F2E;
-  --escritorio-dourado: #D5B170;
-  --escritorio-dourado-hover: #c4a060;
-  --escritorio-dourado-light: rgba(213, 177, 112, 0.15);
-  --branco-gelo: #F5F7F6;
+  /* Cores principais (slate) */
+  --escritorio-escuro: #0f172a;       /* slate-900 */
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-700: #334155;
+  --slate-900: #0f172a;
+  /* Destaque (violet) — ícones e ênfase */
+  --escritorio-dourado: #7c3aed;      /* violet-600 */
+  --escritorio-dourado-hover: #6d28d9;
+  --escritorio-dourado-light: rgba(196, 181, 253, 0.4); /* violet-200/40 */
+  --branco-gelo: #f8fafc;             /* slate-50 */
   --branco-gelo-card: #ffffff;
-  --shadow-card: 0 1px 3px rgba(16, 31, 46, 0.06), 0 4px 12px rgba(16, 31, 46, 0.04);
-  --shadow-card-hover: 0 4px 12px rgba(16, 31, 46, 0.08), 0 8px 24px rgba(16, 31, 46, 0.06);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
+  --shadow-card-hover: 0 4px 12px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.06);
   --radius-card: 16px;
-  --radius-btn: 12px;
+  --radius-btn: 9999px;               /* rounded-full para botões hero */
+
+  /* Semantic tokens — header e UI (consistente com hero) */
+  --background: #ffffff;
+  --foreground: var(--slate-900);
+  --muted-foreground: var(--slate-500);
+  --muted: rgba(15, 23, 42, 0.08);
+  --border: var(--slate-200);
+  --primary: var(--slate-900);
+  --primary-foreground: #ffffff;
+  --card: var(--branco-gelo-card);
+  --card-foreground: var(--slate-900);
+  --accent: rgba(15, 23, 42, 0.06);
+  --radius: 0.5rem;
 }
 
 @layer base {
   body {
     font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
     background: var(--branco-gelo);
-    color: var(--escritorio-escuro);
+    color: var(--slate-900);
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
 
-/* Fundo com textura sutil (granular) */
+/* Fundo global — mesmo gradiente do hero (slate-50 / white) */
 .app-bg {
-  background-color: var(--branco-gelo);
-  background-image:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(213, 177, 112, 0.06), transparent),
-    radial-gradient(ellipse 80% 50% at 100% 50%, rgba(16, 31, 46, 0.02), transparent),
-    radial-gradient(ellipse 60% 40% at 0% 80%, rgba(213, 177, 112, 0.04), transparent);
+  background: linear-gradient(to bottom right, var(--branco-gelo) 0%, #ffffff 50%, var(--branco-gelo) 100%);
   min-height: 100vh;
 }
 
@@ -44,37 +65,55 @@ html {
   transition: width 0.5s ease-out;
 }
 
+/* Inputs — focus com borda slate (hero) */
 .input-escritorio:focus {
   outline: none;
-  border-color: var(--escritorio-dourado);
-  box-shadow: 0 0 0 3px var(--escritorio-dourado-light);
+  border-color: var(--slate-400);
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
 }
 
+/* Botão primário — mesmo do hero: slate-900, rounded-full, shadow */
 .btn-escritorio {
-  background: linear-gradient(135deg, var(--escritorio-dourado) 0%, var(--escritorio-dourado-hover) 100%);
-  color: var(--escritorio-escuro);
-  border-radius: var(--radius-btn);
-  box-shadow: 0 2px 8px rgba(213, 177, 112, 0.25);
+  background: var(--slate-900);
+  color: white;
+  border-radius: 9999px;
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1);
 }
 .btn-escritorio:hover:not(:disabled) {
-  background: linear-gradient(135deg, var(--escritorio-dourado-hover) 0%, var(--escritorio-dourado) 100%);
-  box-shadow: 0 4px 14px rgba(213, 177, 112, 0.35);
-  transform: translateY(-1px);
+  background: var(--slate-700);
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.15);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-escritorio:hover { transform: none; }
 }
 
+/* Cards — branco, borda slate-200, sombra suave (hero) */
 .bg-card-escritorio {
   background: var(--branco-gelo-card);
-  border: 1px solid rgba(16, 31, 46, 0.06);
+  border: 1px solid var(--slate-200);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 .bg-card-escritorio:hover {
   box-shadow: var(--shadow-card-hover);
-  border-color: rgba(16, 31, 46, 0.08);
+  border-color: var(--slate-200);
 }
 
-.text-escritorio { color: var(--escritorio-escuro); }
+.text-escritorio { color: var(--slate-900); }
 .bg-dourado-light { background: var(--escritorio-dourado-light); }
 .border-dourado { border-color: var(--escritorio-dourado); }
-.bg-escuro { background: var(--escritorio-escuro); }
+.bg-escuro { background: var(--slate-900); }
+
+/* Hero dashboard preview — leve rotação 3D em desktop */
+@media (min-width: 1024px) {
+  .hero-dashboard-card {
+    transform: perspective(1000px) rotateY(-2deg) rotateX(1deg);
+  }
+  .hero-dashboard-card:hover {
+    transform: perspective(1000px) rotateY(0) rotateX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-dashboard-card { transform: none; }
+}

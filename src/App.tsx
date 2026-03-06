@@ -1,35 +1,56 @@
 import { useState, useEffect } from 'react'
-import { Header } from './components/Header'
+import { HealthqoeHeader } from './components/layout/header'
 import { Identificacao } from './components/Identificacao'
 import { FormDiagnostico } from './components/FormDiagnostico'
 import { Obrigado } from './components/Obrigado'
 import { ColetaEncerrada } from './components/ColetaEncerrada'
 import { WhistleblowerForm } from './components/WhistleblowerForm'
 import { WhistleblowerThanks } from './components/WhistleblowerThanks'
+import { ConsultarDenuncia } from './components/ConsultarDenuncia'
+import { LandingPage } from './components/LandingPage'
+import { RelatosBuscarEmpresa } from './components/RelatosBuscarEmpresa'
+import { CanalRelatosHub } from './components/CanalRelatosHub'
 import { Sobre } from './components/Sobre'
 import { Privacidade } from './components/Privacidade'
 import { AdminLogin } from './components/AdminLogin'
-import { AdminDashboard } from './components/AdminDashboard'
+import { AdminLayout } from './components/admin'
+import { Login } from './components/Login'
+import { Contato } from './components/Contato'
 import type { OptionKey } from './data/hseIt'
 import { saveSubmission, getTenantStatus } from './types/submission'
 import { isAdminLoggedIn } from './lib/adminAuth'
 import { getAppName, getTenantId } from './lib/tenant'
+import { getTenantDisplayName } from './types/submission'
 
-export type View = 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin-gate' | 'admin' | 'coleta-encerrada' | 'denuncia' | 'denuncia-obrigado'
+export type View = 'landing' | 'relatos-buscar' | 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin-gate' | 'admin' | 'coleta-encerrada' | 'denuncia-hub' | 'denuncia' | 'denuncia-obrigado' | 'denuncia-consultar' | 'login' | 'contato'
 
 function isDenunciaChannel(): boolean {
   if (typeof window === 'undefined') return false
   return new URLSearchParams(window.location.search).get('channel') === 'denuncia'
 }
 
+function getDenunciaViewFromUrl(): View {
+  if (typeof window === 'undefined') return 'denuncia'
+  const params = new URLSearchParams(window.location.search)
+  const org = params.get('org')?.trim()
+  const form = params.get('form') === '1'
+  const consultar = params.get('consultar') === '1'
+  if (org && form) return 'denuncia'
+  if (org && consultar) return 'denuncia-consultar'
+  if (org) return 'denuncia-hub'
+  return 'relatos-buscar'
+}
+
 function App() {
   const [view, setView] = useState<View>(() => {
     if (isAdminLoggedIn()) return 'admin'
-    if (isDenunciaChannel()) return 'denuncia'
-    return 'identificacao'
+    if (isDenunciaChannel()) return getDenunciaViewFromUrl()
+    return 'landing'
   })
   const [identificacao, setIdentificacao] = useState<{ setor: string } | null>(null)
   const [tenantBlocked, setTenantBlocked] = useState<boolean | null>(null)
+  const [denunciaProtocolId, setDenunciaProtocolId] = useState<string | null>(null)
+  const [hubOrgDisplayName, setHubOrgDisplayName] = useState<string | null>(null)
 
   const handleIdentificacao = (setor: string) => {
     setIdentificacao({ setor })
@@ -56,11 +77,11 @@ function App() {
   }
 
   const closeAdmin = () => {
-    setView('identificacao')
+    setView('landing')
   }
 
   const handleAdminLogout = () => {
-    setView('identificacao')
+    setView('landing')
   }
 
   useEffect(() => {
@@ -68,35 +89,68 @@ function App() {
     getTenantStatus(getTenantId()).then((s) => setTenantBlocked(!s.active))
   }, [view])
 
-  const showNavAndAdmin = ['identificacao', 'form', 'obrigado', 'sobre', 'privacidade', 'coleta-encerrada', 'denuncia', 'denuncia-obrigado'].includes(view)
+  useEffect(() => {
+    if (view !== 'denuncia-hub') return
+    getTenantDisplayName(getTenantId()).then(setHubOrgDisplayName)
+  }, [view])
+
+  const showNavAndAdmin = ['landing', 'relatos-buscar', 'identificacao', 'form', 'obrigado', 'sobre', 'privacidade', 'coleta-encerrada', 'denuncia-hub', 'denuncia', 'denuncia-obrigado', 'login', 'contato'].includes(view)
   const showAdminButton = view === 'identificacao' || view === 'form'
 
-  if (view === 'denuncia') {
+  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname || '/'}` : ''
+
+  if (view === 'admin') {
     return (
-      <div className="app-bg flex min-h-screen flex-col font-sans antialiased">
-        <Header view="identificacao" onNavigate={() => {}} onOpenAdmin={() => {}} showNavAndAdmin={false} showAdminButton={false} />
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
-          <WhistleblowerForm onEnviado={() => setView('denuncia-obrigado')} />
-        </main>
-        <footer className="mt-auto border-t border-[rgba(16,31,46,0.06)] bg-white/50 py-5">
-          <div className="mx-auto max-w-2xl px-4 text-center text-xs text-[var(--escritorio-escuro)]/60 sm:px-6">
-            {getAppName()} · Canal de denúncias anônimo
-          </div>
-        </footer>
+      <div className="app-bg min-h-screen font-sans antialiased">
+        <AdminLayout onClose={closeAdmin} onLogout={handleAdminLogout} />
       </div>
     )
   }
 
-  if (view === 'denuncia-obrigado') {
+  if (view === 'denuncia-hub' || view === 'denuncia' || view === 'denuncia-obrigado' || view === 'denuncia-consultar') {
     return (
       <div className="app-bg flex min-h-screen flex-col font-sans antialiased">
-        <Header view="identificacao" onNavigate={() => {}} onOpenAdmin={() => {}} showNavAndAdmin={false} showAdminButton={false} />
+        <HealthqoeHeader view="identificacao" onNavigate={() => {}} onOpenAdmin={() => {}} showNavAndAdmin={false} showAdminButton={false} />
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
-          <WhistleblowerThanks onFechar={() => { window.location.href = window.location.origin + (window.location.pathname || '/') }} />
+          {view === 'denuncia-hub' && (
+            <CanalRelatosHub
+              orgSlug={getTenantId()}
+              orgDisplayName={hubOrgDisplayName}
+              onEnviarRelato={() => { window.location.href = `${baseUrl}?org=${encodeURIComponent(getTenantId())}&channel=denuncia&form=1` }}
+              onAcompanharCodigo={() => { window.location.href = `${baseUrl}?org=${encodeURIComponent(getTenantId())}&channel=denuncia&consultar=1` }}
+            />
+          )}
+          {view === 'denuncia' && (
+            <WhistleblowerForm
+              onEnviado={(protocolId) => {
+                setDenunciaProtocolId(protocolId)
+                setView('denuncia-obrigado')
+              }}
+              onConsultar={() => setView('denuncia-consultar')}
+            />
+          )}
+          {view === 'denuncia-obrigado' && denunciaProtocolId && (
+            <WhistleblowerThanks
+              protocolId={denunciaProtocolId}
+              onFechar={() => { setDenunciaProtocolId(null); window.location.href = window.location.origin + (window.location.pathname || '/') }}
+              onConsultar={() => { setDenunciaProtocolId(null); setView('denuncia-consultar') }}
+            />
+          )}
+          {view === 'denuncia-consultar' && (
+            <ConsultarDenuncia onVoltar={() => setView('denuncia')} />
+          )}
         </main>
-        <footer className="mt-auto border-t border-[rgba(16,31,46,0.06)] bg-white/50 py-5">
-          <div className="mx-auto max-w-2xl px-4 text-center text-xs text-[var(--escritorio-escuro)]/60 sm:px-6">
-            {getAppName()} · Canal de denúncias anônimo
+        <footer className="mt-auto border-t border-slate-200 bg-white/60 py-5">
+          <div className="mx-auto max-w-2xl px-4 text-center sm:px-6">
+            <p className="text-xs text-slate-500">
+              {getAppName()} · Canal de denúncias anônimo
+            </p>
+            <a
+              href={baseUrl}
+              className="mt-2 inline-block text-xs font-medium text-violet-600 hover:text-violet-700 hover:underline"
+            >
+              Voltar ao site
+            </a>
           </div>
         </footer>
       </div>
@@ -105,7 +159,7 @@ function App() {
 
   return (
     <div className="app-bg flex min-h-screen flex-col font-sans antialiased">
-      <Header
+      <HealthqoeHeader
         view={view}
         onNavigate={setView}
         onOpenAdmin={openAdminGate}
@@ -113,7 +167,15 @@ function App() {
         showAdminButton={showAdminButton}
       />
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
+      <main className={`mx-auto w-full flex-1 px-4 py-10 sm:px-6 sm:py-12 ${view !== 'landing' ? 'max-w-4xl' : ''}`}>
+        {view === 'landing' && (
+          <LandingPage onFazerRelato={() => setView('relatos-buscar')} />
+        )}
+
+        {view === 'relatos-buscar' && (
+          <RelatosBuscarEmpresa onVoltar={() => setView('landing')} />
+        )}
+
         {view === 'identificacao' && tenantBlocked === true && (
           <ColetaEncerrada onVoltar={() => { window.location.href = window.location.origin + (window.location.pathname || '/') }} />
         )}
@@ -135,33 +197,40 @@ function App() {
         )}
 
         {view === 'obrigado' && (
-          <Obrigado onVoltar={() => setView('identificacao')} />
+          <Obrigado onVoltar={() => setView('landing')} />
         )}
 
         {view === 'sobre' && (
-          <Sobre onVoltar={() => setView('identificacao')} />
+          <Sobre onVoltar={() => setView('landing')} />
         )}
 
         {view === 'privacidade' && (
-          <Privacidade onVoltar={() => setView('identificacao')} />
+          <Privacidade onVoltar={() => setView('landing')} />
         )}
 
         {view === 'admin-gate' && (
           <div className="space-y-6">
             <AdminLogin
               onSuccess={openAdmin}
-              onCancel={() => setView('identificacao')}
+              onCancel={() => setView('landing')}
             />
           </div>
         )}
 
-        {view === 'admin' && (
-          <AdminDashboard onClose={closeAdmin} onLogout={handleAdminLogout} />
+        {view === 'login' && (
+          <Login
+            onSuccess={() => setView('admin')}
+            onCancel={() => setView('landing')}
+          />
+        )}
+
+        {view === 'contato' && (
+          <Contato onVoltar={() => setView('landing')} />
         )}
       </main>
 
-      <footer className="mt-auto border-t border-[rgba(16,31,46,0.06)] bg-white/50 py-5">
-        <div className="mx-auto max-w-2xl px-4 text-center text-xs text-[var(--escritorio-escuro)]/60 sm:px-6">
+      <footer className="mt-auto border-t border-slate-200 bg-white/60 py-5">
+        <div className="mx-auto max-w-2xl px-4 text-center text-xs text-slate-500 sm:px-6">
           {getAppName()} · Formulário em conformidade com o estudo HSE-IT · 35 perguntas · 7 dimensões
         </div>
       </footer>

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { ArrowLeft, LogOut, BarChart3, Calendar, Building2, Users, Briefcase, Trash2, Loader2, Building, Link2, Copy, Check, List, RefreshCw, Mail, Ban, RotateCcw, Pencil, Shield, Eye } from 'lucide-react'
 import { getSubmissions, getTenantList, getTenantRegistry, getTenantOverview, addTenantToRegistry, updateTenantRegistry, deleteTenantFromRegistry, deleteSubmission, type Submission, type TenantOverviewItem, type TenantRegistryItem } from '../types/submission'
-import { getWhistleblowerReports, markWhistleblowerReportRead, type WhistleblowerReport } from '../types/whistleblower'
+import { getWhistleblowerReports, markWhistleblowerReportRead, updateWhistleblowerStatus, type WhistleblowerReport, type WhistleblowerStatus } from '../types/whistleblower'
 import { logoutAdmin } from '../lib/adminAuth'
+import { getSupabase } from '../lib/supabase'
 import { computeDimensionScores, aggregateDimensionScores } from '../data/hseIt'
 import { GraficosResultados } from './GraficosResultados'
 import { Resultados } from './Resultados'
@@ -10,6 +11,10 @@ import { Resultados } from './Resultados'
 type Props = {
   onClose: () => void
   onLogout: () => void
+  /** Quando true (ex.: dentro do AdminLayout), não exibe os botões Voltar ao site e Sair no topo */
+  hideHeaderActions?: boolean
+  /** Filtro de pesquisa (nome ou slug da empresa) */
+  searchQuery?: string
 }
 
 function formatDate(iso: string): string {
@@ -23,7 +28,7 @@ function formatDate(iso: string): string {
   })
 }
 
-export function AdminDashboard({ onClose, onLogout }: Props) {
+export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQuery = '' }: Props) {
   const [tenantList, setTenantList] = useState<string[]>([])
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null)
   const [submissions, setSubmissions] = useState<Submission[]>([])
@@ -58,7 +63,7 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
 
   const loadOverview = () => {
     setOverviewLoading(true)
-    Promise.all([getTenantRegistry(), getTenantOverview()]).then(([registry, overview]) => {
+    return Promise.all([getTenantRegistry(), getTenantOverview()]).then(([registry, overview]) => {
       setRegistryList(registry)
       setOverviewList(overview)
       setOverviewLoading(false)
@@ -80,9 +85,19 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
     }
   }
 
-  const allTenantIds = Array.from(new Set([...registryList.map((r) => r.tenant_id), ...overviewList.map((o) => o.tenant_id)])).sort()
+  // Visão geral: só empresas do registro (ao excluir, some da lista).
+  const registryTenantIds = registryList.map((r) => r.tenant_id).sort()
   const overviewByTenant = Object.fromEntries(overviewList.map((o) => [o.tenant_id, o]))
   const registryByTenant = Object.fromEntries(registryList.map((r) => [r.tenant_id, r]))
+  const q = searchQuery.trim().toLowerCase()
+  const allTenantIds = q
+    ? registryTenantIds.filter((tid) => {
+        const name = (registryByTenant[tid]?.display_name ?? tid).toLowerCase()
+        return name.includes(q) || tid.toLowerCase().includes(q)
+      })
+    : registryTenantIds
+  const overviewOnlyIds = overviewList.map((o) => o.tenant_id).filter((tid) => !registryByTenant[tid]).sort()
+  const selectableTenantIdsForDropdown = Array.from(new Set([...registryTenantIds, ...overviewOnlyIds])).sort()
   const linkForSlug = (slug: string) => `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(slug)}`
   const denunciaLinkForSlug = (slug: string) => `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(slug)}&channel=denuncia`
   const displayNameFor = (tid: string) => registryByTenant[tid]?.display_name?.trim() || tid
@@ -120,7 +135,7 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
     setRemovingTenant(tid)
     try {
       await deleteTenantFromRegistry(tid)
-      loadOverview()
+      await loadOverview()
       if (selectedTenantId === tid) setSelectedTenantId(null)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Não foi possível remover.')
@@ -160,7 +175,7 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
     })
   }, [])
 
-  const selectableTenantIds = allTenantIds.length > 0 ? allTenantIds : tenantList
+  const selectableTenantIds = selectableTenantIdsForDropdown.length > 0 ? selectableTenantIdsForDropdown : tenantList
 
   useEffect(() => {
     loadOverview()
@@ -216,9 +231,13 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
     }
   }
 
-  const handleLogout = () => {
-    logoutAdmin()
-    onLogout()
+  const handleLogout = async () => {
+    try {
+      await getSupabase().auth.signOut()
+    } finally {
+      logoutAdmin()
+      onLogout()
+    }
   }
 
   // Dashboard da empresa: agregar todos os envios
@@ -267,7 +286,7 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
               <select
                 value={selectedTenantId ?? ''}
                 onChange={(e) => setSelectedTenantId(e.target.value || null)}
-                className="rounded-xl border border-[rgba(16,31,46,0.2)] bg-white px-4 py-2.5 text-sm font-medium text-escritorio shadow-sm focus:border-[var(--escritorio-dourado)] focus:outline-none focus:ring-2 focus:ring-[var(--escritorio-dourado)]/20"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
               >
                 <option value="">
                   {selectableTenantIds.length > 1 ? '— Selecione a empresa —' : '— Empresa —'}
@@ -280,42 +299,42 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
               </select>
             </div>
           )}
-          <div className="flex gap-1 rounded-lg border border-[rgba(16,31,46,0.15)] p-0.5">
+          <div className="flex gap-1 rounded-lg border border-slate-200 p-0.5 bg-slate-50">
             <button
               type="button"
               onClick={() => setAdminTab('diagnostico')}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition ${adminTab === 'diagnostico' ? 'bg-[var(--escritorio-dourado)]/20 text-escritorio' : 'text-escritorio/70 hover:bg-white/50'}`}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition ${adminTab === 'diagnostico' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:bg-white/70'}`}
             >
               Diagnóstico
             </button>
             <button
               type="button"
               onClick={() => setAdminTab('denuncias')}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition ${adminTab === 'denuncias' ? 'bg-[var(--escritorio-dourado)]/20 text-escritorio' : 'text-escritorio/70 hover:bg-white/50'}`}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition ${adminTab === 'denuncias' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:bg-white/70'}`}
             >
               Denúncias
             </button>
           </div>
-          <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex items-center gap-2 rounded-xl border bg-card-escritorio px-4 py-2.5 font-semibold text-escritorio shadow-sm transition hover:opacity-90"
-            style={{ borderColor: 'rgba(16,31,46,0.2)' }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar ao site
-          </button>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="inline-flex items-center gap-2 rounded-xl border bg-card-escritorio px-4 py-2.5 font-semibold text-escritorio shadow-sm transition hover:opacity-90"
-            style={{ borderColor: 'rgba(16,31,46,0.2)' }}
-          >
-            <LogOut className="h-4 w-4" />
-            Sair
-          </button>
-          </div>
+          {!hideHeaderActions && (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Voltar ao site
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
+              >
+                <LogOut className="h-4 w-4" />
+                Sair
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -381,7 +400,7 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
           </button>
         </div>
         <p className="mb-4 text-sm text-escritorio opacity-75">
-          Empresas na lista e respostas recebidas. A listagem atualiza ao receber novas respostas (ou ao clicar em Atualizar).
+          Empresas cadastradas na lista. Ao excluir, a empresa sai da lista (os envios permanecem no sistema). Atualize para recarregar.
         </p>
         {overviewLoading && allTenantIds.length === 0 ? (
           <div className="flex justify-center py-8">
@@ -479,17 +498,18 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
                           type="button"
                           onClick={() => handleRemoveFromList(tid)}
                           disabled={removingTenant === tid}
-                          className="rounded-lg p-2 text-red-600 opacity-70 transition hover:bg-red-50 hover:opacity-100 disabled:opacity-50"
-                          title="Remover da lista"
+                          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-red-600 opacity-90 transition hover:bg-red-50 hover:opacity-100 disabled:opacity-50 text-sm font-medium"
+                          title="Excluir empresa da lista"
                         >
                           {removingTenant === tid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          <span className="hidden sm:inline">Excluir</span>
                         </button>
                       </>
                     )}
                     <button
                       type="button"
                       onClick={() => { setSelectedTenantId(tid); setLinkSlug(tid) }}
-                      className="rounded-lg bg-[var(--escritorio-dourado)] px-3 py-2 text-sm font-semibold text-[var(--escritorio-escuro)] transition hover:opacity-90"
+                      className="rounded-full bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
                     >
                       Ver
                     </button>
@@ -498,6 +518,41 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
               )
             })}
           </ul>
+        )}
+        {overviewOnlyIds.length > 0 && (
+          <div className="mt-6 border-t border-[rgba(16,31,46,0.08)] pt-6">
+            <p className="mb-2 text-sm font-medium text-escritorio opacity-80">Empresas com respostas que ainda não estão na lista</p>
+            <p className="mb-3 text-xs text-escritorio opacity-60">Adicione à lista para gerenciar e poder excluir depois.</p>
+            <ul className="space-y-2">
+              {overviewOnlyIds.map((tid) => {
+                const overview = overviewByTenant[tid]
+                return (
+                  <li key={tid} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[rgba(16,31,46,0.06)] bg-white/50 p-3">
+                    <div>
+                      <p className="font-mono text-sm font-medium text-escritorio">{tid}</p>
+                      {overview && (
+                        <p className="text-xs text-escritorio opacity-70">{overview.submission_count} resposta(s)</p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await addTenantToRegistry(tid)
+                          await loadOverview()
+                        } catch (e) {
+                          alert(e instanceof Error ? e.message : 'Erro ao adicionar.')
+                        }
+                      }}
+                      className="rounded-lg border border-[var(--escritorio-dourado)] bg-transparent px-3 py-1.5 text-xs font-semibold text-escritorio transition hover:bg-[var(--escritorio-dourado)]/10"
+                    >
+                      Adicionar à lista
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         )}
       </div>
 
@@ -618,7 +673,7 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
             Canal de denúncias
           </h3>
           <p className="mb-4 text-sm text-escritorio opacity-75">
-            Selecione a empresa para ver as denúncias recebidas (formulário anônimo). Link do canal: <code className="rounded bg-black/5 px-1 py-0.5 text-xs">?org=slug&channel=denuncia</code>
+            Selecione a empresa para ver as denúncias recebidas (formulário anônimo). Link do canal: <code className="rounded bg-black/5 px-1 py-0.5 text-xs">?org=slug&channel=denuncia</code>. Consultar status: <code className="rounded bg-black/5 px-1 py-0.5 text-xs">?org=slug&channel=denuncia&consultar=1</code>
           </p>
           {(selectableTenantIds.length > 0 || tenantList.length > 0) && (
             <select
@@ -642,7 +697,27 @@ export function AdminDashboard({ onClose, onLogout }: Props) {
                 <li key={r.id} className="rounded-xl border border-[rgba(16,31,46,0.08)] bg-[var(--branco-gelo)] p-4">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-escritorio opacity-60">{displayNameFor(r.tenant_id)} · {formatDate(r.created_at)}</p>
+                      <p className="text-xs text-escritorio opacity-60">
+                        {r.protocol_id && <span className="font-mono font-semibold">{r.protocol_id}</span>}
+                        {r.protocol_id && ' · '}
+                        {displayNameFor(r.tenant_id)} · {formatDate(r.created_at)}
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <label className="text-xs text-escritorio opacity-70">Status:</label>
+                        <select
+                          value={r.status ?? 'recebida'}
+                          onChange={(e) => {
+                            const s = e.target.value as WhistleblowerStatus
+                            updateWhistleblowerStatus(r.id, s).then(() => loadReports(selectedTenantId))
+                          }}
+                          className="rounded border border-[rgba(16,31,46,0.2)] bg-white px-2 py-1 text-xs text-escritorio"
+                        >
+                          <option value="recebida">Recebida</option>
+                          <option value="em_analise">Em análise</option>
+                          <option value="concluida">Concluída</option>
+                          <option value="arquivada">Arquivada</option>
+                        </select>
+                      </div>
                       {r.category && <p className="mt-1 text-sm font-medium text-escritorio">{r.category}</p>}
                       <p className="mt-2 whitespace-pre-wrap text-sm text-escritorio/90">{r.body}</p>
                     </div>

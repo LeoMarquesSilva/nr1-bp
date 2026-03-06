@@ -55,6 +55,20 @@ export interface Question {
   text: string
 }
 
+/**
+ * Legenda do que cada dimensão representa (fonte: aba "descrição" da planilha HSE).
+ * Substitua pelos textos oficiais da planilha quando disponível.
+ */
+export const DIMENSION_DESCRIPTIONS: Record<DimensionId, string> = {
+  demandas: 'Esta dimensão avalia as exigências e a carga de trabalho (prazos, intensidade, pausas, pressão por horários e rapidez). Quanto menor a média, melhor o ambiente nesse aspecto.',
+  controle: 'Avalia a autonomia e a possibilidade de influenciar o próprio trabalho (pausas, ritmo, liberdade de escolha, flexibilidade de horário e consideração das sugestões).',
+  apoio_chefia: 'Reflete o suporte e a confiança oferecidos pela liderança (informações, apoio em problemas, abertura para diálogo e incentivo).',
+  apoio_colega: 'Mede o apoio e o respeito entre colegas (ajuda quando o trabalho fica difícil, disponibilidade para escutar e respeito no ambiente).',
+  relacionamentos: 'Avalia a qualidade das relações no trabalho (conflitos, tensão, tratamento duro ou sensação de perseguição). Quanto menor a média, melhor.',
+  cargo_papel: 'Verifica a clareza do papel e das expectativas (tarefas, responsabilidades, objetivos do setor e como o trabalho se encaixa na empresa).',
+  comunicacao_mudancas: 'Avalia como as mudanças organizacionais são comunicadas e se há espaço para esclarecimentos e participação.',
+}
+
 export const QUESTIONS: Question[] = [
   // Demandas (8) - invertido
   { id: 1, dimensionId: 'demandas', dimensionLabel: 'Demandas', text: 'As exigências de trabalho feitas por colegas e supervisores são difíceis de conciliar' },

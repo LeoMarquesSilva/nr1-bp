@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { ArrowRight, Shield, Clock, FileCheck, ChevronRight } from 'lucide-react'
 import { SETORES } from '../data/opcoes'
+import { getTenantSetores } from '../types/submission'
+import { getTenantId } from '../lib/tenant'
 
 const container = {
   hidden: { opacity: 0 },
@@ -22,6 +24,13 @@ type Props = {
 
 export function Identificacao({ onIniciar }: Props) {
   const [setor, setSetor] = useState('')
+  const [opcoesSetor, setOpcoesSetor] = useState<string[]>(SETORES as unknown as string[])
+
+  useEffect(() => {
+    getTenantSetores(getTenantId()).then((tenantSetores) => {
+      setOpcoesSetor(tenantSetores.length > 0 ? tenantSetores : (SETORES as unknown as string[]))
+    })
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,22 +44,16 @@ export function Identificacao({ onIniciar }: Props) {
       animate="show"
       className="space-y-8 sm:space-y-10"
     >
-      {/* Hero (referência: headline bold + supporting text) */}
+      {/* Hero (design LP: slate-900 + texto branco) */}
       <motion.section
         variants={item}
-        className="relative overflow-hidden rounded-2xl px-6 py-10 sm:px-10 sm:py-14"
-        style={{
-          background: 'linear-gradient(135deg, var(--escritorio-escuro) 0%, #0d1820 50%, #081018 100%)',
-          boxShadow: '0 4px 24px rgba(16,31,46,0.12), 0 0 0 1px rgba(255,255,255,0.04) inset',
-        }}
+        className="relative overflow-hidden rounded-2xl bg-slate-900 px-6 py-10 shadow-xl shadow-slate-900/20 sm:px-10 sm:py-14"
       >
-        <div className="absolute inset-0 opacity-30" style={{
-          background: 'radial-gradient(ellipse 80% 50% at 70% 20%, rgba(213,177,112,0.2), transparent 50%)',
-        }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent" />
         <div className="relative">
           <motion.p
             variants={item}
-            className="text-xs font-semibold uppercase tracking-widest text-[var(--escritorio-dourado)]/90"
+            className="text-xs font-semibold uppercase tracking-widest text-violet-300"
           >
             Avaliação psicossocial
           </motion.p>
@@ -62,29 +65,29 @@ export function Identificacao({ onIniciar }: Props) {
           </motion.h2>
           <motion.p
             variants={item}
-            className="mt-4 max-w-xl text-base text-white/75 sm:text-lg"
+            className="mt-4 max-w-xl text-base text-slate-300 sm:text-lg"
           >
             O diagnóstico HSE-IT mapeia as condições psicossociais da sua organização em 7 dimensões. Respostas confidenciais e uso exclusivo para melhorias internas.
           </motion.p>
         </div>
       </motion.section>
 
-      {/* Card principal: identificação */}
-      <motion.div variants={item} className="bg-card-escritorio rounded-2xl p-6 shadow-lg sm:p-8">
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-escritorio/60">
-          <span className="rounded-full bg-dourado-light px-2.5 py-0.5">Passo 1</span>
+      {/* Card principal: identificação (hero: card branco, bordas slate) */}
+      <motion.div variants={item} className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-6 shadow-lg sm:p-8">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-violet-700">Passo 1</span>
           <ChevronRight className="h-3.5 w-3.5" />
           <span>Identificação</span>
         </div>
-        <h3 className="text-xl font-bold tracking-tight text-escritorio sm:text-2xl">
+        <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
           Bem-vindo ao Diagnóstico HSE-IT
         </h3>
-        <p className="mt-2 text-sm text-escritorio/80">
+        <p className="mt-2 text-sm text-slate-600">
           Antes de começar, informe seu setor. Suas respostas são confidenciais e contribuem para o mapeamento psicossocial da empresa.
         </p>
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div>
-            <label htmlFor="setor" className="mb-2 block text-sm font-semibold text-escritorio">
+            <label htmlFor="setor" className="mb-2 block text-sm font-semibold text-slate-900">
               Setor
             </label>
             <select
@@ -92,14 +95,10 @@ export function Identificacao({ onIniciar }: Props) {
               value={setor}
               onChange={(e) => setSetor(e.target.value)}
               required
-              className="input-escritorio w-full rounded-xl border px-4 py-3.5 text-[var(--escritorio-escuro)] transition"
-              style={{
-                borderColor: 'rgba(16,31,46,0.12)',
-                background: 'var(--branco-gelo)',
-              }}
+              className="input-escritorio w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
             >
               <option value="">Selecione o setor</option>
-              {SETORES.map((s) => (
+              {opcoesSetor.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
@@ -119,7 +118,7 @@ export function Identificacao({ onIniciar }: Props) {
         </form>
       </motion.div>
 
-      {/* Cards de contexto / confiança (stagger) */}
+      {/* Cards de contexto / confiança (hero: violet ícones, texto slate) */}
       <motion.div
         variants={container}
         className="grid gap-4 sm:grid-cols-3"
@@ -133,14 +132,14 @@ export function Identificacao({ onIniciar }: Props) {
             key={title}
             variants={item}
             whileHover={{ y: -2 }}
-            className="bg-card-escritorio flex gap-4 rounded-xl border border-[rgba(16,31,46,0.06)] p-4 transition-shadow hover:shadow-md"
+            className="bg-card-escritorio flex gap-4 rounded-xl border border-slate-200/60 p-4 transition-shadow hover:shadow-md"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-dourado-light" style={{ color: 'var(--escritorio-dourado)' }}>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
               <Icon className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-escritorio">{title}</p>
-              <p className="mt-0.5 text-xs text-escritorio/70">{desc}</p>
+              <p className="text-sm font-semibold text-slate-900">{title}</p>
+              <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
             </div>
           </motion.div>
         ))}

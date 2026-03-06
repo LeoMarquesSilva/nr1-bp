@@ -1,0 +1,14 @@
+---
+description: Usar o MCP Supabase para rodar migrações; não rodar SQL manualmente no Dashboard quando o MCP estiver disponível
+globs: supabase/migrations/**/*.sql
+alwaysApply: false
+---
+
+# Migrações Supabase via MCP
+
+- **Sempre que for aplicar ou verificar migrações**, use o MCP do projeto Supabase (`project-0-nr1-form-supabase`).
+- **Listar migrações já aplicadas**: use a ferramenta `list_migrations` (sem argumentos).
+- **Aplicar uma nova migração**: use a ferramenta `apply_migration` com:
+  - `name`: nome da migração em snake_case (ex.: `admin_users`, `whistleblower_protocol_status`).
+  - `query`: conteúdo SQL completo do arquivo da migração (ex.: de `supabase/migrations/005_admin_users.sql`).
+- Não oriente o usuário a rodar o SQL manualmente no SQL Editor do Supabase quando o MCP estiver disponível; use o MCP para aplicar migrações.

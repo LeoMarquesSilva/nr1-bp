@@ -25,6 +25,11 @@ export function loginAdmin(password: string): boolean {
   return false
 }
 
+/** Marca sessão de admin (ex.: após login via Supabase). */
+export function setAdminSession(): void {
+  sessionStorage.setItem(SESSION_KEY, 'true')
+}
+
 export function logoutAdmin(): void {
   sessionStorage.removeItem(SESSION_KEY)
 }

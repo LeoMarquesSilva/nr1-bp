@@ -1,0 +1,21 @@
+---
+description: Ao trabalhar na área admin (sidebar, layout, páginas internas), usar sempre o contexto em docs/ADMIN-CONTEXT.md e DESIGN_CONTEXT.md
+globs: src/components/admin/**/*, src/components/AdminDashboard.tsx
+alwaysApply: false
+---
+
+# Área administrativa — contexto obrigatório
+
+Ao implementar ou alterar a **parte interna do sistema (painel após login)**:
+
+1. **Leia o contexto** antes de propor mudanças:
+   - **`docs/ADMIN-CONTEXT.md`** — estrutura do admin, destinos (`AdminPage`), sidebar, logout, perfil, checklist.
+   - **`DESIGN_CONTEXT.md`** — identidade visual, tokens, padrões do projeto.
+
+2. **Não inferir estrutura:** Os destinos do admin são definidos pelo tipo `AdminPage` e pela lista `ADMIN_NAV` em `AdminSidebar.tsx`. Novas páginas exigem atualizar esse tipo, a lista e o switch em `AdminLayout.tsx`.
+
+3. **Sidebar:** Seguir o modelo em `docs/PROMPT-RESUMO-SIDEBAR-LOGIN-PERFIL.md` (seção 3.2): barra fixa à esquerda (desktop), bottom nav (mobile), logo/Voltar ao site, itens de nav, divisor, avatar (perfil), logout.
+
+4. **Logout:** Sempre `signOut()` do Supabase + `logoutAdmin()` (sessionStorage) + callback do App; o layout centraliza isso em `handleLogout`.
+
+Use esses documentos como fonte da verdade para evitar inconsistências e alucinações na área admin.

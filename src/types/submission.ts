@@ -60,24 +60,57 @@ export interface TenantRegistryItem {
   tenant_id: string
   display_name: string | null
   active: boolean
+  cnpj?: string | null
+  cnpjs?: string[]
+  nicho?: string | null
+  setores?: string[]
 }
 
-/** Lista as empresas do registro (com nome e status). */
+/** Busca pública de organizações por nome ou slug (para página "Fazer relato" → selecionar empresa). */
+export async function searchOrganizations(query: string): Promise<{ tenant_id: string; display_name: string | null }[]> {
+  const supabase = getSupabase()
+  const { data, error } = await supabase.rpc('search_organizations', { p_query: query.trim() })
+  if (error) {
+    console.error('Supabase search_organizations:', error)
+    return []
+  }
+  return (data ?? []).map((r: { tenant_id: string; display_name: string | null }) => ({
+    tenant_id: r.tenant_id,
+    display_name: r.display_name ?? null,
+  }))
+}
+
+/** Lista as empresas do registro (com nome, status e dados estendidos). */
 export async function getTenantRegistry(): Promise<TenantRegistryItem[]> {
   const supabase = getSupabase()
   const { data, error } = await supabase
     .from('tenant_registry')
-    .select('tenant_id, display_name, active')
+    .select('tenant_id, display_name, active, cnpj, cnpjs, nicho, setores')
     .order('created_at', { ascending: false })
   if (error) {
     console.error('Supabase getTenantRegistry:', error)
     return []
   }
-  return (data ?? []).map((r: { tenant_id: string; display_name: string | null; active: boolean }) => ({
+  return (data ?? []).map((r: { tenant_id: string; display_name: string | null; active: boolean; cnpj?: string | null; cnpjs?: unknown; nicho?: string | null; setores?: unknown }) => ({
     tenant_id: r.tenant_id,
     display_name: r.display_name ?? null,
     active: r.active ?? true,
+    cnpj: r.cnpj ?? null,
+    cnpjs: Array.isArray(r.cnpjs) ? (r.cnpjs as string[]) : [],
+    nicho: r.nicho ?? null,
+    setores: Array.isArray(r.setores) ? (r.setores as string[]) : [],
   }))
+}
+
+/** Retorna o display_name do tenant (para exibir no hub do canal de relatos). */
+export async function getTenantDisplayName(tenantId: string): Promise<string | null> {
+  const supabase = getSupabase()
+  const { data } = await supabase
+    .from('tenant_registry')
+    .select('display_name')
+    .eq('tenant_id', tenantId.trim().toLowerCase())
+    .maybeSingle()
+  return data?.display_name?.trim() ?? null
 }
 
 /** Verifica se a coleta do tenant está ativa (para bloquear formulário). Se não estiver no registro, considera ativo. */
@@ -107,27 +140,65 @@ export async function updateTenantRegistry(
   }
 }
 
-/** Remove empresa da lista (não apaga envios). */
+/** Remove empresa da lista (não apaga envios), via RPC que verifica is_admin(). */
 export async function deleteTenantFromRegistry(tenantId: string): Promise<void> {
   const supabase = getSupabase()
-  const { error } = await supabase.from('tenant_registry').delete().eq('tenant_id', tenantId.trim().toLowerCase())
+  const { error } = await supabase.rpc('delete_tenant_registry', {
+    p_tenant_id: tenantId.trim().toLowerCase(),
+  })
   if (error) {
     console.error('Supabase deleteTenantFromRegistry:', error)
-    throw new Error('Não foi possível remover da lista.')
+    throw new Error(error.message === 'Acesso negado: apenas administradores podem remover empresas do registro.' ? error.message : 'Não foi possível remover da lista.')
   }
 }
 
 /** Adiciona uma empresa à lista do admin (ao clicar em "Adicionar à lista"). */
 export async function addTenantToRegistry(tenantId: string, displayName?: string): Promise<void> {
-  const supabase = getSupabase()
   const slug = tenantId.trim().toLowerCase()
   if (!slug) return
-  const row: { tenant_id: string; display_name?: string } = { tenant_id: slug }
-  if (displayName != null && displayName.trim()) row.display_name = displayName.trim()
-  const { error } = await supabase.from('tenant_registry').upsert(row, { onConflict: 'tenant_id' })
+  await upsertTenantRegistry({
+    tenant_id: slug,
+    display_name: displayName?.trim() || null,
+  })
+}
+
+/** Retorna as opções de setor do tenant (para o formulário de diagnóstico). Se vazio, usar lista padrão. */
+export async function getTenantSetores(tenantId: string): Promise<string[]> {
+  const supabase = getSupabase()
+  const { data } = await supabase
+    .from('tenant_registry')
+    .select('setores')
+    .eq('tenant_id', tenantId.trim().toLowerCase())
+    .maybeSingle()
+  const setores = data?.setores
+  return Array.isArray(setores) ? (setores as string[]) : []
+}
+
+/** Cria ou atualiza empresa no registro (admin), via RPC que verifica is_admin(). */
+export async function upsertTenantRegistry(payload: {
+  tenant_id: string
+  display_name?: string | null
+  active?: boolean
+  cnpj?: string | null
+  cnpjs?: string[]
+  nicho?: string | null
+  setores?: string[]
+}): Promise<void> {
+  const supabase = getSupabase()
+  const slug = payload.tenant_id.trim().toLowerCase()
+  if (!slug) throw new Error('tenant_id é obrigatório.')
+  const { error } = await supabase.rpc('upsert_tenant_registry', {
+    p_tenant_id: slug,
+    p_display_name: payload.display_name?.trim() || null,
+    p_active: payload.active ?? true,
+    p_cnpj: payload.cnpj?.trim() || null,
+    p_cnpjs: Array.isArray(payload.cnpjs) ? payload.cnpjs : [],
+    p_nicho: payload.nicho?.trim() || null,
+    p_setores: Array.isArray(payload.setores) ? payload.setores : [],
+  })
   if (error) {
-    console.error('Supabase addTenantToRegistry:', error)
-    throw new Error('Não foi possível adicionar à lista.')
+    console.error('Supabase upsertTenantRegistry:', error)
+    throw new Error(error.message === 'Acesso negado: apenas administradores podem alterar o registro de empresas.' ? error.message : 'Não foi possível salvar a empresa.')
   }
 }
 

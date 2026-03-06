@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, ClipboardList, Send, Shuffle } from 'lucide-react'
-import { QUESTIONS, OPTIONS, type OptionKey, type Question } from '../data/hseIt'
+import { QUESTIONS, OPTIONS, DIMENSION_DESCRIPTIONS, type OptionKey, type Question } from '../data/hseIt'
 
 const OPTION_KEYS: OptionKey[] = ['nunca', 'raramente', 'as_vezes', 'frequentemente', 'sempre']
 
@@ -63,11 +63,7 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
   }
 
   useEffect(() => {
-    const el = sectionRef.current
-    if (!el) return
-    const top = el.getBoundingClientRect().top + window.scrollY
-    const headerOffset = 80
-    window.scrollTo({ top: Math.max(0, top - headerOffset), behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [currentGroup])
 
   const handlePreencherAleatorio = () => {
@@ -83,15 +79,15 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Identificação (só na primeira etapa) + botão teste */}
       {currentGroup === 0 && (
-        <div className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
+        <div className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-6 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm font-semibold text-escritorio">
+            <p className="text-sm font-semibold text-slate-900">
               Setor: <span>{setor}</span>
             </p>
             <button
               type="button"
               onClick={handlePreencherAleatorio}
-              className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition bg-dourado-light border-dourado text-escritorio hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-300 bg-violet-50 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-violet-100"
             >
               <Shuffle className="h-4 w-4" />
               Preencher aleatório (teste)
@@ -100,38 +96,40 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
         </div>
       )}
 
-      {/* Progress */}
-      <div className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
+      {/* Progress (hero: slate + violet bar) */}
+      <div className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-6 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <span className="flex items-center gap-2 text-sm font-medium text-escritorio">
-            <ClipboardList className="h-4 w-4" style={{ color: 'var(--escritorio-dourado)' }} />
+          <span className="flex items-center gap-2 text-sm font-medium text-slate-900">
+            <ClipboardList className="h-4 w-4 text-violet-600" />
             Dimensão {currentGroup + 1} de {groups.length}
           </span>
-          <span className="rounded-full px-3 py-1 text-sm font-semibold bg-dourado-light text-escritorio">
+          <span className="rounded-full bg-violet-100 px-3 py-1 text-sm font-semibold text-violet-700">
             {totalAnswered} / {QUESTIONS.length} respostas
           </span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-dourado-light">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
           <div
-            className="progress-fill h-full rounded-full"
-            style={{ width: `${progressPercent}%`, background: 'var(--escritorio-dourado)' }}
+            className="progress-fill h-full rounded-full bg-violet-600"
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
-        <p className="mt-2 text-lg font-semibold text-escritorio">{dimensionLabel}</p>
+        <p className="mt-2 text-lg font-semibold text-slate-900">{dimensionLabel}</p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          {DIMENSION_DESCRIPTIONS[questionsInGroup[0].dimensionId]}
+        </p>
       </div>
 
-      {/* Perguntas da dimensão atual — scroll ao trocar de dimensão */}
-      <div ref={sectionRef} className="bg-card-escritorio rounded-2xl p-6 shadow-sm sm:p-8">
+      {/* Perguntas da dimensão atual (hero: cards slate, opção selecionada violet) */}
+      <div ref={sectionRef} className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-6 shadow-sm sm:p-8">
         <fieldset className="space-y-8 border-0 p-0">
           <legend className="sr-only">{dimensionLabel}</legend>
           {questionsInGroup.map((q) => (
             <div
               key={q.id}
-              className="rounded-xl border p-5 transition bg-dourado-light/30 hover:bg-dourado-light/50"
-            style={{ borderColor: 'rgba(16,31,46,0.1)' }}
+              className="rounded-xl border border-slate-200 bg-slate-50/50 p-5 transition hover:bg-slate-50"
             >
-              <p className="mb-4 text-base font-medium leading-snug text-escritorio">
-                <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-dourado-light text-sm font-bold text-escritorio">
+              <p className="mb-4 text-base font-medium leading-snug text-slate-900">
+                <span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-lg bg-violet-100 text-sm font-bold text-violet-700">
                   {q.id}
                 </span>
                 {q.text}
@@ -146,8 +144,7 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
                   return (
                     <label
                       key={opt.key}
-                      className="option-card min-w-[7.5rem] flex-1 cursor-pointer focus-within:ring-2 focus-within:ring-offset-2 sm:min-w-[8rem]"
-                      style={{ ['--tw-ring-color' as string]: 'var(--escritorio-dourado)' }}
+                      className="option-card min-w-[7.5rem] flex-1 cursor-pointer focus-within:ring-2 focus-within:ring-violet-400 focus-within:ring-offset-2 sm:min-w-[8rem]"
                     >
                       <input
                         type="radio"
@@ -158,12 +155,11 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
                         className="sr-only"
                       />
                       <span
-                        className={`option-card-inner block rounded-xl border-2 px-4 py-3 text-center text-sm font-medium transition whitespace-nowrap ${
+                        className={`block rounded-xl border-2 px-4 py-3 text-center text-sm font-medium transition whitespace-nowrap ${
                           isSelected
-                            ? 'border-dourado bg-dourado-light text-escritorio shadow-sm'
-                            : 'bg-card-escritorio text-escritorio hover:bg-dourado-light/30'
+                            ? 'border-violet-500 bg-violet-50 text-slate-900 shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'
                         }`}
-                        style={!isSelected ? { borderColor: 'rgba(16,31,46,0.15)' } : undefined}
                       >
                         {opt.label}
                       </span>
@@ -176,14 +172,13 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
         </fieldset>
       </div>
 
-      {/* Navegação */}
+      {/* Navegação (hero: secundário outline slate, primário slate-900) */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <button
           type="button"
           onClick={goPrev}
           disabled={currentGroup === 0}
-          className="inline-flex items-center gap-2 rounded-xl border bg-card-escritorio px-5 py-3 font-semibold shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 text-escritorio"
-        style={{ borderColor: 'rgba(16,31,46,0.2)' }}
+          className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ChevronLeft className="h-5 w-5" />
           Anterior
@@ -193,7 +188,7 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
             type="button"
             onClick={goNext}
             disabled={!answeredInGroup}
-            className="btn-escritorio inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-escritorio inline-flex items-center gap-2 rounded-full px-5 py-3 font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
           >
             Próxima dimensão
             <ChevronRight className="h-5 w-5" />
@@ -202,7 +197,7 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
           <button
             type="submit"
             disabled={!allAnswered || submitting}
-            className="btn-escritorio inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
+            className="btn-escritorio inline-flex items-center gap-2 rounded-full px-5 py-3 font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? 'Enviando...' : 'Enviar diagnóstico'}
             <Send className="h-5 w-5" />
