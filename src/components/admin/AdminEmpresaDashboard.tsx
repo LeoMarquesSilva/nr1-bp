@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, Building2, Copy, Check, Link2, Calendar, Loader2, Trash2, Shield, BarChart3, Users, Briefcase, Mail, Ban, RotateCcw, Eye } from 'lucide-react'
+import { ArrowLeft, Building2, Copy, Check, Link2, Calendar, Loader2, Trash2, Shield, BarChart3, Users, Briefcase, Ban, RotateCcw, Eye } from 'lucide-react'
 import {
   getTenantRegistry,
-  getTenantOverview,
   updateTenantRegistry,
   deleteTenantFromRegistry,
   deleteSubmission,
   getSubmissions,
   type TenantRegistryItem,
-  type TenantOverviewItem,
   type Submission
 } from '@/types/submission'
 import {
@@ -44,7 +42,6 @@ type Tab = 'diagnostico' | 'denuncias' | 'configuracoes'
 export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('diagnostico')
   const [registry, setRegistry] = useState<TenantRegistryItem | null>(null)
-  const [overview, setOverview] = useState<TenantOverviewItem | null>(null)
   const [loading, setLoading] = useState(true)
   
   // Diagnóstico
@@ -66,19 +63,15 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
   const linkDenuncia = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(tenantId)}&channel=denuncia`
 
   const loadBaseData = () => {
-    return Promise.all([getTenantRegistry(), getTenantOverview()]).then(([regList, overList]) => {
+    return Promise.all([getTenantRegistry()]).then(([regList]) => {
       const r = regList.find((x) => x.tenant_id === tenantId) ?? null
-      const o = overList.find((x) => x.tenant_id === tenantId) ?? null
       setRegistry(r)
-      setOverview(o)
       setLoading(false)
     })
   }
 
   useEffect(() => {
-    let cancelled = false
     loadBaseData()
-    return () => { cancelled = true }
   }, [tenantId])
 
   useEffect(() => {

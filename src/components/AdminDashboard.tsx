@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, LogOut, Calendar, Building2, Trash2, Loader2, Link2, Copy, Check, List, RefreshCw, Mail, Ban, RotateCcw, Pencil, Shield } from 'lucide-react'
+import { ArrowLeft, LogOut, Building2, Trash2, Loader2, Link2, Copy, Check, List, RefreshCw, Mail, Ban, RotateCcw, Pencil, Shield } from 'lucide-react'
 import { getTenantRegistry, getTenantOverview, addTenantToRegistry, updateTenantRegistry, deleteTenantFromRegistry, type TenantOverviewItem, type TenantRegistryItem } from '../types/submission'
 import { logoutAdmin } from '../lib/adminAuth'
 import { getSupabase } from '../lib/supabase'
@@ -13,17 +13,6 @@ type Props = {
   searchQuery?: string
   /** Ação de "Ver" empresa */
   onSelectTenant?: (tenantId: string) => void
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso)
-  return d.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQuery = '', onSelectTenant }: Props) {

@@ -21,9 +21,8 @@ import { isAdminLoggedIn } from './lib/adminAuth'
 import { getAppName, getTenantId, setTenantFromUrl } from './lib/tenant'
 import { getTenantDisplayName } from './types/submission'
 import { Footer } from './components/layout/Footer'
-import type { FooterNavView } from './components/layout/Footer'
 
-export type View = 'landing' | 'relatos-buscar' | 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin' | 'coleta-encerrada' | 'denuncia-hub' | 'denuncia' | 'denuncia-obrigado' | 'denuncia-consultar' | 'login' | 'contato'
+export type View = 'landing' | 'relatos-buscar' | 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin-gate' | 'admin' | 'coleta-encerrada' | 'denuncia-hub' | 'denuncia' | 'denuncia-obrigado' | 'denuncia-consultar' | 'login' | 'contato'
 
 function isDenunciaChannel(): boolean {
   if (typeof window === 'undefined') return false
@@ -77,10 +76,6 @@ function App() {
       const message = err instanceof Error ? err.message : 'Não foi possível enviar. Tente novamente.'
       alert(message)
     }
-  }
-
-  const openAdmin = () => {
-    setView('admin')
   }
 
   const closeAdmin = () => {

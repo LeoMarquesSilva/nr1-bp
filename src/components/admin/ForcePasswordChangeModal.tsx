@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Lock, Loader2, LogOut } from 'lucide-react'
 import { getSupabase } from '@/lib/supabase'
 import { logoutAdmin } from '@/lib/adminAuth'
-import { cn } from '@/lib/utils'
 
 type ForcePasswordChangeModalProps = {
   onSuccess: () => void
