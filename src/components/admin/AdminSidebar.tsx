@@ -1,11 +1,12 @@
-import { LayoutDashboard, User, LogOut, Home, Building2 } from 'lucide-react'
+import { LayoutDashboard, User, LogOut, Home, Building2, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-export type AdminPage = 'dashboard' | 'perfil' | 'empresas' | 'empresa'
+export type AdminPage = 'dashboard' | 'perfil' | 'empresas' | 'empresa' | 'usuarios'
 
 export const ADMIN_NAV: { id: AdminPage; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'empresas', label: 'Empresas', icon: Building2 },
+  { id: 'usuarios', label: 'Usuários', icon: Users as typeof LayoutDashboard },
   { id: 'perfil', label: 'Perfil', icon: User },
 ]
 

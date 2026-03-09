@@ -65,7 +65,7 @@ export function HeroContent({ onFazerRelato }: Props) {
         variants={itemLeft}
         className="mt-3 text-xs text-slate-400"
       >
-        🔒 100% anônimo · Protocolo rastreável · Dados isolados por empresa
+        🔒 100% anônimo · Protocolo rastreável · Acessível via Celular/QR Code
       </motion.p>
 
       <motion.p variants={itemLeft} className="mt-6 rounded-lg border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm leading-relaxed text-slate-600">
@@ -81,6 +81,9 @@ export function HeroContent({ onFazerRelato }: Props) {
         </span>
         <span className="rounded-md bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
           ISO 37002
+        </span>
+        <span className="rounded-md bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+          Gestão de Políticas
         </span>
       </motion.div>
       <motion.p variants={itemLeft} className="mt-2 text-xs text-slate-400">

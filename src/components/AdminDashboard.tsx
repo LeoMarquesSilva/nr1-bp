@@ -1,12 +1,8 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, LogOut, BarChart3, Calendar, Building2, Users, Briefcase, Trash2, Loader2, Building, Link2, Copy, Check, List, RefreshCw, Mail, Ban, RotateCcw, Pencil, Shield, Eye } from 'lucide-react'
-import { getSubmissions, getTenantList, getTenantRegistry, getTenantOverview, addTenantToRegistry, updateTenantRegistry, deleteTenantFromRegistry, deleteSubmission, type Submission, type TenantOverviewItem, type TenantRegistryItem } from '../types/submission'
-import { getWhistleblowerReports, markWhistleblowerReportRead, updateWhistleblowerStatus, type WhistleblowerReport, type WhistleblowerStatus } from '../types/whistleblower'
+import { ArrowLeft, LogOut, Calendar, Building2, Trash2, Loader2, Link2, Copy, Check, List, RefreshCw, Mail, Ban, RotateCcw, Pencil, Shield } from 'lucide-react'
+import { getTenantRegistry, getTenantOverview, addTenantToRegistry, updateTenantRegistry, deleteTenantFromRegistry, type TenantOverviewItem, type TenantRegistryItem } from '../types/submission'
 import { logoutAdmin } from '../lib/adminAuth'
 import { getSupabase } from '../lib/supabase'
-import { computeDimensionScores, aggregateDimensionScores } from '../data/hseIt'
-import { GraficosResultados } from './GraficosResultados'
-import { Resultados } from './Resultados'
 
 type Props = {
   onClose: () => void
@@ -15,6 +11,8 @@ type Props = {
   hideHeaderActions?: boolean
   /** Filtro de pesquisa (nome ou slug da empresa) */
   searchQuery?: string
+  /** Ação de "Ver" empresa */
+  onSelectTenant?: (tenantId: string) => void
 }
 
 function formatDate(iso: string): string {
@@ -28,12 +26,7 @@ function formatDate(iso: string): string {
   })
 }
 
-export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQuery = '' }: Props) {
-  const [tenantList, setTenantList] = useState<string[]>([])
-  const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null)
-  const [submissions, setSubmissions] = useState<Submission[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState<Submission | null>(null)
+export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQuery = '', onSelectTenant }: Props) {
   const [linkSlug, setLinkSlug] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
   const [overviewList, setOverviewList] = useState<TenantOverviewItem[]>([])
@@ -42,9 +35,6 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
   const [addingSlug, setAddingSlug] = useState<string | null>(null)
   const [togglingTenant, setTogglingTenant] = useState<string | null>(null)
   const [removingTenant, setRemovingTenant] = useState<string | null>(null)
-  const [reports, setReports] = useState<WhistleblowerReport[]>([])
-  const [reportsLoading, setReportsLoading] = useState(false)
-  const [adminTab, setAdminTab] = useState<'diagnostico' | 'denuncias'>('diagnostico')
 
   const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname || '/'}`.replace(/\?.*$/, '') : ''
   const generatedLink = linkSlug.trim() ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(linkSlug.trim().toLowerCase())}` : ''
@@ -97,7 +87,6 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
       })
     : registryTenantIds
   const overviewOnlyIds = overviewList.map((o) => o.tenant_id).filter((tid) => !registryByTenant[tid]).sort()
-  const selectableTenantIdsForDropdown = Array.from(new Set([...registryTenantIds, ...overviewOnlyIds])).sort()
   const linkForSlug = (slug: string) => `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(slug)}`
   const denunciaLinkForSlug = (slug: string) => `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(slug)}&channel=denuncia`
   const displayNameFor = (tid: string) => registryByTenant[tid]?.display_name?.trim() || tid
@@ -122,7 +111,6 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     try {
       await updateTenantRegistry(tid, { active: !item.active })
       loadOverview()
-      if (selectedTenantId === tid) loadSubmissions(tid)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Não foi possível atualizar.')
     } finally {
@@ -136,7 +124,6 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     try {
       await deleteTenantFromRegistry(tid)
       await loadOverview()
-      if (selectedTenantId === tid) setSelectedTenantId(null)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Não foi possível remover.')
     } finally {
@@ -156,27 +143,6 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     }
   }
 
-  const loadReports = (tenantId: string | null) => {
-    setReportsLoading(true)
-    getWhistleblowerReports(tenantId ?? undefined).then((data) => {
-      setReports(data)
-      setReportsLoading(false)
-    })
-  }
-
-  useEffect(() => {
-    if (adminTab === 'denuncias') loadReports(selectedTenantId)
-  }, [adminTab, selectedTenantId])
-
-  useEffect(() => {
-    getTenantList().then((list) => {
-      setTenantList(list)
-      if (list.length === 1) setSelectedTenantId(list[0])
-    })
-  }, [])
-
-  const selectableTenantIds = selectableTenantIdsForDropdown.length > 0 ? selectableTenantIdsForDropdown : tenantList
-
   useEffect(() => {
     loadOverview()
   }, [])
@@ -191,46 +157,6 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     }
   }, [])
 
-  useEffect(() => {
-    if (selectedTenantId && !linkSlug) setLinkSlug(selectedTenantId)
-  }, [selectedTenantId])
-
-  const loadSubmissions = (tenantId: string | null) => {
-    if (!tenantId) {
-      setSubmissions([])
-      setLoading(false)
-      return
-    }
-    setLoading(true)
-    getSubmissions(tenantId)
-      .then((data) => {
-        setSubmissions(data)
-        setLoading(false)
-      })
-      .catch(() => {
-        setSubmissions([])
-        setLoading(false)
-      })
-  }
-
-  useEffect(() => {
-    loadSubmissions(selectedTenantId)
-  }, [selectedTenantId])
-
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-    if (!selectedTenantId) return
-    if (!window.confirm('Excluir este envio? Esta ação não pode ser desfeita.')) return
-    try {
-      await deleteSubmission(id, selectedTenantId)
-      if (selected?.id === id) setSelected(null)
-      loadSubmissions(selectedTenantId)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Não foi possível excluir.')
-    }
-  }
-
   const handleLogout = async () => {
     try {
       await getSupabase().auth.signOut()
@@ -240,87 +166,24 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     }
   }
 
-  // Dashboard da empresa: agregar todos os envios
-  const scoresPorEnvio = submissions.map((s) => computeDimensionScores(s.answers))
-  const scoresEmpresa = aggregateDimensionScores(scoresPorEnvio)
-
-  if (selected) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setSelected(null)}
-            className="inline-flex items-center gap-2 rounded-xl border bg-card-escritorio px-4 py-2.5 font-semibold text-escritorio shadow-sm transition hover:opacity-90"
-            style={{ borderColor: 'rgba(16,31,46,0.2)' }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Voltar ao dashboard
-          </button>
-        </div>
-        <Resultados
-          answers={selected.answers}
-          setor={selected.funcao ? `${selected.setor} · ${selected.funcao}` : selected.setor}
-          onVoltar={() => setSelected(null)}
-          isAdmin
-        />
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-escritorio">
-            Dashboard
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+            Painel de Clientes
           </h2>
-          <p className="mt-1 text-sm text-escritorio opacity-80">
-            Selecione a empresa para ver os diagnósticos e gráficos.
+          <p className="mt-1 text-sm text-slate-500">
+            Gerencie as empresas, crie links de acesso e visualize os dashboards.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {(selectableTenantIds.length > 0 || tenantList.length > 0) && (
-            <div className="flex items-center gap-2">
-              <Building className="h-5 w-5 text-escritorio opacity-70" />
-              <select
-                value={selectedTenantId ?? ''}
-                onChange={(e) => setSelectedTenantId(e.target.value || null)}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
-              >
-                <option value="">
-                  {selectableTenantIds.length > 1 ? '— Selecione a empresa —' : '— Empresa —'}
-                </option>
-                {(selectableTenantIds.length ? selectableTenantIds : tenantList).map((tid) => (
-                  <option key={tid} value={tid}>
-                    {displayNameFor(tid)}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <div className="flex gap-1 rounded-lg border border-slate-200 p-0.5 bg-slate-50">
-            <button
-              type="button"
-              onClick={() => setAdminTab('diagnostico')}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition ${adminTab === 'diagnostico' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:bg-white/70'}`}
-            >
-              Diagnóstico
-            </button>
-            <button
-              type="button"
-              onClick={() => setAdminTab('denuncias')}
-              className={`rounded-md px-3 py-2 text-sm font-medium transition ${adminTab === 'denuncias' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:bg-white/70'}`}
-            >
-              Denúncias
-            </button>
-          </div>
           {!hideHeaderActions && (
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Voltar ao site
@@ -328,7 +191,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-full border-2 border-slate-300 bg-white px-4 py-2.5 font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
               >
                 <LogOut className="h-4 w-4" />
                 Sair
@@ -338,16 +201,14 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
         </div>
       </div>
 
-      {adminTab === 'diagnostico' && (
-        <>
       {/* Gerar link para cliente */}
-      <div className="bg-card-escritorio rounded-2xl border border-[rgba(16,31,46,0.08)] p-6 shadow-sm">
-        <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-escritorio">
-          <Link2 className="h-5 w-5 text-[var(--escritorio-dourado)]" />
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+        <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-slate-900">
+          <Link2 className="h-5 w-5 text-slate-500" />
           Gerar link para cliente
         </h3>
-        <p className="mb-4 text-sm text-escritorio opacity-75">
-          Informe o identificador da empresa (ex.: nome ou código). Quem abrir o link não precisará preencher a empresa — as respostas ficarão vinculadas a ela.
+        <p className="mb-4 text-sm text-slate-500">
+          Informe o identificador da empresa (ex.: nome ou código). Quem abrir o link não precisará preencher a empresa.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
@@ -355,16 +216,16 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
             value={linkSlug}
             onChange={(e) => setLinkSlug(e.target.value)}
             placeholder="ex: empresa-alpha"
-            className="rounded-xl border border-[rgba(16,31,46,0.2)] bg-white px-4 py-2.5 text-sm text-escritorio placeholder:opacity-50 focus:border-[var(--escritorio-dourado)] focus:outline-none focus:ring-2 focus:ring-[var(--escritorio-dourado)]/20"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
           />
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[rgba(16,31,46,0.1)] bg-[var(--branco-gelo)] px-3 py-2.5">
-            <span className="truncate text-sm text-escritorio opacity-90">{generatedLink || '—'}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <span className="truncate text-sm text-slate-600">{generatedLink || '—'}</span>
           </div>
           <button
             type="button"
             onClick={() => copyLink()}
             disabled={!generatedLink}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--escritorio-dourado)] px-4 py-2.5 text-sm font-semibold text-[var(--escritorio-escuro)] transition disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800"
           >
             {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {linkCopied ? 'Copiado!' : 'Copiar link'}
@@ -373,7 +234,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
             type="button"
             onClick={handleAddToList}
             disabled={!linkSlug.trim() || addingSlug !== null}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border-2 border-[var(--escritorio-dourado)] bg-transparent px-4 py-2.5 text-sm font-semibold text-[var(--escritorio-escuro)] transition disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--escritorio-dourado)]/10"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
           >
             {addingSlug ? <Loader2 className="h-4 w-4 animate-spin" /> : <List className="h-4 w-4" />}
             {addingSlug ? 'Adicionando...' : 'Adicionar à lista'}
@@ -382,36 +243,39 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
       </div>
 
       {/* Visão geral: todas as empresas e links */}
-      <div className="bg-card-escritorio rounded-2xl border border-[rgba(16,31,46,0.08)] p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="flex items-center gap-2 text-lg font-semibold text-escritorio">
-            <List className="h-5 w-5 text-[var(--escritorio-dourado)]" />
-            Visão geral
+          <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <Building2 className="h-5 w-5 text-slate-500" />
+            Empresas
           </h3>
           <button
             type="button"
             onClick={loadOverview}
             disabled={overviewLoading}
-            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-escritorio opacity-80 transition hover:opacity-100 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
             title="Atualizar listagem"
           >
             <RefreshCw className={`h-4 w-4 ${overviewLoading ? 'animate-spin' : ''}`} />
             Atualizar
           </button>
         </div>
-        <p className="mb-4 text-sm text-escritorio opacity-75">
-          Empresas cadastradas na lista. Ao excluir, a empresa sai da lista (os envios permanecem no sistema). Atualize para recarregar.
+        <p className="mb-6 text-sm text-slate-500">
+          Gerencie suas empresas cadastradas. Clique em Ver para acessar o dashboard completo.
         </p>
+        
         {overviewLoading && allTenantIds.length === 0 ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-[var(--escritorio-dourado)]" />
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
           </div>
         ) : allTenantIds.length === 0 ? (
-          <p className="py-6 text-center text-sm text-escritorio opacity-70">
-            Nenhuma empresa na lista. Use &quot;Adicionar à lista&quot; ao gerar um link para aparecer aqui.
-          </p>
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-12 text-center">
+            <Building2 className="mx-auto h-12 w-12 text-slate-300" />
+            <p className="mt-4 font-medium text-slate-900">Nenhuma empresa na lista</p>
+            <p className="mt-1 text-sm text-slate-500">Use "Adicionar à lista" para incluir novas empresas.</p>
+          </div>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {allTenantIds.map((tid) => {
               const overview = overviewByTenant[tid]
               const registry = registryByTenant[tid]
@@ -420,49 +284,44 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
               return (
                 <li
                   key={tid}
-                  className={`flex flex-wrap items-center gap-3 rounded-xl border border-[rgba(16,31,46,0.08)] bg-[var(--branco-gelo)] p-3 sm:gap-4 ${!isActive ? 'opacity-85' : ''}`}
+                  className={`flex flex-wrap items-center gap-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-colors hover:border-slate-300 hover:bg-slate-50 ${!isActive ? 'opacity-85' : ''}`}
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-semibold text-escritorio">{displayNameFor(tid)}</p>
+                      <p className="font-semibold text-slate-900 text-lg">{displayNameFor(tid)}</p>
                       {registry && (
                         <>
                           <button
                             type="button"
                             onClick={() => handleEditDisplayName(tid)}
-                            className="rounded p-1 text-escritorio opacity-50 hover:opacity-100"
+                            className="rounded p-1 text-slate-400 hover:bg-white hover:text-slate-900"
                             title="Editar nome"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
                           {!isActive && (
-                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
                               Encerrada
                             </span>
                           )}
                         </>
                       )}
                     </div>
-                    <p className="truncate text-xs text-escritorio opacity-60">{link}</p>
+                    <p className="mt-1 truncate text-xs text-slate-500 font-mono">{link}</p>
                   </div>
-                  {overview ? (
-                    <div className="flex items-center gap-3 text-sm text-escritorio opacity-80">
-                      <span className="whitespace-nowrap">{overview.submission_count} resposta{overview.submission_count !== 1 ? 's' : ''}</span>
-                      {overview.last_submitted_at && (
-                        <span className="flex items-center gap-1 whitespace-nowrap">
-                          <Calendar className="h-3.5 w-3.5" />
-                          {formatDate(overview.last_submitted_at)}
-                        </span>
-                      )}
+                  
+                  <div className="flex items-center gap-4 px-4 border-l border-r border-slate-200">
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-slate-900">{overview?.submission_count || 0}</p>
+                      <p className="text-xs text-slate-500">Respostas</p>
                     </div>
-                  ) : (
-                    <span className="text-sm text-escritorio opacity-50">Nenhuma resposta ainda</span>
-                  )}
-                  <div className="flex shrink-0 flex-wrap items-center gap-1">
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => copyLink(link)}
-                      className="rounded-lg p-2 text-escritorio opacity-70 transition hover:bg-white hover:opacity-100"
+                      className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-slate-900"
                       title="Copiar link diagnóstico"
                     >
                       <Copy className="h-4 w-4" />
@@ -470,7 +329,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                     <button
                       type="button"
                       onClick={() => openEmail(tid, false)}
-                      className="rounded-lg p-2 text-escritorio opacity-70 transition hover:bg-white hover:opacity-100"
+                      className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-slate-900"
                       title="Enviar por e-mail (diagnóstico)"
                     >
                       <Mail className="h-4 w-4" />
@@ -478,7 +337,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                     <button
                       type="button"
                       onClick={() => copyLink(denunciaLinkForSlug(tid))}
-                      className="rounded-lg p-2 text-escritorio opacity-70 transition hover:bg-white hover:opacity-100"
+                      className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-slate-900"
                       title="Copiar link do canal de denúncias"
                     >
                       <Shield className="h-4 w-4" />
@@ -489,7 +348,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                           type="button"
                           onClick={() => handleToggleActive(tid)}
                           disabled={togglingTenant === tid}
-                          className="rounded-lg p-2 text-escritorio opacity-70 transition hover:bg-white hover:opacity-100 disabled:opacity-50"
+                          className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-slate-900 disabled:opacity-50"
                           title={isActive ? 'Encerrar coleta' : 'Reabrir coleta'}
                         >
                           {togglingTenant === tid ? <Loader2 className="h-4 w-4 animate-spin" /> : isActive ? <Ban className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
@@ -498,18 +357,17 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                           type="button"
                           onClick={() => handleRemoveFromList(tid)}
                           disabled={removingTenant === tid}
-                          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-red-600 opacity-90 transition hover:bg-red-50 hover:opacity-100 disabled:opacity-50 text-sm font-medium"
+                          className="rounded-lg p-2 text-red-500 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
                           title="Excluir empresa da lista"
                         >
                           {removingTenant === tid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                          <span className="hidden sm:inline">Excluir</span>
                         </button>
                       </>
                     )}
                     <button
                       type="button"
-                      onClick={() => { setSelectedTenantId(tid); setLinkSlug(tid) }}
-                      className="rounded-full bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                      onClick={() => onSelectTenant && onSelectTenant(tid)}
+                      className="ml-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
                     >
                       Ver
                     </button>
@@ -519,19 +377,20 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
             })}
           </ul>
         )}
+
         {overviewOnlyIds.length > 0 && (
-          <div className="mt-6 border-t border-[rgba(16,31,46,0.08)] pt-6">
-            <p className="mb-2 text-sm font-medium text-escritorio opacity-80">Empresas com respostas que ainda não estão na lista</p>
-            <p className="mb-3 text-xs text-escritorio opacity-60">Adicione à lista para gerenciar e poder excluir depois.</p>
-            <ul className="space-y-2">
+          <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6">
+            <h4 className="text-sm font-semibold text-slate-900 mb-1">Outras empresas com respostas</h4>
+            <p className="mb-4 text-xs text-slate-500">Estas empresas possuem dados no sistema mas não foram adicionadas à lista de gestão. Adicione para gerenciar.</p>
+            <ul className="grid gap-3 sm:grid-cols-2">
               {overviewOnlyIds.map((tid) => {
                 const overview = overviewByTenant[tid]
                 return (
-                  <li key={tid} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[rgba(16,31,46,0.06)] bg-white/50 p-3">
+                  <li key={tid} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
                     <div>
-                      <p className="font-mono text-sm font-medium text-escritorio">{tid}</p>
+                      <p className="font-mono text-sm font-medium text-slate-900">{tid}</p>
                       {overview && (
-                        <p className="text-xs text-escritorio opacity-70">{overview.submission_count} resposta(s)</p>
+                        <p className="text-xs text-slate-500 mt-0.5">{overview.submission_count} resposta(s)</p>
                       )}
                     </div>
                     <button
@@ -544,9 +403,9 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                           alert(e instanceof Error ? e.message : 'Erro ao adicionar.')
                         }
                       }}
-                      className="rounded-lg border border-[var(--escritorio-dourado)] bg-transparent px-3 py-1.5 text-xs font-semibold text-escritorio transition hover:bg-[var(--escritorio-dourado)]/10"
+                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
                     >
-                      Adicionar à lista
+                      Adicionar
                     </button>
                   </li>
                 )
@@ -555,190 +414,6 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
           </div>
         )}
       </div>
-
-      {tenantList.length === 0 && !loading ? (
-        <div className="bg-card-escritorio rounded-2xl p-12 text-center shadow-sm">
-          <Building className="mx-auto h-12 w-12 text-escritorio opacity-40" />
-          <p className="mt-4 font-medium text-escritorio">Nenhuma empresa com dados ainda</p>
-          <p className="mt-1 text-sm text-escritorio opacity-75">
-            Quando um cliente responder pelo link com <code className="rounded bg-black/5 px-1.5 py-0.5 text-xs">?org=nome-da-empresa</code>, ela aparecerá aqui.
-          </p>
-        </div>
-      ) : !selectedTenantId ? (
-        <div className="bg-card-escritorio rounded-2xl p-12 text-center shadow-sm">
-          <Building className="mx-auto h-12 w-12 text-escritorio opacity-40" />
-          <p className="mt-4 font-medium text-escritorio">Selecione uma empresa</p>
-          <p className="mt-1 text-sm text-escritorio opacity-75">
-            Use o menu acima para escolher qual empresa ver no dashboard.
-          </p>
-        </div>
-      ) : loading ? (
-        <div className="bg-card-escritorio flex min-h-[200px] items-center justify-center rounded-2xl p-12 shadow-sm">
-          <Loader2 className="h-10 w-10 animate-spin text-[var(--escritorio-dourado)]" />
-        </div>
-      ) : submissions.length === 0 ? (
-        <div className="bg-card-escritorio rounded-2xl p-12 text-center shadow-sm">
-          <BarChart3 className="mx-auto h-12 w-12 text-escritorio opacity-40" />
-          <p className="mt-4 font-medium text-escritorio">Nenhum envio ainda para esta empresa</p>
-          <p className="mt-1 text-sm text-escritorio opacity-75">
-            Envie ao cliente o link com <code className="rounded bg-black/5 px-1.5 py-0.5 text-xs">?org={selectedTenantId}</code> para que as respostas apareçam aqui.
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* Resumo */}
-          <div className="flex flex-wrap gap-4">
-            <div className="bg-card-escritorio rounded-xl px-5 py-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-dourado-light" style={{ color: 'var(--escritorio-dourado)' }}>
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-escritorio">{submissions.length}</p>
-                  <p className="text-sm text-escritorio opacity-75">total de respostas</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Gráficos da empresa (agregado) */}
-          <GraficosResultados scores={scoresEmpresa} />
-
-          {/* Cards de resultado por dimensão (empresa) - opcional, já está nos gráficos */}
-          <Resultados
-            answers={{}}
-            setor="Empresa (agregado)"
-            onVoltar={() => {}}
-            isAdmin
-            scoresOverride={scoresEmpresa}
-          />
-
-          {/* Lista de envios (drill-down por setor/função) */}
-          <div>
-            <h3 className="mb-4 text-lg font-semibold text-escritorio">
-              Envios por setor e função
-            </h3>
-            <p className="mb-4 text-sm text-escritorio opacity-80">
-              Clique em um envio para ver o mapeamento individual.
-            </p>
-            <ul className="grid gap-3 sm:grid-cols-2">
-              {submissions.map((s) => (
-                <li key={s.id}>
-                  <div className="flex items-stretch gap-2 rounded-xl border bg-card-escritorio shadow-sm transition hover:opacity-95" style={{ borderColor: 'rgba(16,31,46,0.12)' }}>
-                    <button
-                      type="button"
-                      onClick={() => setSelected(s)}
-                      className="flex min-w-0 flex-1 items-center gap-4 p-4 text-left transition hover:bg-dourado-light/30"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-dourado-light" style={{ color: 'var(--escritorio-dourado)' }}>
-                        <Building2 className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-escritorio">{s.setor}</p>
-                        {s.funcao ? (
-                          <p className="flex items-center gap-1.5 text-xs text-escritorio opacity-80">
-                            <Briefcase className="h-3.5 w-3.5" />
-                            {s.funcao}
-                          </p>
-                        ) : null}
-                        <p className="mt-1 flex items-center gap-1.5 text-xs text-escritorio opacity-60">
-                          <Calendar className="h-3.5 w-3.5" />
-                          {formatDate(s.submittedAt)}
-                        </p>
-                      </div>
-                      <BarChart3 className="h-5 w-5 shrink-0 text-escritorio opacity-50" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => handleDelete(e, s.id)}
-                      className="flex shrink-0 items-center rounded-r-xl px-3 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                      title="Excluir envio"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </>
-      )}
-        </>
-      )}
-
-      {adminTab === 'denuncias' && (
-        <div className="bg-card-escritorio rounded-2xl border border-[rgba(16,31,46,0.08)] p-6 shadow-sm">
-          <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-escritorio">
-            <Shield className="h-5 w-5 text-[var(--escritorio-dourado)]" />
-            Canal de denúncias
-          </h3>
-          <p className="mb-4 text-sm text-escritorio opacity-75">
-            Selecione a empresa para ver as denúncias recebidas (formulário anônimo). Link do canal: <code className="rounded bg-black/5 px-1 py-0.5 text-xs">?org=slug&channel=denuncia</code>. Consultar status: <code className="rounded bg-black/5 px-1 py-0.5 text-xs">?org=slug&channel=denuncia&consultar=1</code>
-          </p>
-          {(selectableTenantIds.length > 0 || tenantList.length > 0) && (
-            <select
-              value={selectedTenantId ?? ''}
-              onChange={(e) => { const v = e.target.value || null; setSelectedTenantId(v); loadReports(v) }}
-              className="mb-4 rounded-xl border border-[rgba(16,31,46,0.2)] bg-white px-4 py-2.5 text-sm text-escritorio"
-            >
-              <option value="">Todas as empresas</option>
-              {(selectableTenantIds.length ? selectableTenantIds : tenantList).map((tid) => (
-                <option key={tid} value={tid}>{displayNameFor(tid)}</option>
-              ))}
-            </select>
-          )}
-          {reportsLoading ? (
-            <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-[var(--escritorio-dourado)]" /></div>
-          ) : reports.length === 0 ? (
-            <p className="py-6 text-center text-sm text-escritorio opacity-70">Nenhuma denúncia registrada.</p>
-          ) : (
-            <ul className="space-y-3">
-              {reports.map((r) => (
-                <li key={r.id} className="rounded-xl border border-[rgba(16,31,46,0.08)] bg-[var(--branco-gelo)] p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs text-escritorio opacity-60">
-                        {r.protocol_id && <span className="font-mono font-semibold">{r.protocol_id}</span>}
-                        {r.protocol_id && ' · '}
-                        {displayNameFor(r.tenant_id)} · {formatDate(r.created_at)}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <label className="text-xs text-escritorio opacity-70">Status:</label>
-                        <select
-                          value={r.status ?? 'recebida'}
-                          onChange={(e) => {
-                            const s = e.target.value as WhistleblowerStatus
-                            updateWhistleblowerStatus(r.id, s).then(() => loadReports(selectedTenantId))
-                          }}
-                          className="rounded border border-[rgba(16,31,46,0.2)] bg-white px-2 py-1 text-xs text-escritorio"
-                        >
-                          <option value="recebida">Recebida</option>
-                          <option value="em_analise">Em análise</option>
-                          <option value="concluida">Concluída</option>
-                          <option value="arquivada">Arquivada</option>
-                        </select>
-                      </div>
-                      {r.category && <p className="mt-1 text-sm font-medium text-escritorio">{r.category}</p>}
-                      <p className="mt-2 whitespace-pre-wrap text-sm text-escritorio/90">{r.body}</p>
-                    </div>
-                    {!r.read_at ? (
-                      <button
-                        type="button"
-                        onClick={() => markWhistleblowerReportRead(r.id).then(() => loadReports(selectedTenantId))}
-                        className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[rgba(16,31,46,0.2)] px-2 py-1.5 text-xs font-medium text-escritorio"
-                      >
-                        <Eye className="h-3.5 w-3.5" /> Marcar como lida
-                      </button>
-                    ) : (
-                      <span className="shrink-0 text-xs text-escritorio opacity-50">Lida em {formatDate(r.read_at)}</span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
     </div>
   )
 }

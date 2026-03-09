@@ -24,27 +24,18 @@ const APP_NAV: { view: View; label: string }[] = [
 export interface MobileMenuProps {
   view: View
   onNavigate: (view: View) => void
-  onOpenAdmin?: () => void
   showNavAndAdmin: boolean
-  showAdminButton: boolean
 }
 
 export function MobileMenu({
   view,
   onNavigate,
-  onOpenAdmin,
   showNavAndAdmin,
-  showAdminButton,
 }: MobileMenuProps) {
   const [open, setOpen] = useState(false)
 
   const handleNav = (v: View) => {
     onNavigate(v)
-    setOpen(false)
-  }
-
-  const handleOpenAdmin = () => {
-    onOpenAdmin?.()
     setOpen(false)
   }
 
@@ -96,14 +87,6 @@ export function MobileMenu({
             </nav>
           )}
           <div className="mt-auto flex flex-col gap-3 border-t border-slate-200 pt-6">
-            {showAdminButton && onOpenAdmin && (
-              <Button
-                className="w-full rounded-full bg-slate-900 hover:bg-slate-800 text-white px-5 text-sm font-semibold shadow-lg shadow-slate-900/10"
-                onClick={handleOpenAdmin}
-              >
-                Área administrativa
-              </Button>
-            )}
             {showNavAndAdmin && (
               <>
                 <Button

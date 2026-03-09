@@ -16,6 +16,7 @@ type Props = {
 }
 
 export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
+  const [contactType, setContactType] = useState('')
   const [category, setCategory] = useState('')
   const [body, setBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -23,10 +24,13 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!body.trim()) return
+    if (!contactType || !body.trim()) return
     setSubmitting(true)
+    
+    const combinedCategory = category ? `${contactType} - ${category}` : contactType
+
     try {
-      const { protocolId } = await saveWhistleblowerReport({ category: category || undefined, body })
+      const { protocolId } = await saveWhistleblowerReport({ category: combinedCategory, body })
       onEnviado(protocolId)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Não foi possível enviar.')
@@ -81,6 +85,23 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
         </p>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
+            <label htmlFor="wb-type" className="mb-2 block text-sm font-semibold text-slate-900">
+              Tipo de Contato <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="wb-type"
+              value={contactType}
+              onChange={(e) => setContactType(e.target.value)}
+              required
+              className="input-escritorio w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900"
+            >
+              <option value="">— Selecione o tipo de contato —</option>
+              <option value="Dúvida">Dúvida</option>
+              <option value="Reclamação">Reclamação de RH</option>
+              <option value="Denúncia">Denúncia de Má Conduta</option>
+            </select>
+          </div>
+          <div>
             <label htmlFor="wb-category" className="mb-2 block text-sm font-semibold text-slate-900">
               Assunto (opcional)
             </label>
@@ -112,7 +133,7 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
           </div>
           <button
             type="submit"
-            disabled={!body.trim() || submitting}
+            disabled={!contactType || !body.trim() || submitting}
             className="btn-escritorio flex w-full items-center justify-center gap-2 rounded-full py-3.5 font-semibold disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? 'Enviando...' : 'Enviar denúncia'}

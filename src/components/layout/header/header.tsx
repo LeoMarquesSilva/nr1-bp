@@ -11,20 +11,14 @@ export interface HealthqoeHeaderProps {
   view?: View
   /** Navigate to a view. Optional when showNavAndAdmin is false. */
   onNavigate?: (view: View) => void
-  /** Open admin gate. Optional. */
-  onOpenAdmin?: () => void
   /** When false, only logo is shown (e.g. canal de denúncias). */
   showNavAndAdmin?: boolean
-  /** When true, show "Área administrativa" button. */
-  showAdminButton?: boolean
 }
 
 export function HealthqoeHeader({
   view = "landing",
   onNavigate = () => {},
-  onOpenAdmin,
   showNavAndAdmin = true,
-  showAdminButton = false,
 }: HealthqoeHeaderProps) {
   return (
     <header
@@ -52,38 +46,25 @@ export function HealthqoeHeader({
             <MobileMenu
               view={view}
               onNavigate={onNavigate}
-              onOpenAdmin={onOpenAdmin}
               showNavAndAdmin={showNavAndAdmin}
-              showAdminButton={showAdminButton}
             />
           )}
           {showNavAndAdmin && (
             <div className="hidden lg:flex items-center gap-2">
-              {showAdminButton && onOpenAdmin ? (
-                <Button
-                  className="rounded-full bg-slate-900 hover:bg-slate-800 text-white px-5 text-sm font-semibold shadow-lg shadow-slate-900/10"
-                  onClick={onOpenAdmin}
-                >
-                  Área administrativa
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                    onClick={() => onNavigate("login")}
-                  >
-                    Entrar
-                  </Button>
-                  <Button
-                    className="rounded-full bg-slate-900 hover:bg-slate-800 text-white px-5 text-sm font-semibold shadow-lg shadow-slate-900/10"
-                    onClick={() => onNavigate("contato")}
-                  >
-                    Entre em contato
-                  </Button>
-                </>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                onClick={() => onNavigate("login")}
+              >
+                Entrar
+              </Button>
+              <Button
+                className="rounded-full bg-slate-900 hover:bg-slate-800 text-white px-5 text-sm font-semibold shadow-lg shadow-slate-900/10"
+                onClick={() => onNavigate("contato")}
+              >
+                Entre em contato
+              </Button>
             </div>
           )}
         </div>

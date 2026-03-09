@@ -8,14 +8,16 @@ import { AdminHeader } from './AdminHeader'
 import { AdminDashboard } from '../AdminDashboard'
 import { AdminPerfil } from './AdminPerfil'
 import { AdminEmpresas } from './AdminEmpresas'
-import { AdminEmpresaDetalhe } from './AdminEmpresaDetalhe'
+import { AdminEmpresaDashboard } from './AdminEmpresaDashboard'
+import { AdminUsuarios } from './usuarios/AdminUsuarios'
+import { ForcePasswordChangeModal } from './ForcePasswordChangeModal'
 
 type AdminLayoutProps = {
   onClose: () => void
   onLogout: () => void
 }
 
-type Profile = { id: string; name: string; email: string; role?: string; avatar_url?: string | null; department?: string | null } | null
+type Profile = { id: string; name: string; email: string; role?: string; avatar_url?: string | null; department?: string | null; requires_password_change?: boolean } | null
 
 export function AdminLayout({ onClose, onLogout }: AdminLayoutProps) {
   const [page, setPage] = useState<AdminPage>('dashboard')
@@ -31,7 +33,7 @@ export function AdminLayout({ onClose, onLogout }: AdminLayoutProps) {
       if (!session?.user?.id) return
       supabase
         .from('users')
-        .select('id, name, email, role, avatar_url, department')
+        .select('id, name, email, role, avatar_url, department, requires_password_change')
         .eq('auth_id', session.user.id)
         .maybeSingle()
         .then(({ data }) => {
@@ -53,7 +55,7 @@ export function AdminLayout({ onClose, onLogout }: AdminLayoutProps) {
       }
       supabase
         .from('users')
-        .select('id, name, email, role, avatar_url, department')
+        .select('id, name, email, role, avatar_url, department, requires_password_change')
         .eq('auth_id', session.user.id)
         .maybeSingle()
         .then(({ data }) => {
@@ -123,6 +125,14 @@ export function AdminLayout({ onClose, onLogout }: AdminLayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-[var(--branco-gelo)]">
+      {profile?.requires_password_change && (
+        <ForcePasswordChangeModal
+          onSuccess={() => {
+            setProfile({ ...profile, requires_password_change: false })
+          }}
+          onLogout={handleLogout}
+        />
+      )}
       <AdminSidebar
         page={page}
         onNavigate={setPage}
@@ -145,14 +155,18 @@ export function AdminLayout({ onClose, onLogout }: AdminLayoutProps) {
           )}
         >
           {page === 'dashboard' && (
-            <AdminDashboard onClose={onClose} onLogout={onLogout} hideHeaderActions searchQuery={searchQuery} />
+            <AdminDashboard onClose={onClose} onLogout={onLogout} hideHeaderActions searchQuery={searchQuery} onSelectTenant={(tid) => {
+              setSelectedTenantId(tid)
+              setPage('empresa')
+            }} />
           )}
           {page === 'perfil' && (
             <AdminPerfil profile={profile} onProfileUpdated={refetchProfile} />
           )}
           {page === 'empresas' && <AdminEmpresas />}
+          {page === 'usuarios' && <AdminUsuarios />}
           {page === 'empresa' && selectedTenantId && (
-            <AdminEmpresaDetalhe
+            <AdminEmpresaDashboard
               tenantId={selectedTenantId}
               onBack={() => {
                 setPage('dashboard')

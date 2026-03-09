@@ -12,17 +12,18 @@ import { RelatosBuscarEmpresa } from './components/RelatosBuscarEmpresa'
 import { CanalRelatosHub } from './components/CanalRelatosHub'
 import { Sobre } from './components/Sobre'
 import { Privacidade } from './components/Privacidade'
-import { AdminLogin } from './components/AdminLogin'
 import { AdminLayout } from './components/admin'
 import { Login } from './components/Login'
 import { Contato } from './components/Contato'
 import type { OptionKey } from './data/hseIt'
 import { saveSubmission, getTenantStatus } from './types/submission'
 import { isAdminLoggedIn } from './lib/adminAuth'
-import { getAppName, getTenantId } from './lib/tenant'
+import { getAppName, getTenantId, setTenantFromUrl } from './lib/tenant'
 import { getTenantDisplayName } from './types/submission'
+import { Footer } from './components/layout/Footer'
+import type { FooterNavView } from './components/layout/Footer'
 
-export type View = 'landing' | 'relatos-buscar' | 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin-gate' | 'admin' | 'coleta-encerrada' | 'denuncia-hub' | 'denuncia' | 'denuncia-obrigado' | 'denuncia-consultar' | 'login' | 'contato'
+export type View = 'landing' | 'relatos-buscar' | 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin' | 'coleta-encerrada' | 'denuncia-hub' | 'denuncia' | 'denuncia-obrigado' | 'denuncia-consultar' | 'login' | 'contato'
 
 function isDenunciaChannel(): boolean {
   if (typeof window === 'undefined') return false
@@ -41,10 +42,20 @@ function getDenunciaViewFromUrl(): View {
   return 'relatos-buscar'
 }
 
+/** Se a URL tem ?org=slug (sem channel=denuncia), o link é do diagnóstico: ir direto para identificação. */
+function hasDiagnosticOrgInUrl(): boolean {
+  if (typeof window === 'undefined') return false
+  const params = new URLSearchParams(window.location.search)
+  const org = params.get('org')?.trim()
+  const channel = params.get('channel')
+  return Boolean(org && channel !== 'denuncia')
+}
+
 function App() {
   const [view, setView] = useState<View>(() => {
-    if (isAdminLoggedIn()) return 'admin'
+    if (hasDiagnosticOrgInUrl()) return 'identificacao'
     if (isDenunciaChannel()) return getDenunciaViewFromUrl()
+    if (isAdminLoggedIn()) return 'admin'
     return 'landing'
   })
   const [identificacao, setIdentificacao] = useState<{ setor: string } | null>(null)
@@ -68,10 +79,6 @@ function App() {
     }
   }
 
-  const openAdminGate = () => {
-    setView('admin-gate')
-  }
-
   const openAdmin = () => {
     setView('admin')
   }
@@ -85,6 +92,13 @@ function App() {
   }
 
   useEffect(() => {
+    if (hasDiagnosticOrgInUrl()) {
+      setTenantFromUrl()
+      setView((v) => (['identificacao', 'form', 'obrigado'].includes(v) ? v : 'identificacao'))
+    }
+  }, [])
+
+  useEffect(() => {
     if (view !== 'identificacao') return
     getTenantStatus(getTenantId()).then((s) => setTenantBlocked(!s.active))
   }, [view])
@@ -95,7 +109,6 @@ function App() {
   }, [view])
 
   const showNavAndAdmin = ['landing', 'relatos-buscar', 'identificacao', 'form', 'obrigado', 'sobre', 'privacidade', 'coleta-encerrada', 'denuncia-hub', 'denuncia', 'denuncia-obrigado', 'login', 'contato'].includes(view)
-  const showAdminButton = view === 'identificacao' || view === 'form'
 
   const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname || '/'}` : ''
 
@@ -110,7 +123,7 @@ function App() {
   if (view === 'denuncia-hub' || view === 'denuncia' || view === 'denuncia-obrigado' || view === 'denuncia-consultar') {
     return (
       <div className="app-bg flex min-h-screen flex-col font-sans antialiased">
-        <HealthqoeHeader view="identificacao" onNavigate={() => {}} onOpenAdmin={() => {}} showNavAndAdmin={false} showAdminButton={false} />
+        <HealthqoeHeader view="identificacao" onNavigate={() => {}} showNavAndAdmin={false} />
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6 sm:py-12">
           {view === 'denuncia-hub' && (
             <CanalRelatosHub
@@ -162,9 +175,7 @@ function App() {
       <HealthqoeHeader
         view={view}
         onNavigate={setView}
-        onOpenAdmin={openAdminGate}
         showNavAndAdmin={showNavAndAdmin}
-        showAdminButton={showAdminButton}
       />
 
       <main className={`mx-auto w-full flex-1 px-4 py-10 sm:px-6 sm:py-12 ${view !== 'landing' ? 'max-w-4xl' : ''}`}>
@@ -208,15 +219,6 @@ function App() {
           <Privacidade onVoltar={() => setView('landing')} />
         )}
 
-        {view === 'admin-gate' && (
-          <div className="space-y-6">
-            <AdminLogin
-              onSuccess={openAdmin}
-              onCancel={() => setView('landing')}
-            />
-          </div>
-        )}
-
         {view === 'login' && (
           <Login
             onSuccess={() => setView('admin')}
@@ -229,11 +231,7 @@ function App() {
         )}
       </main>
 
-      <footer className="mt-auto border-t border-slate-200 bg-white/60 py-5">
-        <div className="mx-auto max-w-2xl px-4 text-center text-xs text-slate-500 sm:px-6">
-          {getAppName()} · Formulário em conformidade com o estudo HSE-IT · 35 perguntas · 7 dimensões
-        </div>
-      </footer>
+      <Footer onNavigate={(v) => setView(v as View)} />
     </div>
   )
 }

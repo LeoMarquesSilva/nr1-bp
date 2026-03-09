@@ -7,6 +7,7 @@ const PAGE_TITLES: Record<AdminPage, string> = {
   perfil: 'Perfil',
   empresas: 'Empresas',
   empresa: 'Detalhes da empresa',
+  usuarios: 'Usuários',
 }
 
 type SearchResult = { tenant_id: string; display_name: string }

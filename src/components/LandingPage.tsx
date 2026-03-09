@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { Shield, FileCheck, Scale, ArrowRight, MessageSquarePlus, BarChart3 } from 'lucide-react'
+import { Shield, FileCheck, Scale, ArrowRight, MessageSquarePlus, BarChart3, Filter, GraduationCap } from 'lucide-react'
 import { HeroSection } from './landing/hero/HeroSection'
 
 type Props = {
@@ -30,8 +30,23 @@ export function LandingPage({ onFazerRelato }: Props) {
             {[
               {
                 Icon: MessageSquarePlus,
-                title: 'Canal de relatos',
-                desc: 'Receba relatos de forma anônima ou identificada. Plataforma externa, criptografada e não rastreável, com protocolo para acompanhamento e conformidade à ISO 37002.',
+                title: 'Canal de relatos acessível',
+                desc: 'Receba relatos anônimos ou identificados. Acesso facilitado via celular e QR Code, sem necessidade de e-mail corporativo para promover inclusão digital.',
+              },
+              {
+                Icon: Filter,
+                title: 'Triagem inteligente',
+                desc: 'Separe denúncias sérias de dúvidas ou reclamações, organizando as demandas e evitando a sobrecarga da equipe de RH.',
+              },
+              {
+                Icon: FileCheck,
+                title: 'Gestão de evidências e políticas',
+                desc: 'Distribua o Código de Conduta e registre o "Li e Aceito" dos colaboradores, garantindo a comprovação em auditorias exigida pela NR-1.',
+              },
+              {
+                Icon: GraduationCap,
+                title: 'Treinamento e conscientização',
+                desc: 'Apoio educativo e capacitação de lideranças e colaboradores para garantir a adequação completa à Lei 14.457/22.',
               },
               {
                 Icon: BarChart3,
@@ -41,7 +56,7 @@ export function LandingPage({ onFazerRelato }: Props) {
               {
                 Icon: Scale,
                 title: 'Conformidade legal',
-                desc: 'Adequação à NR-1 (riscos psicossociais), Lei 14.457/22, LGPD e boas práticas de compliance. Código de ética, não retaliação e comitê de ética.',
+                desc: 'Adequação à NR-1 (riscos psicossociais), Lei 14.457/22, LGPD e boas práticas de compliance. Criptografia, não retaliação e comitê de ética.',
               },
             ].map(({ Icon, title, desc }) => (
               <motion.div

@@ -37,6 +37,7 @@ src/
 |----------------|------------------|--------------------|-----------|
 | `dashboard`    | Dashboard        | AdminDashboard     | Empresas, links, diagnósticos HSE-IT, denúncias (abas Diagnóstico / Denúncias). |
 | `empresas`     | Empresas         | AdminEmpresas      | Lista de empresas no registro; criar/editar empresa (tenant_id, display_name, cnpj, nicho, opções de setor para o formulário). |
+| `usuarios`     | Usuários         | AdminUsuarios      | Lista de administradores do sistema; criar novo e desativar usuários. |
 | `perfil`       | Perfil           | AdminPerfil        | Dados do usuário (nome, e-mail, avatar, departamento). Futuro: edição e alteração de senha. |
 
 - Novos destinos: adicionar ao tipo `AdminPage` em `AdminSidebar.tsx`, à lista `ADMIN_NAV`, e ao `AdminLayout` o branch que renderiza o componente da página.
