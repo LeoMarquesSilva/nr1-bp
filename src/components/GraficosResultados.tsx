@@ -14,7 +14,11 @@ import {
   Cell,
   ReferenceLine,
 } from 'recharts'
+import { useRef, useState, useCallback } from 'react'
+import { Copy, Check } from 'lucide-react'
+import html2canvas from 'html2canvas'
 import type { DimensionSummary } from '../data/hseIt'
+import { getRiskLevel } from '../data/riskLevels'
 
 /** Ordem fixa das dimensões para gráficos (HSE-IT) */
 const ORDEM_DIMENSOES = [
@@ -40,6 +44,8 @@ const NOMES_CURTOS: Record<string, string> = {
 
 type Props = {
   scores: DimensionSummary[]
+  /** Se true, mostra botão para copiar gráfico como imagem */
+  showCopyChart?: boolean
 }
 
 function ordenarScores(scores: DimensionSummary[]): DimensionSummary[] {
@@ -50,13 +56,53 @@ function ordenarScores(scores: DimensionSummary[]): DimensionSummary[] {
 }
 
 function corPorMedia(media: number): string {
-  if (media >= 4) return '#10B981' // emerald-500 (ok)
-  if (media >= 3) return '#F59E0B' // amber-500 (média)
-  return '#EF4444' // red-500 (atenção)
+  return getRiskLevel(media).hex
 }
 
-export function GraficosResultados({ scores }: Props) {
+export function GraficosResultados({ scores, showCopyChart = false }: Props) {
   const ordenados = ordenarScores(scores)
+  const radarRef = useRef<HTMLDivElement>(null)
+  const barrasRef = useRef<HTMLDivElement>(null)
+  const [copying, setCopying] = useState<'radar' | 'barras' | null>(null)
+
+  const copyChartAsImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>) => {
+    if (!ref.current) return
+    try {
+      const canvas = await html2canvas(ref.current, {
+        useCORS: true,
+        scale: 2,
+        backgroundColor: '#FAFBFB',
+        logging: false,
+      })
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setCopying(null)
+          return
+        }
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ 'image/png': blob }),
+          ])
+          setTimeout(() => setCopying(null), 2500)
+        } catch {
+          setCopying(null)
+          alert('Não foi possível copiar a imagem.')
+        }
+      }, 'image/png')
+    } catch {
+      setCopying(null)
+      alert('Não foi possível gerar a imagem do gráfico.')
+    }
+  }, [])
+
+  const handleCopyRadar = () => {
+    setCopying('radar')
+    copyChartAsImage(radarRef)
+  }
+  const handleCopyBarras = () => {
+    setCopying('barras')
+    copyChartAsImage(barrasRef)
+  }
 
   const dadosRadar = ordenados.map((d) => ({
     subject: NOMES_CURTOS[d.dimensionId] ?? d.dimensionLabel,
@@ -73,13 +119,28 @@ export function GraficosResultados({ scores }: Props) {
   return (
     <div className="space-y-8">
       {/* Radar: perfil das 7 dimensões (padrão HSE) */}
-      <div className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
-        <h3 className="mb-4 text-lg font-semibold text-escritorio">
-          Perfil por dimensão (radar)
-        </h3>
-        <p className="mb-4 text-sm text-escritorio opacity-80">
-          Quanto mais próximo de 5, melhor a dimensão. Escala 1–5.
-        </p>
+      <div ref={radarRef} className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-lg font-semibold text-escritorio">
+              Perfil por dimensão (radar)
+            </h3>
+            <p className="mt-1 text-sm text-escritorio opacity-80">
+              Quanto mais próximo de 5, melhor a dimensão. Escala 1–5.
+            </p>
+          </div>
+          {showCopyChart && (
+            <button
+              type="button"
+              onClick={handleCopyRadar}
+              disabled={copying === 'radar'}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              {copying === 'radar' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copying === 'radar' ? 'Copiado!' : 'Copiar gráfico'}
+            </button>
+          )}
+        </div>
         <div className="h-[320px] w-full sm:h-[360px]">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart data={dadosRadar} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
@@ -119,13 +180,28 @@ export function GraficosResultados({ scores }: Props) {
       </div>
 
       {/* Barras horizontais: priorização (menor média = mais atenção) */}
-      <div className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
-        <h3 className="mb-4 text-lg font-semibold text-escritorio">
-          Médias por dimensão (priorização)
-        </h3>
-        <p className="mb-4 text-sm text-escritorio opacity-80">
-          Dimensões com média menor exigem mais atenção. Linha de referência: 3.
-        </p>
+      <div ref={barrasRef} className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 className="text-lg font-semibold text-escritorio">
+              Médias por dimensão (priorização)
+            </h3>
+            <p className="mt-1 text-sm text-escritorio opacity-80">
+              Dimensões com média menor exigem mais atenção. Linha de referência: 3.
+            </p>
+          </div>
+          {showCopyChart && (
+            <button
+              type="button"
+              onClick={handleCopyBarras}
+              disabled={copying === 'barras'}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              {copying === 'barras' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copying === 'barras' ? 'Copiado!' : 'Copiar gráfico'}
+            </button>
+          )}
+        </div>
         <div className="h-[320px] w-full sm:h-[360px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
@@ -161,15 +237,21 @@ export function GraficosResultados({ scores }: Props) {
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-escritorio opacity-80">
+        <div className="mt-4 flex flex-wrap gap-3 text-xs text-escritorio opacity-80">
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-emerald-500" /> Baixa atenção (≥4)
+            <span className="h-3 w-3 rounded-full" style={{ background: '#B91C1C' }} /> Até 1,0 – Risco Muito Alto
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full" style={{ background: '#D5B170' }} /> Média (3–4)
+            <span className="h-3 w-3 rounded-full" style={{ background: '#C2410C' }} /> 1,1–2,0 – Risco Alto
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-red-500" /> Alta / Urgente (&lt;3)
+            <span className="h-3 w-3 rounded-full" style={{ background: '#B45309' }} /> 2,1–3,0 – Risco Moderado
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-full" style={{ background: '#047857' }} /> 3,1–4,0 – Risco Baixo
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-full" style={{ background: '#065F46' }} /> 4,1–5,0 – Risco Muito Baixo
           </span>
         </div>
       </div>

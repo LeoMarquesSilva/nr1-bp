@@ -19,6 +19,7 @@ import {
 import { computeDimensionScores, aggregateDimensionScores } from '@/data/hseIt'
 import { GraficosResultados } from '../GraficosResultados'
 import { Resultados } from '../Resultados'
+import { RelatorioConclusao } from '../RelatorioConclusao'
 import { formatCnpjDisplay } from '@/lib/masks'
 import { cn } from '@/lib/utils'
 
@@ -156,6 +157,10 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
   const isActive = registry?.active ?? true
 
   if (selectedSubmission) {
+    const scoresSetor = computeDimensionScores(selectedSubmission.answers)
+    const setorLabel = selectedSubmission.funcao
+      ? `${selectedSubmission.setor} · ${selectedSubmission.funcao}`
+      : selectedSubmission.setor
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-3">
@@ -170,9 +175,23 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
         </div>
         <Resultados
           answers={selectedSubmission.answers}
-          setor={selectedSubmission.funcao ? `${selectedSubmission.setor} · ${selectedSubmission.funcao}` : selectedSubmission.setor}
+          setor={setorLabel}
           onVoltar={() => setSelectedSubmission(null)}
           isAdmin
+        />
+        <RelatorioConclusao
+          scores={scoresSetor}
+          setor={setorLabel}
+          showCopy
+          meta={{
+            empresaNome: displayName,
+            totalRespostas: 1,
+            dataRelatorio: new Date().toLocaleDateString('pt-BR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            }),
+          }}
         />
       </div>
     )
@@ -274,7 +293,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                   </div>
                 </div>
 
-                <GraficosResultados scores={scoresEmpresa} />
+                <GraficosResultados scores={scoresEmpresa} showCopyChart />
 
                 <Resultados
                   answers={{}}
@@ -282,6 +301,21 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                   onVoltar={() => {}}
                   isAdmin
                   scoresOverride={scoresEmpresa}
+                />
+
+                <RelatorioConclusao
+                  scores={scoresEmpresa}
+                  setor="Empresa (agregado)"
+                  showCopy
+                  meta={{
+                    empresaNome: displayName,
+                    totalRespostas: submissions.length,
+                    dataRelatorio: new Date().toLocaleDateString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                    }),
+                  }}
                 />
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
