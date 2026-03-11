@@ -37,8 +37,9 @@ function normalizeDimensionName(raw: string): DimensionId | null {
 
 function parseRiskBlocks(block: string): Partial<Record<RiskLevelKey, string>> {
   const result: Partial<Record<RiskLevelKey, string>> = {}
-  const riskRegex = /^Risco (Muito Alto|Alto|Moderado|Baixo|Muito Baixo)\s*$/gm
-  const matches: { key: RiskLevelKey; start: number }[] = []
+  // Ordem importante: "Muito Alto" e "Muito Baixo" antes de "Alto" e "Baixo" para não casar "Baixo" dentro de "Muito Baixo"
+  const riskRegex = /^Risco (Muito Alto|Muito Baixo|Alto|Moderado|Baixo)\s*$/gm
+  const matches: { key: RiskLevelKey; contentStart: number; headerStart: number }[] = []
   let match: RegExpExecArray | null
 
   while ((match = riskRegex.exec(block)) !== null) {
@@ -47,12 +48,15 @@ function parseRiskBlocks(block: string): Partial<Record<RiskLevelKey, string>> {
     if (!key) continue
     matches.push({
       key,
-      start: match.index + match[0].length,
+      contentStart: match.index + match[0].length,
+      headerStart: match.index,
     })
   }
 
   for (let i = 0; i < matches.length; i++) {
-    const raw = block.slice(matches[i].start, matches[i + 1]?.start ?? block.length)
+    // Cortar até o início do próximo cabeçalho (exclusive), para não incluir "Risco Muito Baixo" no texto de "Risco Baixo"
+    const end = matches[i + 1]?.headerStart ?? block.length
+    const raw = block.slice(matches[i].contentStart, end)
     const text = raw.replace(/\n{3,}/g, '\n\n').trim()
     if (text) result[matches[i].key] = text
   }
