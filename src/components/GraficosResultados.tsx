@@ -68,30 +68,48 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
   const copyChartAsImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>) => {
     if (!ref.current) return
     try {
+      // Pequena pausa para o gráfico SVG estar totalmente renderizado
+      await new Promise((r) => setTimeout(r, 300))
       const canvas = await html2canvas(ref.current, {
         useCORS: true,
         scale: 2,
         backgroundColor: '#FAFBFB',
         logging: false,
+        allowTaint: true,
+        // Melhora captura de SVG (Recharts)
+        foreignObjectRendering: false,
+        imageTimeout: 0,
       })
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setCopying(null)
-          return
-        }
-        try {
-          await navigator.clipboard.write([
-            new ClipboardItem({ 'image/png': blob }),
-          ])
-          setTimeout(() => setCopying(null), 2500)
-        } catch {
-          setCopying(null)
-          alert('Não foi possível copiar a imagem.')
-        }
-      }, 'image/png')
-    } catch {
+      canvas.toBlob(
+        async (blob) => {
+          if (!blob) {
+            setCopying(null)
+            return
+          }
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob }),
+            ])
+            setTimeout(() => setCopying(null), 2500)
+          } catch {
+            // Fallback: download da imagem se a área de transferência falhar (ex.: HTTP, permissão)
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = 'grafico-diagnostico.png'
+            a.click()
+            URL.revokeObjectURL(url)
+            setCopying(null)
+            alert('A cópia para a área de transferência não está disponível. O gráfico foi baixado como imagem.')
+          }
+        },
+        'image/png',
+        1
+      )
+    } catch (err) {
       setCopying(null)
-      alert('Não foi possível gerar a imagem do gráfico.')
+      console.error(err)
+      alert('Não foi possível gerar a imagem do gráfico. Tente em outro navegador ou use HTTPS.')
     }
   }, [])
 
@@ -119,31 +137,18 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
   return (
     <div className="space-y-8">
       {/* Radar: perfil das 7 dimensões (padrão HSE) */}
-      <div ref={radarRef} className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div>
+      <div className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div ref={radarRef} className="min-w-0 flex-1">
             <h3 className="text-lg font-semibold text-escritorio">
               Perfil por dimensão (radar)
             </h3>
             <p className="mt-1 text-sm text-escritorio opacity-80">
               Quanto mais próximo de 5, melhor a dimensão. Escala 1–5.
             </p>
-          </div>
-          {showCopyChart && (
-            <button
-              type="button"
-              onClick={handleCopyRadar}
-              disabled={copying === 'radar'}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
-            >
-              {copying === 'radar' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copying === 'radar' ? 'Copiado!' : 'Copiar gráfico'}
-            </button>
-          )}
-        </div>
-        <div className="h-[320px] w-full sm:h-[360px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart data={dadosRadar} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
+            <div className="mt-4 h-[320px] w-full sm:h-[360px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={dadosRadar} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
               <PolarGrid stroke="rgba(16,31,46,0.15)" />
               <PolarAngleAxis
                 dataKey="subject"
@@ -175,20 +180,85 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
                 labelFormatter={(label) => label}
               />
             </RadarChart>
-          </ResponsiveContainer>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          {showCopyChart && (
+            <button
+              type="button"
+              onClick={handleCopyRadar}
+              disabled={copying === 'radar'}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+            >
+              {copying === 'radar' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copying === 'radar' ? 'Copiado!' : 'Copiar gráfico'}
+            </button>
+          )}
         </div>
       </div>
 
       {/* Barras horizontais: priorização (menor média = mais atenção) */}
-      <div ref={barrasRef} className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div>
+      <div className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div ref={barrasRef} className="min-w-0 flex-1">
             <h3 className="text-lg font-semibold text-escritorio">
               Médias por dimensão (priorização)
             </h3>
             <p className="mt-1 text-sm text-escritorio opacity-80">
               Dimensões com média menor exigem mais atenção. Linha de referência: 3.
             </p>
+            <div className="mt-4 h-[320px] w-full sm:h-[360px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={dadosBarras}
+                  layout="vertical"
+                  margin={{ top: 10, right: 30, left: 80, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,31,46,0.12)" />
+                  <XAxis type="number" domain={[0, 5]} tick={{ fill: '#101F2E', fontSize: 11 }} />
+                  <YAxis
+                    type="category"
+                    dataKey="dimensao"
+                    width={75}
+                    tick={{ fill: '#101F2E', fontSize: 11 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '10px',
+                      border: '1px solid rgba(16,31,46,0.1)',
+                      background: '#FAFBFB',
+                      color: '#101F2E',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
+                    }}
+                    formatter={(value: number | undefined) => [value != null ? value.toFixed(1) : '–', 'Média']}
+                    cursor={{ fill: 'rgba(213,177,112,0.12)' }}
+                  />
+                  <ReferenceLine x={3} stroke="#D5B170" strokeDasharray="4 4" />
+                  <Bar dataKey="media" name="Média" radius={[0, 4, 4, 0]} maxBarSize={32}>
+                    {dadosBarras.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.cor} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-3 text-xs text-escritorio opacity-80">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full" style={{ background: '#B91C1C' }} /> Até 1,0 – Risco Muito Alto
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full" style={{ background: '#C2410C' }} /> 1,1–2,0 – Risco Alto
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full" style={{ background: '#B45309' }} /> 2,1–3,0 – Risco Moderado
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full" style={{ background: '#047857' }} /> 3,1–4,0 – Risco Baixo
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full" style={{ background: '#065F46' }} /> 4,1–5,0 – Risco Muito Baixo
+              </span>
+            </div>
           </div>
           {showCopyChart && (
             <button
@@ -201,58 +271,6 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
               {copying === 'barras' ? 'Copiado!' : 'Copiar gráfico'}
             </button>
           )}
-        </div>
-        <div className="h-[320px] w-full sm:h-[360px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={dadosBarras}
-              layout="vertical"
-              margin={{ top: 10, right: 30, left: 80, bottom: 10 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,31,46,0.12)" />
-              <XAxis type="number" domain={[0, 5]} tick={{ fill: '#101F2E', fontSize: 11 }} />
-              <YAxis
-                type="category"
-                dataKey="dimensao"
-                width={75}
-                tick={{ fill: '#101F2E', fontSize: 11 }}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: '10px',
-                  border: '1px solid rgba(16,31,46,0.1)',
-                  background: '#FAFBFB',
-                  color: '#101F2E',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
-                }}
-                formatter={(value: number | undefined) => [value != null ? value.toFixed(1) : '–', 'Média']}
-                cursor={{ fill: 'rgba(213,177,112,0.12)' }}
-              />
-              <ReferenceLine x={3} stroke="#D5B170" strokeDasharray="4 4" />
-              <Bar dataKey="media" name="Média" radius={[0, 4, 4, 0]} maxBarSize={32}>
-                {dadosBarras.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.cor} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-3 text-xs text-escritorio opacity-80">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full" style={{ background: '#B91C1C' }} /> Até 1,0 – Risco Muito Alto
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full" style={{ background: '#C2410C' }} /> 1,1–2,0 – Risco Alto
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full" style={{ background: '#B45309' }} /> 2,1–3,0 – Risco Moderado
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full" style={{ background: '#047857' }} /> 3,1–4,0 – Risco Baixo
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full" style={{ background: '#065F46' }} /> 4,1–5,0 – Risco Muito Baixo
-          </span>
         </div>
       </div>
     </div>
