@@ -235,17 +235,21 @@ export async function saveSubmission(
     funcao: '',
     answers,
   }
-  const { data, error } = await supabase
-    .from('submissions')
-    .insert(row)
-    .select('id, setor, funcao, answers, submitted_at')
-    .single()
+  const { error } = await supabase.from('submissions').insert(row)
 
   if (error) {
     console.error('Supabase saveSubmission:', error)
     throw new Error('Não foi possível enviar o diagnóstico. Tente novamente.')
   }
-  return rowToSubmission(data as SubmissionRow)
+  // Não usamos .select().single() porque, para anon, o RLS bloqueia SELECT em submissions.
+  // O fluxo só precisa indicar sucesso; a UI não usa o retorno.
+  return {
+    id: '',
+    setor,
+    funcao: '',
+    answers,
+    submittedAt: new Date().toISOString(),
+  }
 }
 
 export async function deleteSubmission(id: string, tenantId?: string): Promise<void> {
