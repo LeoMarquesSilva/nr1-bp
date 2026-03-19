@@ -46,18 +46,18 @@ export function HeroContent({ onFazerRelato }: Props) {
         variants={itemLeft}
         className="mt-6 max-w-lg text-lg leading-relaxed text-slate-500"
       >
-        Avalie riscos psicossociais com o método HSE-IT, receba relatos anônimos com protocolo seguro e gerencie tudo em um painel centralizado. Multi-tenant, pronto para sua organização.
+        Avalie riscos psicossociais com o método HSE-IT, receba denúncias com protocolo seguro e gerencie tudo em um painel centralizado. Multi-tenant, pronto para sua organização.
       </motion.p>
 
       <motion.div variants={itemLeft} className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
         <button
           type="button"
           onClick={onFazerRelato}
-          aria-label="Abrir canal para fazer relato ou denúncia anônima"
+          aria-label="Abrir canal de denúncias"
           className="inline-flex min-h-[48px] min-w-[44px] items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-3 text-base font-semibold text-white shadow-lg shadow-slate-900/10 transition-all hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
         >
           <MessageSquareWarning className="h-[18px] w-[18px] shrink-0" aria-hidden />
-          Fazer Relato Anônimo
+          Canal de denúncias
         </button>
       </motion.div>
 

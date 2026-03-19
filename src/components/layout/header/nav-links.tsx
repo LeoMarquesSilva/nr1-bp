@@ -29,7 +29,7 @@ export type View =
 
 const APP_NAV: { view: View; label: string }[] = [
   { view: "landing", label: "Início" },
-  { view: "relatos-buscar", label: "Canal de relatos" },
+  { view: "relatos-buscar", label: "Canal de denúncia" },
   { view: "sobre", label: "Sobre" },
   { view: "privacidade", label: "Privacidade" },
 ]
@@ -37,13 +37,17 @@ const APP_NAV: { view: View; label: string }[] = [
 export interface NavLinksProps {
   view: View
   onNavigate: (view: View) => void
+  hideCanalDenunciaNav?: boolean
 }
 
-export function NavLinks({ view, onNavigate }: NavLinksProps) {
+export function NavLinks({ view, onNavigate, hideCanalDenunciaNav = false }: NavLinksProps) {
+  const links = hideCanalDenunciaNav
+    ? APP_NAV.filter((item) => item.view !== "relatos-buscar")
+    : APP_NAV
   return (
     <NavigationMenu className="max-w-none justify-center">
       <NavigationMenuList className="gap-1">
-        {APP_NAV.map(({ view: v, label }) => (
+        {links.map(({ view: v, label }) => (
           <NavigationMenuItem key={v}>
             <NavigationMenuLink asChild>
               <button

@@ -75,7 +75,7 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
               Encontrar minha organização
             </h2>
             <p className="text-sm text-slate-600">
-              Digite o nome da empresa para acessar o canal de relatos
+              Digite o nome da empresa para acessar o canal de denúncia
             </p>
           </div>
         </div>

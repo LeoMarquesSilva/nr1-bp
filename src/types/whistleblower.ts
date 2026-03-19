@@ -12,6 +12,9 @@ export interface WhistleblowerReport {
   created_at: string
   read_at: string | null
   status: WhistleblowerStatus
+  is_anonymous?: boolean
+  reporter_name?: string | null
+  reporter_contact?: string | null
 }
 
 /** Gera um protocol_id único no formato WB-XXXXXXXX (8 caracteres alfanuméricos). */
@@ -25,18 +28,25 @@ function generateProtocolId(): string {
 }
 
 export async function saveWhistleblowerReport(data: {
-  category?: string
+  category?: string | null
   body: string
+  isAnonymous: boolean
+  reporterName?: string
+  reporterContact?: string
 }): Promise<{ protocolId: string }> {
   const supabase = getSupabase()
   const tenantId = getTenantId()
   const protocolId = generateProtocolId()
+  const isAnonymous = data.isAnonymous
   const { error } = await supabase.from('whistleblower_reports').insert({
     tenant_id: tenantId,
     protocol_id: protocolId,
     category: data.category?.trim() || null,
     body: data.body.trim(),
     status: 'recebida',
+    is_anonymous: isAnonymous,
+    reporter_name: isAnonymous ? null : data.reporterName?.trim() || null,
+    reporter_contact: isAnonymous ? null : data.reporterContact?.trim() || null,
   })
   if (error) {
     console.error('Supabase saveWhistleblowerReport:', error)
@@ -49,7 +59,9 @@ export async function getWhistleblowerReports(tenantId?: string): Promise<Whistl
   const supabase = getSupabase()
   let q = supabase
     .from('whistleblower_reports')
-    .select('id, tenant_id, protocol_id, category, body, created_at, read_at, status')
+    .select(
+      'id, tenant_id, protocol_id, category, body, created_at, read_at, status, is_anonymous, reporter_name, reporter_contact'
+    )
     .order('created_at', { ascending: false })
   if (tenantId) q = q.eq('tenant_id', tenantId)
   const { data, error } = await q
@@ -60,7 +72,7 @@ export async function getWhistleblowerReports(tenantId?: string): Promise<Whistl
   return (data ?? []) as WhistleblowerReport[]
 }
 
-/** Consulta pública: retorna apenas status e data pelo protocol_id (anon, sem expor o relato). */
+/** Consulta pública: retorna apenas status e data pelo protocol_id (sem expor o conteúdo da denúncia). */
 export async function getWhistleblowerStatusByProtocol(
   protocolId: string
 ): Promise<{ status: string; created_at: string } | null> {

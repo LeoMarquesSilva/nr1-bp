@@ -2,11 +2,12 @@ import { CheckCircle2, Copy } from 'lucide-react'
 
 type Props = {
   protocolId: string
+  isAnonymous: boolean
   onFechar: () => void
   onConsultar?: () => void
 }
 
-export function WhistleblowerThanks({ protocolId, onFechar, onConsultar }: Props) {
+export function WhistleblowerThanks({ protocolId, isAnonymous, onFechar, onConsultar }: Props) {
   const copyProtocol = () => {
     navigator.clipboard.writeText(protocolId).then(() => alert('Protocolo copiado.'))
   }
@@ -16,11 +17,19 @@ export function WhistleblowerThanks({ protocolId, onFechar, onConsultar }: Props
       <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
         <CheckCircle2 className="h-10 w-10" />
       </div>
-      <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-        Denúncia recebida
-      </h2>
+      <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Denúncia recebida</h2>
       <p className="mx-auto mt-4 max-w-md text-slate-600">
-        Seu relato foi registrado de forma anônima e será analisado pelo comitê de ética. Guarde o número do protocolo para acompanhar o andamento.
+        {isAnonymous ? (
+          <>
+            Sua denúncia foi registrada de forma <strong>anônima</strong> e será analisada pelo comitê de ética. Guarde o número do protocolo para
+            acompanhar o andamento.
+          </>
+        ) : (
+          <>
+            Sua denúncia foi registrada com os dados de contato informados. A organização poderá utilizar essas informações para retorno, quando
+            aplicável. Guarde também o protocolo para acompanhar o status.
+          </>
+        )}
       </p>
       <div className="mt-6 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Seu protocolo</p>
@@ -37,7 +46,11 @@ export function WhistleblowerThanks({ protocolId, onFechar, onConsultar }: Props
         </p>
       </div>
       <p className="mt-4 text-sm text-slate-600">
-        Use este número nesta mesma página (opção &quot;Consultar denúncia&quot;) para ver o status sem precisar se identificar.
+        {isAnonymous ? (
+          <>Use este número nesta mesma página (opção &quot;Consultar denúncia&quot;) para ver o status sem precisar se identificar.</>
+        ) : (
+          <>Você também pode acompanhar o status pelo protocolo, em &quot;Consultar denúncia&quot;, quando desejar.</>
+        )}
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         {onConsultar && (
@@ -49,11 +62,7 @@ export function WhistleblowerThanks({ protocolId, onFechar, onConsultar }: Props
             Consultar denúncia
           </button>
         )}
-        <button
-          type="button"
-          onClick={onFechar}
-          className="btn-escritorio rounded-full px-6 py-3 font-semibold"
-        >
+        <button type="button" onClick={onFechar} className="btn-escritorio rounded-full px-6 py-3 font-semibold">
           Fechar
         </button>
       </div>

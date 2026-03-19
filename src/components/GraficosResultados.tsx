@@ -18,7 +18,7 @@ import { useRef, useState, useCallback } from 'react'
 import { Copy, Check } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import type { DimensionSummary } from '../data/hseIt'
-import { getRiskLevel } from '../data/riskLevels'
+import { getRiskLevel, RISK_LEVELS } from '../data/riskLevels'
 
 /** Ordem fixa das dimensões para gráficos (HSE-IT) */
 const ORDEM_DIMENSOES = [
@@ -242,22 +242,16 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="mt-4 flex flex-wrap gap-3 text-xs text-escritorio opacity-80">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full" style={{ background: '#B91C1C' }} /> Até 1,0 – Risco Muito Alto
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full" style={{ background: '#C2410C' }} /> 1,1–2,0 – Risco Alto
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full" style={{ background: '#B45309' }} /> 2,1–3,0 – Risco Moderado
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full" style={{ background: '#047857' }} /> 3,1–4,0 – Risco Baixo
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full" style={{ background: '#065F46' }} /> 4,1–5,0 – Risco Muito Baixo
-              </span>
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-700">
+              {RISK_LEVELS.map((level) => (
+                <span key={level.key} className="inline-flex items-center gap-1.5">
+                  <span
+                    className="h-3.5 w-3.5 shrink-0 rounded-full border border-black/10 shadow-sm"
+                    style={{ background: level.hex }}
+                  />
+                  {level.legendCaption}
+                </span>
+              ))}
             </div>
           </div>
           {showCopyChart && (

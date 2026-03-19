@@ -123,7 +123,7 @@ Apoio da chefia
 Apoio dos colegas
 Relacionamentos 
 Cargo / Papel
-Comunicação e mudanças organizacionais
+Comunicação e mudanças
 
 Ressalta-se que o presente laudo possui caráter preventivo e organizacional, não se confundindo com diagnóstico clínico individual ou constatação de dano consumado, constituindo-se como instrumento de governança, compliance trabalhista e melhoria contínua das condições de trabalho.
 Por fim, recomenda-se que este laudo seja periodicamente revisitado e atualizado, especialmente diante de mudanças organizacionais relevantes, tais como reestruturações, alterações significativas de processos, ampliação de equipes ou mudanças de liderança, reafirmando o compromisso da organização com a gestão contínua dos riscos psicossociais, a promoção da saúde mental e a construção de um ambiente de trabalho saudável, sustentável e juridicamente seguro.

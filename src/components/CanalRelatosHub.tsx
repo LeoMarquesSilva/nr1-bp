@@ -3,11 +3,11 @@ import { MessageSquarePlus, FileQuestion, ArrowRight, Shield } from 'lucide-reac
 type Props = {
   orgSlug: string
   orgDisplayName?: string | null
-  onEnviarRelato: () => void
+  onEnviarDenuncia: () => void
   onAcompanharCodigo: () => void
 }
 
-export function CanalRelatosHub({ orgSlug, orgDisplayName, onEnviarRelato, onAcompanharCodigo }: Props) {
+export function CanalRelatosHub({ orgSlug, orgDisplayName, onEnviarDenuncia, onAcompanharCodigo }: Props) {
   const orgName = orgDisplayName || orgSlug
 
   return (
@@ -19,7 +19,7 @@ export function CanalRelatosHub({ orgSlug, orgDisplayName, onEnviarRelato, onAco
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Canal de relatos
+              Canal de denúncia
             </p>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
               {orgName}
@@ -28,21 +28,21 @@ export function CanalRelatosHub({ orgSlug, orgDisplayName, onEnviarRelato, onAco
         </div>
 
         <p className="mt-6 text-slate-600">
-          Comunique-se de forma anônima ou identificada para relatar alguma situação. Escolha uma das opções abaixo.
+          Registre uma denúncia de forma anônima ou informando seus dados, ou acompanhe uma denúncia já enviada pelo código de protocolo.
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           <button
             type="button"
-            onClick={onEnviarRelato}
+            onClick={onEnviarDenuncia}
             className="group flex flex-col items-start rounded-xl border-2 border-slate-200 bg-white p-5 text-left transition hover:border-violet-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
               <MessageSquarePlus className="h-5 w-5" />
             </div>
-            <h2 className="mt-4 font-semibold text-slate-900">Enviar relato</h2>
+            <h2 className="mt-4 font-semibold text-slate-900">Enviar denúncia</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Envie uma nova denúncia ou relato de forma anônima ou identificada.
+              Nova denúncia, com opção de anonimato ou identificação.
             </p>
             <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-violet-600 group-hover:gap-2 transition-all">
               Acessar
@@ -58,9 +58,9 @@ export function CanalRelatosHub({ orgSlug, orgDisplayName, onEnviarRelato, onAco
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
               <FileQuestion className="h-5 w-5" />
             </div>
-            <h2 className="mt-4 font-semibold text-slate-900">Acompanhar relato por código</h2>
+            <h2 className="mt-4 font-semibold text-slate-900">Acompanhar denúncia por código</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Cole o código de protocolo abaixo para acompanhar o andamento e enviar informações adicionais.
+              Informe o protocolo para ver o status da sua denúncia.
             </p>
             <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-violet-600 group-hover:gap-2 transition-all">
               Acessar

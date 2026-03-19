@@ -60,58 +60,242 @@ export interface Question {
  * Substitua pelos textos oficiais da planilha quando disponível.
  */
 export const DIMENSION_DESCRIPTIONS: Record<DimensionId, string> = {
-  demandas: 'Esta dimensão avalia as exigências e a carga de trabalho (prazos, intensidade, pausas, pressão por horários e rapidez). Quanto menor a média, melhor o ambiente nesse aspecto.',
-  controle: 'Avalia a autonomia e a possibilidade de influenciar o próprio trabalho (pausas, ritmo, liberdade de escolha, flexibilidade de horário e consideração das sugestões).',
-  apoio_chefia: 'Reflete o suporte e a confiança oferecidos pela liderança (informações, apoio em problemas, abertura para diálogo e incentivo).',
-  apoio_colega: 'Mede o apoio e o respeito entre colegas (ajuda quando o trabalho fica difícil, disponibilidade para escutar e respeito no ambiente).',
-  relacionamentos: 'Avalia a qualidade das relações no trabalho (conflitos, tensão, tratamento duro ou sensação de perseguição). Quanto menor a média, melhor.',
-  cargo_papel: 'Verifica a clareza do papel e das expectativas (tarefas, responsabilidades, objetivos do setor e como o trabalho se encaixa na empresa).',
-  comunicacao_mudancas: 'Avalia como as mudanças organizacionais são comunicadas e se há espaço para esclarecimentos e participação.',
+  demandas:
+    'Avalia o volume de trabalho e a pressão por prazos. Envolve aspectos como quantidade de tarefas, ritmo de trabalho, prazos e intensidade das atividades no dia a dia.',
+  controle:
+    'Avalia o nível de autonomia que o trabalhador tem para realizar suas atividades. Trata-se da possibilidade de organizar o próprio trabalho, tomar decisões e participar de escolhas relacionadas às tarefas.',
+  apoio_chefia:
+    'Avalia o suporte oferecido pela liderança. Inclui orientação, confiança, disponibilidade para ajudar, reconhecimento e incentivo da chefia.',
+  apoio_colega:
+    'Avalia o nível de cooperação entre os colegas de trabalho. Considera ajuda mútua, respeito, colaboração e disposição para apoiar uns aos outros.',
+  relacionamentos:
+    'Avalia como são as relações no ambiente de trabalho. Se refere a respeito, tratamento entre as pessoas, clima de convivência e possíveis conflitos no dia a dia.',
+  cargo_papel:
+    'Avalia se o trabalhador tem clareza sobre suas responsabilidades e expectativas no trabalho. Inclui entendimento das tarefas, objetivos da função e responsabilidades dentro da equipe.',
+  comunicacao_mudancas:
+    'Avalia como as mudanças no trabalho são comunicadas e conduzidas. Considera a forma como informações são compartilhadas, o preparo das equipes e o suporte durante mudanças organizacionais.',
 }
+
+const LABEL_COMUNICACAO = 'Comunicação e mudanças'
 
 export const QUESTIONS: Question[] = [
   // Demandas (8) - invertido
-  { id: 1, dimensionId: 'demandas', dimensionLabel: 'Demandas', text: 'As exigências de trabalho feitas por colegas e supervisores são difíceis de conciliar' },
-  { id: 2, dimensionId: 'demandas', dimensionLabel: 'Demandas', text: 'Tenho prazos inatingíveis' },
-  { id: 3, dimensionId: 'demandas', dimensionLabel: 'Demandas', text: 'Devo trabalhar muito intensamente' },
-  { id: 4, dimensionId: 'demandas', dimensionLabel: 'Demandas', text: 'Eu não faço algumas tarefas porque tenho muita coisa para fazer' },
-  { id: 5, dimensionId: 'demandas', dimensionLabel: 'Demandas', text: 'Não tenho possibilidade de fazer pausas suficientes' },
-  { id: 6, dimensionId: 'demandas', dimensionLabel: 'Demandas', text: 'Recebo pressão para trabalhar em outro horário' },
-  { id: 7, dimensionId: 'demandas', dimensionLabel: 'Demandas', text: 'Tenho que fazer meu trabalho com muita rapidez' },
-  { id: 8, dimensionId: 'demandas', dimensionLabel: 'Demandas', text: 'As pausas temporárias são impossíveis de cumprir' },
+  {
+    id: 1,
+    dimensionId: 'demandas',
+    dimensionLabel: 'Demandas',
+    text: 'Recebo pedidos de trabalho de diferentes pessoas ou setores que são difíceis de conciliar entre si.',
+  },
+  {
+    id: 2,
+    dimensionId: 'demandas',
+    dimensionLabel: 'Demandas',
+    text: 'Recebo prazos difíceis de serem cumpridos.',
+  },
+  {
+    id: 3,
+    dimensionId: 'demandas',
+    dimensionLabel: 'Demandas',
+    text: 'Meu trabalho exige um ritmo muito intenso.',
+  },
+  {
+    id: 4,
+    dimensionId: 'demandas',
+    dimensionLabel: 'Demandas',
+    text: 'Tenho tarefas demais para conseguir fazer tudo.',
+  },
+  {
+    id: 5,
+    dimensionId: 'demandas',
+    dimensionLabel: 'Demandas',
+    text: 'Não consigo fazer pausas suficientes durante o trabalho.',
+  },
+  {
+    id: 6,
+    dimensionId: 'demandas',
+    dimensionLabel: 'Demandas',
+    text: 'Recebo pressão para trabalhar além do horário normal.',
+  },
+  {
+    id: 7,
+    dimensionId: 'demandas',
+    dimensionLabel: 'Demandas',
+    text: 'Tenho que fazer meu trabalho com muita rapidez.',
+  },
+  {
+    id: 8,
+    dimensionId: 'demandas',
+    dimensionLabel: 'Demandas',
+    text: 'As pausas temporárias são impossíveis de cumprir.',
+  },
   // Controle (6)
-  { id: 9, dimensionId: 'controle', dimensionLabel: 'Controle', text: 'Posso decidir quando fazer uma pausa' },
-  { id: 10, dimensionId: 'controle', dimensionLabel: 'Controle', text: 'Consideram a minha opinião sobre a velocidade do meu trabalho' },
-  { id: 11, dimensionId: 'controle', dimensionLabel: 'Controle', text: 'Tenho liberdade de escolha de como fazer o meu trabalho' },
-  { id: 12, dimensionId: 'controle', dimensionLabel: 'Controle', text: 'Tenho liberdade de escolha para decidir o que fazer no trabalho' },
-  { id: 13, dimensionId: 'controle', dimensionLabel: 'Controle', text: 'Minhas sugestões são consideradas sobre como fazer meu trabalho' },
-  { id: 14, dimensionId: 'controle', dimensionLabel: 'Controle', text: 'O meu horário de trabalho pode ser flexível' },
+  {
+    id: 9,
+    dimensionId: 'controle',
+    dimensionLabel: 'Controle',
+    text: 'Posso decidir quando fazer pausas no trabalho.',
+  },
+  {
+    id: 10,
+    dimensionId: 'controle',
+    dimensionLabel: 'Controle',
+    text: 'Tenho algum poder de decisão sobre a minha maneira de trabalhar.',
+  },
+  {
+    id: 11,
+    dimensionId: 'controle',
+    dimensionLabel: 'Controle',
+    text: 'Tenho liberdade para decidir como fazer meu trabalho.',
+  },
+  {
+    id: 12,
+    dimensionId: 'controle',
+    dimensionLabel: 'Controle',
+    text: 'Tenho liberdade para decidir o que fazer no meu trabalho.',
+  },
+  {
+    id: 13,
+    dimensionId: 'controle',
+    dimensionLabel: 'Controle',
+    text: 'Minhas sugestões são consideradas sobre como fazer meu trabalho.',
+  },
+  {
+    id: 14,
+    dimensionId: 'controle',
+    dimensionLabel: 'Controle',
+    text: 'Tenho flexibilidade no meu horário de trabalho.',
+  },
   // Apoio da chefia (5)
-  { id: 15, dimensionId: 'apoio_chefia', dimensionLabel: 'Apoio da chefia', text: 'Recebo informações e suporte que me ajudam no trabalho que eu faço' },
-  { id: 16, dimensionId: 'apoio_chefia', dimensionLabel: 'Apoio da chefia', text: 'Posso confiar no meu chefe quando eu tiver problemas no trabalho' },
-  { id: 17, dimensionId: 'apoio_chefia', dimensionLabel: 'Apoio da chefia', text: 'Quando algo no trabalho me perturba ou irrita posso falar com o meu chefe' },
-  { id: 18, dimensionId: 'apoio_chefia', dimensionLabel: 'Apoio da chefia', text: 'Tenho suportado trabalhos emocionalmente exigentes' },
-  { id: 19, dimensionId: 'apoio_chefia', dimensionLabel: 'Apoio da chefia', text: 'Meu chefe me incentiva no trabalho' },
+  {
+    id: 15,
+    dimensionId: 'apoio_chefia',
+    dimensionLabel: 'Apoio da chefia',
+    text: 'Recebo informações e apoio que me ajudam a fazer meu trabalho.',
+  },
+  {
+    id: 16,
+    dimensionId: 'apoio_chefia',
+    dimensionLabel: 'Apoio da chefia',
+    text: 'Posso confiar no meu chefe quando tenho problemas no trabalho.',
+  },
+  {
+    id: 17,
+    dimensionId: 'apoio_chefia',
+    dimensionLabel: 'Apoio da chefia',
+    text: 'Quando algo me incomoda no trabalho, posso falar com meu chefe.',
+  },
+  {
+    id: 18,
+    dimensionId: 'apoio_chefia',
+    dimensionLabel: 'Apoio da chefia',
+    text: 'Recebo apoio quando realizo trabalho que pode ser emocionalmente desgastante.',
+  },
+  {
+    id: 19,
+    dimensionId: 'apoio_chefia',
+    dimensionLabel: 'Apoio da chefia',
+    text: 'Meu chefe me incentiva no trabalho.',
+  },
   // Apoio dos colegas (4)
-  { id: 20, dimensionId: 'apoio_colega', dimensionLabel: 'Apoio dos colegas', text: 'Quando o trabalho se torna difícil, posso contar com ajuda dos colegas' },
-  { id: 21, dimensionId: 'apoio_colega', dimensionLabel: 'Apoio dos colegas', text: 'Meus colegas me ajudam e me dão apoio quando eu preciso' },
-  { id: 22, dimensionId: 'apoio_colega', dimensionLabel: 'Apoio dos colegas', text: 'No trabalho os meus colegas demonstram o respeito que mereço' },
-  { id: 23, dimensionId: 'apoio_colega', dimensionLabel: 'Apoio dos colegas', text: 'Os colegas estão disponíveis para escutar os meus problemas de trabalho' },
+  {
+    id: 20,
+    dimensionId: 'apoio_colega',
+    dimensionLabel: 'Apoio dos colegas',
+    text: 'Quando o trabalho fica difícil, posso contar com a ajuda dos colegas.',
+  },
+  {
+    id: 21,
+    dimensionId: 'apoio_colega',
+    dimensionLabel: 'Apoio dos colegas',
+    text: 'Posso contar com a ajuda dos meus colegas quando preciso.',
+  },
+  {
+    id: 22,
+    dimensionId: 'apoio_colega',
+    dimensionLabel: 'Apoio dos colegas',
+    text: 'No trabalho, meus colegas me tratam com respeito.',
+  },
+  {
+    id: 23,
+    dimensionId: 'apoio_colega',
+    dimensionLabel: 'Apoio dos colegas',
+    text: 'Meus colegas estão disponíveis para ouvir meus problemas de trabalho.',
+  },
   // Relacionamentos (4) - invertido
-  { id: 24, dimensionId: 'relacionamentos', dimensionLabel: 'Relacionamentos', text: 'Falam ou se comportam comigo de forma dura' },
-  { id: 25, dimensionId: 'relacionamentos', dimensionLabel: 'Relacionamentos', text: 'Existem conflitos entre os colegas' },
-  { id: 26, dimensionId: 'relacionamentos', dimensionLabel: 'Relacionamentos', text: 'Sinto que sou perseguido no trabalho' },
-  { id: 27, dimensionId: 'relacionamentos', dimensionLabel: 'Relacionamentos', text: 'As relações no trabalho são tensas' },
+  {
+    id: 24,
+    dimensionId: 'relacionamentos',
+    dimensionLabel: 'Relacionamentos',
+    text: 'No trabalho falam comigo de forma dura ou desrespeitosa.',
+  },
+  {
+    id: 25,
+    dimensionId: 'relacionamentos',
+    dimensionLabel: 'Relacionamentos',
+    text: 'Existem conflitos entre colegas no trabalho.',
+  },
+  {
+    id: 26,
+    dimensionId: 'relacionamentos',
+    dimensionLabel: 'Relacionamentos',
+    text: 'Sinto que algumas pessoas me tratam de forma injusta no trabalho.',
+  },
+  {
+    id: 27,
+    dimensionId: 'relacionamentos',
+    dimensionLabel: 'Relacionamentos',
+    text: 'O clima entre as pessoas no trabalho é tenso.',
+  },
   // Cargo / Papel (5)
-  { id: 28, dimensionId: 'cargo_papel', dimensionLabel: 'Cargo / Papel', text: 'Tenho clareza sobre o que se espera do meu trabalho' },
-  { id: 29, dimensionId: 'cargo_papel', dimensionLabel: 'Cargo / Papel', text: 'Eu sei como fazer o meu trabalho' },
-  { id: 30, dimensionId: 'cargo_papel', dimensionLabel: 'Cargo / Papel', text: 'Estão claras as minhas tarefas e responsabilidades' },
-  { id: 31, dimensionId: 'cargo_papel', dimensionLabel: 'Cargo / Papel', text: 'Os objetivos e metas do meu setor são claros para mim' },
-  { id: 32, dimensionId: 'cargo_papel', dimensionLabel: 'Cargo / Papel', text: 'Eu vejo como o meu trabalho se encaixa nos objetivos da empresa' },
-  // Comunicação e mudanças organizacionais (3)
-  { id: 33, dimensionId: 'comunicacao_mudancas', dimensionLabel: 'Comunicação e mudanças organizacionais', text: 'Tenho oportunidades para pedir explicações ao chefe sobre as mudanças relacionadas ao meu trabalho' },
-  { id: 34, dimensionId: 'comunicacao_mudancas', dimensionLabel: 'Comunicação e mudanças organizacionais', text: 'As pessoas são sempre consultadas sobre as mudanças no trabalho' },
-  { id: 35, dimensionId: 'comunicacao_mudancas', dimensionLabel: 'Comunicação e mudanças organizacionais', text: 'Quando há mudanças, faço o meu trabalho com o mesmo carinho' },
+  {
+    id: 28,
+    dimensionId: 'cargo_papel',
+    dimensionLabel: 'Cargo / Papel',
+    text: 'Tenho clareza sobre o que esperam do meu trabalho.',
+  },
+  {
+    id: 29,
+    dimensionId: 'cargo_papel',
+    dimensionLabel: 'Cargo / Papel',
+    text: 'Sei o que preciso fazer no meu trabalho.',
+  },
+  {
+    id: 30,
+    dimensionId: 'cargo_papel',
+    dimensionLabel: 'Cargo / Papel',
+    text: 'Minhas tarefas e responsabilidades são claras.',
+  },
+  {
+    id: 31,
+    dimensionId: 'cargo_papel',
+    dimensionLabel: 'Cargo / Papel',
+    text: 'Os objetivos e metas do meu setor são claros para mim.',
+  },
+  {
+    id: 32,
+    dimensionId: 'cargo_papel',
+    dimensionLabel: 'Cargo / Papel',
+    text: 'Entendo como meu trabalho contribui para os objetivos da empresa.',
+  },
+  // Comunicação e mudanças (3)
+  {
+    id: 33,
+    dimensionId: 'comunicacao_mudancas',
+    dimensionLabel: LABEL_COMUNICACAO,
+    text: 'Posso questionar meu chefe sobre mudanças no trabalho.',
+  },
+  {
+    id: 34,
+    dimensionId: 'comunicacao_mudancas',
+    dimensionLabel: LABEL_COMUNICACAO,
+    text: 'A equipe é sempre consultada sobre mudanças no trabalho.',
+  },
+  {
+    id: 35,
+    dimensionId: 'comunicacao_mudancas',
+    dimensionLabel: LABEL_COMUNICACAO,
+    text: 'As mudanças no trabalho são comunicadas de forma clara.',
+  },
 ]
 
 export interface DimensionSummary {

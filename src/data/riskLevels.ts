@@ -13,11 +13,17 @@ export type RiskLevelKey =
 export interface RiskLevel {
   key: RiskLevelKey
   label: string
+  /** Texto da legenda dos gráficos (faixa numérica + rótulo) */
+  legendCaption: string
   /** Classe Tailwind para texto (ex.: text-red-700) */
   colorClass: string
   /** Classe Tailwind para fundo/borda (ex.: bg-red-50 border-red-200) */
   bgClass: string
-  /** Cor hex para gráficos */
+  /**
+   * Cor hex para gráficos — semáforo de risco (faz sentido para o usuário):
+   * crítico → alerta → atenção → adequado → muito favorável.
+   * Tons escolhidos para afastar vizinhos (laranja ≠ âmbar, verde claro ≠ verde escuro).
+   */
   hex: string
 }
 
@@ -26,37 +32,47 @@ export const RISK_LEVELS: RiskLevel[] = [
   {
     key: 'muito_alto',
     label: 'Risco Muito Alto',
+    legendCaption: 'Até 1,0 – Risco Muito Alto',
     colorClass: 'text-red-800',
-    bgClass: 'bg-red-50 border-red-200',
+    bgClass: 'bg-red-50 border-red-400',
+    /** Vermelho crítico */
     hex: '#B91C1C',
   },
   {
     key: 'alto',
     label: 'Risco Alto',
+    legendCaption: '1,1–2,0 – Risco Alto',
     colorClass: 'text-orange-700',
-    bgClass: 'bg-orange-50 border-orange-200',
-    hex: '#C2410C',
+    bgClass: 'bg-orange-50 border-orange-400',
+    /** Laranja “alerta” (matiz mais afastado do vermelho que tons queimados) */
+    hex: '#F97316',
   },
   {
     key: 'moderado',
     label: 'Risco Moderado',
-    colorClass: 'text-amber-700',
-    bgClass: 'bg-amber-50 border-amber-200',
-    hex: '#B45309',
+    legendCaption: '2,1–3,0 – Risco Moderado',
+    colorClass: 'text-yellow-900',
+    bgClass: 'bg-yellow-50 border-yellow-500',
+    /** Amarelo atenção (bem mais claro que laranja) */
+    hex: '#EAB308',
   },
   {
     key: 'baixo',
     label: 'Risco Baixo',
-    colorClass: 'text-emerald-700',
-    bgClass: 'bg-emerald-50 border-emerald-200',
-    hex: '#047857',
+    legendCaption: '3,1–4,0 – Risco Baixo',
+    colorClass: 'text-green-800',
+    bgClass: 'bg-green-50 border-green-500',
+    /** Verde claro = situação favorável */
+    hex: '#4ADE80',
   },
   {
     key: 'muito_baixo',
     label: 'Risco Muito Baixo',
-    colorClass: 'text-emerald-800',
-    bgClass: 'bg-emerald-50 border-emerald-300',
-    hex: '#065F46',
+    legendCaption: '4,1–5,0 – Risco Muito Baixo',
+    colorClass: 'text-green-900',
+    bgClass: 'bg-emerald-50 border-emerald-700',
+    /** Verde escuro = muito favorável (mesma família do “baixo”, contraste por luminância) */
+    hex: '#166534',
   },
 ]
 

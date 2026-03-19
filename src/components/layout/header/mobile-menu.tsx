@@ -16,7 +16,7 @@ import type { View } from "./nav-links"
 
 const APP_NAV: { view: View; label: string }[] = [
   { view: "landing", label: "Início" },
-  { view: "relatos-buscar", label: "Canal de relatos" },
+  { view: "relatos-buscar", label: "Canal de denúncia" },
   { view: "sobre", label: "Sobre" },
   { view: "privacidade", label: "Privacidade" },
 ]
@@ -25,13 +25,18 @@ export interface MobileMenuProps {
   view: View
   onNavigate: (view: View) => void
   showNavAndAdmin: boolean
+  hideCanalDenunciaNav?: boolean
 }
 
 export function MobileMenu({
   view,
   onNavigate,
   showNavAndAdmin,
+  hideCanalDenunciaNav = false,
 }: MobileMenuProps) {
+  const links = hideCanalDenunciaNav
+    ? APP_NAV.filter((item) => item.view !== "relatos-buscar")
+    : APP_NAV
   const [open, setOpen] = useState(false)
 
   const handleNav = (v: View) => {
@@ -64,7 +69,7 @@ export function MobileMenu({
           </div>
           {showNavAndAdmin && (
             <nav aria-label="Navegação mobile" className="flex flex-col gap-1">
-              {APP_NAV.map((item, i) => (
+              {links.map((item, i) => (
                 <motion.div
                   key={item.view}
                   initial={{ opacity: 0, x: -8 }}

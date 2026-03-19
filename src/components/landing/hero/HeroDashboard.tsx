@@ -82,7 +82,7 @@ export function HeroDashboard() {
               iconBgClass="bg-amber-50"
               iconColorClass="text-amber-500"
               value="23"
-              label="relatos recebidos"
+              label="denúncias recebidas"
               badge="5 em análise"
             />
           </motion.div>

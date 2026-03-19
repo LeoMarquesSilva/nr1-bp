@@ -18,7 +18,7 @@ import { Contato } from './components/Contato'
 import type { OptionKey } from './data/hseIt'
 import { saveSubmission, getTenantStatus } from './types/submission'
 import { isAdminLoggedIn } from './lib/adminAuth'
-import { getAppName, getTenantId, setTenantFromUrl } from './lib/tenant'
+import { getAppName, getTenantId, isDiagnosticParticipantFlow, setTenantFromUrl } from './lib/tenant'
 import { getTenantDisplayName } from './types/submission'
 import { Footer } from './components/layout/Footer'
 
@@ -60,6 +60,7 @@ function App() {
   const [identificacao, setIdentificacao] = useState<{ setor: string } | null>(null)
   const [tenantBlocked, setTenantBlocked] = useState<boolean | null>(null)
   const [denunciaProtocolId, setDenunciaProtocolId] = useState<string | null>(null)
+  const [denunciaFoiAnonima, setDenunciaFoiAnonima] = useState(true)
   const [hubOrgDisplayName, setHubOrgDisplayName] = useState<string | null>(null)
 
   const handleIdentificacao = (setor: string) => {
@@ -124,14 +125,15 @@ function App() {
             <CanalRelatosHub
               orgSlug={getTenantId()}
               orgDisplayName={hubOrgDisplayName}
-              onEnviarRelato={() => { window.location.href = `${baseUrl}?org=${encodeURIComponent(getTenantId())}&channel=denuncia&form=1` }}
+              onEnviarDenuncia={() => { window.location.href = `${baseUrl}?org=${encodeURIComponent(getTenantId())}&channel=denuncia&form=1` }}
               onAcompanharCodigo={() => { window.location.href = `${baseUrl}?org=${encodeURIComponent(getTenantId())}&channel=denuncia&consultar=1` }}
             />
           )}
           {view === 'denuncia' && (
             <WhistleblowerForm
-              onEnviado={(protocolId) => {
+              onEnviado={(protocolId, meta) => {
                 setDenunciaProtocolId(protocolId)
+                setDenunciaFoiAnonima(meta.isAnonymous)
                 setView('denuncia-obrigado')
               }}
               onConsultar={() => setView('denuncia-consultar')}
@@ -140,6 +142,7 @@ function App() {
           {view === 'denuncia-obrigado' && denunciaProtocolId && (
             <WhistleblowerThanks
               protocolId={denunciaProtocolId}
+              isAnonymous={denunciaFoiAnonima}
               onFechar={() => { setDenunciaProtocolId(null); window.location.href = window.location.origin + (window.location.pathname || '/') }}
               onConsultar={() => { setDenunciaProtocolId(null); setView('denuncia-consultar') }}
             />
@@ -151,7 +154,7 @@ function App() {
         <footer className="mt-auto border-t border-slate-200 bg-white/60 py-5">
           <div className="mx-auto max-w-2xl px-4 text-center sm:px-6">
             <p className="text-xs text-slate-500">
-              {getAppName()} · Canal de denúncias anônimo
+              {getAppName()} · Canal de denúncias
             </p>
             <a
               href={baseUrl}
@@ -171,6 +174,7 @@ function App() {
         view={view}
         onNavigate={setView}
         showNavAndAdmin={showNavAndAdmin}
+        hideCanalDenunciaNav={isDiagnosticParticipantFlow()}
       />
 
       <main className={`mx-auto w-full flex-1 px-4 py-10 sm:px-6 sm:py-12 ${view !== 'landing' ? 'max-w-4xl' : ''}`}>
@@ -226,7 +230,10 @@ function App() {
         )}
       </main>
 
-      <Footer onNavigate={(v) => setView(v as View)} />
+      <Footer
+        onNavigate={(v) => setView(v as View)}
+        hideCanalDenunciaNav={isDiagnosticParticipantFlow()}
+      />
     </div>
   )
 }

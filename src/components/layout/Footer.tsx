@@ -5,9 +5,10 @@ export type FooterNavView = 'landing' | 'relatos-buscar' | 'sobre' | 'privacidad
 
 type Props = {
   onNavigate?: (view: FooterNavView) => void
+  hideCanalDenunciaNav?: boolean
 }
 
-export function Footer({ onNavigate }: Props) {
+export function Footer({ onNavigate, hideCanalDenunciaNav = false }: Props) {
   const currentYear = new Date().getFullYear()
 
   const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, view: FooterNavView) => {
@@ -40,7 +41,9 @@ export function Footer({ onNavigate }: Props) {
             <nav className="mt-4 flex flex-col gap-3" aria-label="Navegação do rodapé">
               <a href="#" onClick={(e) => handleNav(e, 'landing')} className="text-sm text-slate-600 hover:text-violet-600 transition-colors">Página Inicial</a>
               <a href="#" onClick={(e) => handleNav(e, 'sobre')} className="text-sm text-slate-600 hover:text-violet-600 transition-colors">Sobre a Plataforma</a>
-              <a href="#" onClick={(e) => handleNav(e, 'relatos-buscar')} className="text-sm text-slate-600 hover:text-violet-600 transition-colors">Fazer Relato Anônimo</a>
+              {!hideCanalDenunciaNav && (
+                <a href="#" onClick={(e) => handleNav(e, 'relatos-buscar')} className="text-sm text-slate-600 hover:text-violet-600 transition-colors">Canal de denúncia</a>
+              )}
               <a href="#" onClick={(e) => handleNav(e, 'contato')} className="text-sm text-slate-600 hover:text-violet-600 transition-colors">Fale Conosco</a>
               <a href="#" onClick={(e) => handleNav(e, 'privacidade')} className="text-sm text-slate-600 hover:text-violet-600 transition-colors">Política de Privacidade</a>
             </nav>

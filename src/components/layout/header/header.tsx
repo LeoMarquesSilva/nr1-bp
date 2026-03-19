@@ -13,12 +13,15 @@ export interface HealthqoeHeaderProps {
   onNavigate?: (view: View) => void
   /** When false, only logo is shown (e.g. canal de denúncias). */
   showNavAndAdmin?: boolean
+  /** Esconder item "Canal de denúncia" no menu (fluxo link do formulário). */
+  hideCanalDenunciaNav?: boolean
 }
 
 export function HealthqoeHeader({
   view = "landing",
   onNavigate = () => {},
   showNavAndAdmin = true,
+  hideCanalDenunciaNav = false,
 }: HealthqoeHeaderProps) {
   return (
     <header
@@ -37,7 +40,7 @@ export function HealthqoeHeader({
             className="hidden lg:flex flex-1 items-center justify-center"
             aria-label="Navegação principal"
           >
-            <NavLinks view={view} onNavigate={onNavigate} />
+            <NavLinks view={view} onNavigate={onNavigate} hideCanalDenunciaNav={hideCanalDenunciaNav} />
           </nav>
         )}
 
@@ -47,6 +50,7 @@ export function HealthqoeHeader({
               view={view}
               onNavigate={onNavigate}
               showNavAndAdmin={showNavAndAdmin}
+              hideCanalDenunciaNav={hideCanalDenunciaNav}
             />
           )}
           {showNavAndAdmin && (

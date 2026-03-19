@@ -44,7 +44,6 @@ export function Identificacao({ onIniciar }: Props) {
       animate="show"
       className="space-y-8 sm:space-y-10"
     >
-      {/* Hero (design LP: slate-900 + texto branco) */}
       <motion.section
         variants={item}
         className="relative overflow-hidden rounded-2xl bg-slate-900 px-6 py-10 shadow-xl shadow-slate-900/20 sm:px-10 sm:py-14"
@@ -55,35 +54,37 @@ export function Identificacao({ onIniciar }: Props) {
             variants={item}
             className="text-xs font-semibold uppercase tracking-widest text-violet-300"
           >
-            Avaliação psicossocial
+            Sua opinião é importante para melhorar o bem-estar no trabalho.
           </motion.p>
           <motion.h2
             variants={item}
-            className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl md:text-[2.75rem]"
+            className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl"
           >
-            Saúde e bem-estar no trabalho
+            Avaliação sobre saúde e bem-estar no trabalho
           </motion.h2>
-          <motion.p
-            variants={item}
-            className="mt-4 max-w-xl text-base text-slate-300 sm:text-lg"
-          >
-            O diagnóstico HSE-IT mapeia as condições psicossociais da sua organização em 7 dimensões. Respostas confidenciais e uso exclusivo para melhorias internas.
-          </motion.p>
+          <motion.div variants={item} className="mt-4 max-w-2xl space-y-3 text-base text-slate-300 sm:text-lg">
+            <p>Esta pesquisa quer entender como está o seu dia a dia no trabalho.</p>
+            <p>
+              Suas respostas são anônimas e confidenciais e serão usadas apenas para identificar melhorias no ambiente de trabalho.
+            </p>
+            <p>
+              Não existem respostas certas ou erradas. Responda com sinceridade, considerando sua experiência na empresa.
+            </p>
+          </motion.div>
         </div>
       </motion.section>
 
-      {/* Card principal: identificação (hero: card branco, bordas slate) */}
       <motion.div variants={item} className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-6 shadow-lg sm:p-8">
         <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
           <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-violet-700">Passo 1</span>
           <ChevronRight className="h-3.5 w-3.5" />
-          <span>Identificação</span>
+          <span>Identifique seu setor</span>
         </div>
         <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-          Bem-vindo ao Diagnóstico HSE-IT
+          Bem-vindo à Pesquisa sobre o Ambiente de Trabalho.
         </h3>
         <p className="mt-2 text-sm text-slate-600">
-          Antes de começar, informe seu setor. Suas respostas são confidenciais e contribuem para o mapeamento psicossocial da empresa.
+          Antes de começar, selecione o setor onde você trabalha. Essa informação ajuda a entender como está o ambiente de trabalho em cada área da empresa.
         </p>
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div>
@@ -118,15 +119,11 @@ export function Identificacao({ onIniciar }: Props) {
         </form>
       </motion.div>
 
-      {/* Cards de contexto / confiança (hero: violet ícones, texto slate) */}
-      <motion.div
-        variants={container}
-        className="grid gap-4 sm:grid-cols-3"
-      >
+      <motion.div variants={container} className="grid gap-4 sm:grid-cols-3">
         {[
-          { Icon: Shield, title: 'Confidencial', desc: 'Resultados restritos à equipe responsável' },
-          { Icon: FileCheck, title: '35 perguntas', desc: '7 dimensões do estudo HSE-IT' },
-          { Icon: Clock, title: '~5 a 10 min', desc: 'Tempo médio para responder' },
+          { Icon: Shield, title: 'Confidencial', desc: 'Ninguém saberá o que você respondeu.' },
+          { Icon: FileCheck, title: '35 perguntas', desc: 'Perguntas sobre seu dia a dia no trabalho.' },
+          { Icon: Clock, title: 'Tempo de resposta', desc: 'Cerca de 3 a 5 minutos.' },
         ].map(({ Icon, title, desc }) => (
           <motion.div
             key={title}

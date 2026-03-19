@@ -6,7 +6,7 @@ import { getAppLogoUrl, getAppName, getProductName } from '../lib/tenant'
 
 const NAV = [
   { id: 'landing' as const, label: 'Início' },
-  { id: 'relatos-buscar' as const, label: 'Canal de relatos' },
+  { id: 'relatos-buscar' as const, label: 'Canal de denúncia' },
   { id: 'sobre' as const, label: 'Sobre' },
   { id: 'privacidade' as const, label: 'Privacidade' },
 ]

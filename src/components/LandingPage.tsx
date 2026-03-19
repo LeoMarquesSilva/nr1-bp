@@ -24,14 +24,14 @@ export function LandingPage({ onFazerRelato }: Props) {
             Por que usar nossa plataforma
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-center text-slate-500">
-            Ferramentas integradas para RH e compliance: canal de relatos, diagnóstico psicossocial e conformidade legal.
+            Ferramentas integradas para RH e compliance: canal de denúncia, diagnóstico psicossocial e conformidade legal.
           </p>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 Icon: MessageSquarePlus,
-                title: 'Canal de relatos acessível',
-                desc: 'Receba relatos anônimos ou identificados. Acesso facilitado via celular e QR Code, sem necessidade de e-mail corporativo para promover inclusão digital.',
+                title: 'Canal de denúncia acessível',
+                desc: 'Receba denúncias com opção de anonimato ou identificação. Acesso facilitado via celular e QR Code.',
               },
               {
                 Icon: Filter,
@@ -75,7 +75,7 @@ export function LandingPage({ onFazerRelato }: Props) {
         </div>
       </motion.section>
 
-      {/* CTA Canal de relatos (hero: slate escuro + CTA branco) */}
+      {/* CTA Canal de denúncia */}
       <motion.section
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
@@ -88,17 +88,17 @@ export function LandingPage({ onFazerRelato }: Props) {
           <div className="relative">
             <Shield className="mx-auto h-12 w-12 text-white/90" />
             <h2 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-              Fazer relato ou nova denúncia
+              Nova denúncia
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-slate-300">
-              Encontre sua organização, envie um relato de forma anônima ou acompanhe o andamento pelo código de protocolo.
+              Encontre sua organização, envie uma denúncia ou acompanhe o andamento pelo código de protocolo.
             </p>
             <button
               type="button"
               onClick={onFazerRelato}
               className="mt-8 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-white px-8 py-3.5 text-base font-semibold text-slate-900 shadow-lg shadow-slate-900/10 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-slate-900"
             >
-              Acessar canal de relatos
+              Acessar canal de denúncia
               <ArrowRight className="h-5 w-5" />
             </button>
           </div>

@@ -47,3 +47,12 @@ export function getAppLogoUrl(): string {
 export function getProductName(): string {
   return (env.VITE_PRODUCT_NAME as string | undefined)?.trim() || 'NR1 Form'
 }
+
+/** Link do questionário (?org= sem channel=denuncia): ocultar atalho ao canal de denúncia no header/rodapé. */
+export function isDiagnosticParticipantFlow(): boolean {
+  if (typeof window === 'undefined') return false
+  const params = new URLSearchParams(window.location.search)
+  const org = params.get('org')?.trim()
+  const channel = params.get('channel')
+  return Boolean(org && channel !== 'denuncia')
+}

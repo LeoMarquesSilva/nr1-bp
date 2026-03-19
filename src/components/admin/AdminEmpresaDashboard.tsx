@@ -38,6 +38,27 @@ function formatDate(iso: string): string {
   })
 }
 
+/** Agrupa envios pelo mesmo setor e função (uma linha no painel por combinação). */
+function groupSubmissionsBySetorFuncao(submissions: Submission[]): Submission[][] {
+  const map = new Map<string, Submission[]>()
+  for (const s of submissions) {
+    const func = (s.funcao ?? '').trim()
+    const key = `${s.setor.trim()}|||${func}`
+    const list = map.get(key)
+    if (list) list.push(s)
+    else map.set(key, [s])
+  }
+  const groups = [...map.values()].map((items) =>
+    [...items].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+  )
+  groups.sort((a, b) => {
+    const sa = a[0].setor.localeCompare(b[0].setor, 'pt-BR')
+    if (sa !== 0) return sa
+    return (a[0].funcao ?? '').localeCompare(b[0].funcao ?? '', 'pt-BR')
+  })
+  return groups
+}
+
 type Tab = 'diagnostico' | 'denuncias' | 'configuracoes'
 
 export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
@@ -48,7 +69,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
   // Diagnóstico
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loadingSubmissions, setLoadingSubmissions] = useState(false)
-  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null)
+  const [selectedGroup, setSelectedGroup] = useState<Submission[] | null>(null)
 
   // Denúncias
   const [reports, setReports] = useState<WhistleblowerReport[]>([])
@@ -131,14 +152,24 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
     }
   }
 
-  const handleDeleteSubmission = async (e: React.MouseEvent, id: string) => {
+  const handleDeleteGroup = async (e: React.MouseEvent, group: Submission[]) => {
     e.preventDefault()
     e.stopPropagation()
-    if (!window.confirm('Excluir este envio? Esta ação não pode ser desfeita.')) return
+    const label = group[0].funcao?.trim()
+      ? `${group[0].setor} · ${group[0].funcao.trim()}`
+      : group[0].setor
+    const msg =
+      group.length === 1
+        ? `Excluir esta resposta de "${label}"? Esta ação não pode ser desfeita.`
+        : `Excluir as ${group.length} respostas agrupadas em "${label}"? Esta ação não pode ser desfeita.`
+    if (!window.confirm(msg)) return
     try {
-      await deleteSubmission(id, tenantId)
-      if (selectedSubmission?.id === id) setSelectedSubmission(null)
-      setSubmissions(submissions.filter(s => s.id !== id))
+      for (const s of group) {
+        await deleteSubmission(s.id, tenantId)
+      }
+      const ids = new Set(group.map((s) => s.id))
+      setSubmissions((prev) => prev.filter((x) => !ids.has(x.id)))
+      setSelectedGroup((g) => (g?.some((s) => ids.has(s.id)) ? null : g))
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Não foi possível excluir.')
     }
@@ -156,36 +187,45 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
   const hasRegistry = registry != null
   const isActive = registry?.active ?? true
 
-  if (selectedSubmission) {
-    const scoresSetor = computeDimensionScores(selectedSubmission.answers)
-    const setorLabel = selectedSubmission.funcao
-      ? `${selectedSubmission.setor} · ${selectedSubmission.funcao}`
-      : selectedSubmission.setor
+  if (selectedGroup && selectedGroup.length > 0) {
+    const first = selectedGroup[0]
+    const setorBase = first.funcao?.trim()
+      ? `${first.setor} · ${first.funcao.trim()}`
+      : first.setor
+    const setorLabel =
+      selectedGroup.length > 1
+        ? `${setorBase} (média de ${selectedGroup.length} respostas)`
+        : setorBase
+    const scoresSetor = aggregateDimensionScores(
+      selectedGroup.map((s) => computeDimensionScores(s.answers))
+    )
     return (
       <div className="space-y-6">
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => setSelectedSubmission(null)}
+            onClick={() => setSelectedGroup(null)}
             className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar ao dashboard da empresa
           </button>
         </div>
+        <GraficosResultados scores={scoresSetor} showCopyChart />
         <Resultados
-          answers={selectedSubmission.answers}
+          answers={{}}
           setor={setorLabel}
-          onVoltar={() => setSelectedSubmission(null)}
+          onVoltar={() => setSelectedGroup(null)}
           isAdmin
+          scoresOverride={scoresSetor}
         />
         <RelatorioConclusao
           scores={scoresSetor}
-          setor={setorLabel}
+          setor={setorBase}
           showCopy
           meta={{
             empresaNome: displayName,
-            totalRespostas: 1,
+            totalRespostas: selectedGroup.length,
             dataRelatorio: new Date().toLocaleDateString('pt-BR', {
               day: '2-digit',
               month: '2-digit',
@@ -199,6 +239,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
 
   const scoresPorEnvio = submissions.map((s) => computeDimensionScores(s.answers))
   const scoresEmpresa = aggregateDimensionScores(scoresPorEnvio)
+  const submissionGroups = groupSubmissionsBySetorFuncao(submissions)
 
   return (
     <div className="space-y-6">
@@ -319,47 +360,62 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                 />
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h3 className="mb-4 text-lg font-semibold text-slate-900">
+                  <h3 className="mb-1 text-lg font-semibold text-slate-900">
                     Envios por setor e função
                   </h3>
+                  <p className="mb-4 text-sm text-slate-500">
+                    Respostas do mesmo setor e função aparecem em um único item; ao abrir, você vê a média agregada.
+                  </p>
                   <ul className="grid gap-3 sm:grid-cols-2">
-                    {submissions.map((s) => (
-                      <li key={s.id}>
-                        <div className="flex items-stretch gap-2 rounded-xl border border-slate-200 bg-slate-50/50 transition hover:border-slate-300 hover:bg-slate-50">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedSubmission(s)}
-                            className="flex min-w-0 flex-1 items-center gap-4 p-4 text-left"
-                          >
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-slate-600">
-                              <Building2 className="h-5 w-5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-slate-900">{s.setor}</p>
-                              {s.funcao && (
-                                <p className="flex items-center gap-1.5 text-xs text-slate-600">
-                                  <Briefcase className="h-3.5 w-3.5" />
-                                  {s.funcao}
+                    {submissionGroups.map((group) => {
+                      const s = group[0]
+                      const count = group.length
+                      const groupKey = `${s.setor}|||${(s.funcao ?? '').trim()}`
+                      return (
+                        <li key={groupKey}>
+                          <div className="flex items-stretch gap-2 rounded-xl border border-slate-200 bg-slate-50/80 transition hover:border-slate-300 hover:bg-slate-50">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedGroup(group)}
+                              className="flex min-w-0 flex-1 items-center gap-4 p-4 text-left"
+                            >
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-200/90 text-slate-700">
+                                <Building2 className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-slate-900">{s.setor}</p>
+                                {s.funcao?.trim() && (
+                                  <p className="flex items-center gap-1.5 text-xs text-slate-600">
+                                    <Briefcase className="h-3.5 w-3.5 shrink-0" />
+                                    {s.funcao.trim()}
+                                  </p>
+                                )}
+                                {count > 1 && (
+                                  <p className="mt-1 text-xs font-medium text-violet-700">
+                                    {count} respostas · média agregada ao abrir
+                                  </p>
+                                )}
+                                <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                                  <Calendar className="h-3.5 w-3.5 shrink-0" />
+                                  {count > 1
+                                    ? `Última: ${formatDate(s.submittedAt)}`
+                                    : formatDate(s.submittedAt)}
                                 </p>
-                              )}
-                              <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-                                <Calendar className="h-3.5 w-3.5" />
-                                {formatDate(s.submittedAt)}
-                              </p>
-                            </div>
-                            <BarChart3 className="h-5 w-5 shrink-0 text-slate-400" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteSubmission(e, s.id)}
-                            className="flex shrink-0 items-center rounded-r-xl px-3 text-slate-400 transition hover:bg-red-50 hover:text-red-600"
-                            title="Excluir envio"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </li>
-                    ))}
+                              </div>
+                              <BarChart3 className="h-5 w-5 shrink-0 text-slate-500" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteGroup(e, group)}
+                              className="flex shrink-0 items-center rounded-r-xl px-3 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+                              title={count > 1 ? `Excluir as ${count} respostas deste grupo` : 'Excluir envio'}
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </li>
+                      )
+                    })}
                   </ul>
                 </div>
               </>
@@ -375,7 +431,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                 Canal de denúncias
               </h3>
               <p className="mb-6 text-sm text-slate-600">
-                Acompanhe os relatos anônimos registrados para esta empresa.
+                Acompanhe as denúncias registradas para esta empresa (anônimas ou com identificação).
               </p>
               
               {reportsLoading ? (
@@ -394,15 +450,26 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
                             {r.protocol_id && <span className="font-mono font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">{r.protocol_id}</span>}
                             <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {formatDate(r.created_at)}</span>
+                            {(r.is_anonymous !== false) ? (
+                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">Anônima</span>
+                            ) : (
+                              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">Identificada</span>
+                            )}
                           </div>
-                          
+                          {r.is_anonymous === false && (r.reporter_name || r.reporter_contact) && (
+                            <div className="mt-3 rounded-lg border border-violet-200 bg-violet-50/50 px-3 py-2 text-sm text-slate-800">
+                              <p className="font-semibold text-slate-900">Denunciante</p>
+                              {r.reporter_name && <p className="mt-0.5">{r.reporter_name}</p>}
+                              {r.reporter_contact && <p className="text-slate-600">{r.reporter_contact}</p>}
+                            </div>
+                          )}
                           {r.category && <p className="mt-3 text-sm font-semibold text-slate-900">{r.category}</p>}
                           <div className="mt-2 rounded-lg bg-white border border-slate-100 p-4">
                             <p className="whitespace-pre-wrap text-sm text-slate-700">{r.body}</p>
                           </div>
                           
                           <div className="mt-4 flex flex-wrap items-center gap-3">
-                            <label className="text-sm font-medium text-slate-700">Status do relato:</label>
+                            <label className="text-sm font-medium text-slate-700">Status da denúncia:</label>
                             <select
                               value={r.status ?? 'recebida'}
                               onChange={(e) => {
