@@ -117,14 +117,14 @@ export function AdminLayout({ onClose, onLogout }: AdminLayoutProps) {
 
   if (!authChecked || !profile) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--branco-gelo)]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" aria-label="Carregando" />
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-brand-50)]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-brand-200)] border-t-[var(--color-brand-700)]" aria-label="Carregando" />
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--branco-gelo)]">
+    <div className="flex min-h-screen bg-[var(--color-brand-50)]">
       {profile?.requires_password_change && (
         <ForcePasswordChangeModal
           onSuccess={() => {

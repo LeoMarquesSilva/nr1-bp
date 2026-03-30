@@ -14,14 +14,17 @@ import {
   markWhistleblowerReportRead,
   updateWhistleblowerStatus,
   type WhistleblowerReport,
-  type WhistleblowerStatus
+  type WhistleblowerStatus,
+  type EvidencePathEntry,
 } from '@/types/whistleblower'
+import { WhistleblowerEvidenceLinks } from '../WhistleblowerEvidenceLinks'
 import { computeDimensionScores, aggregateDimensionScores } from '@/data/hseIt'
 import { GraficosResultados } from '../GraficosResultados'
 import { Resultados } from '../Resultados'
 import { RelatorioConclusao } from '../RelatorioConclusao'
 import { formatCnpjDisplay } from '@/lib/masks'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 
 type Props = {
   tenantId: string
@@ -36,6 +39,36 @@ function formatDate(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+function formatIncidentDateOnly(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function normalizeEvidencePaths(raw: WhistleblowerReport['evidence_paths']): EvidencePathEntry[] {
+  if (!raw || !Array.isArray(raw)) return []
+  return raw.filter(
+    (x): x is EvidencePathEntry =>
+      Boolean(x) &&
+      typeof x === 'object' &&
+      'path' in x &&
+      typeof (x as EvidencePathEntry).path === 'string'
+  )
+}
+
+function cameraLabel(v: string | null | undefined): string {
+  if (v === 'sim') return 'Sim'
+  if (v === 'nao') return 'Não'
+  return v?.trim() || '—'
+}
+
+function whistleblowerStatusVariant(status: WhistleblowerStatus | null | undefined): 'pending' | 'resolved' | 'critical' {
+  if (status === 'concluida') return 'resolved'
+  if (status === 'arquivada') return 'critical'
+  return 'pending'
 }
 
 /** Agrupa envios pelo mesmo setor e função (uma linha no painel por combinação). */
@@ -205,7 +238,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
           <button
             type="button"
             onClick={() => setSelectedGroup(null)}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--color-brand-700)] shadow-[var(--shadow-xs)] transition hover:bg-[var(--color-brand-50)]"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar ao dashboard da empresa
@@ -248,38 +281,36 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
           <button
             type="button"
             onClick={onBack}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)] shadow-[var(--shadow-xs)] transition hover:bg-[var(--color-brand-50)]"
           >
             <ArrowLeft className="h-4 w-4" />
             Voltar
           </button>
         </div>
         {!isActive && (
-          <span className="rounded-full bg-amber-100 px-3 py-1 text-sm font-medium text-amber-800">
-            Coleta encerrada
-          </span>
+          <Badge variant="pending">Coleta encerrada</Badge>
         )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-6">
         {/* Header Info */}
         <div className="flex items-center gap-4 flex-1">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand-700)] text-white shadow-[var(--shadow-sm)]">
             <Building2 className="h-7 w-7" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900">{displayName}</h2>
-            <p className="text-sm font-mono text-slate-500">{tenantId}</p>
+            <h2 className="text-2xl font-bold tracking-tight text-[var(--color-brand-900)]">{displayName}</h2>
+            <p className="text-sm font-mono text-[var(--muted-foreground)]">{tenantId}</p>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-slate-200/50 p-1 rounded-xl self-start overflow-x-auto">
+        <div className="flex rounded-xl self-start overflow-x-auto bg-[var(--color-brand-100)] p-1">
           <button
             onClick={() => setActiveTab('diagnostico')}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-              activeTab === 'diagnostico' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              activeTab === 'diagnostico' ? "bg-white text-[var(--color-brand-900)] shadow-[var(--shadow-xs)]" : "text-[var(--muted-foreground)] hover:text-[var(--color-brand-900)] hover:bg-white/60"
             )}
           >
             <BarChart3 className="h-4 w-4" /> Diagnóstico
@@ -288,7 +319,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
             onClick={() => setActiveTab('denuncias')}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-              activeTab === 'denuncias' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              activeTab === 'denuncias' ? "bg-white text-[var(--color-brand-900)] shadow-[var(--shadow-xs)]" : "text-[var(--muted-foreground)] hover:text-[var(--color-brand-900)] hover:bg-white/60"
             )}
           >
             <Shield className="h-4 w-4" /> Denúncias
@@ -297,7 +328,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
             onClick={() => setActiveTab('configuracoes')}
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap",
-              activeTab === 'configuracoes' ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+              activeTab === 'configuracoes' ? "bg-white text-[var(--color-brand-900)] shadow-[var(--shadow-xs)]" : "text-[var(--muted-foreground)] hover:text-[var(--color-brand-900)] hover:bg-white/60"
             )}
           >
             <Building2 className="h-4 w-4" /> Configurações
@@ -451,10 +482,13 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                             {r.protocol_id && <span className="font-mono font-semibold text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">{r.protocol_id}</span>}
                             <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {formatDate(r.created_at)}</span>
                             {(r.is_anonymous !== false) ? (
-                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">Anônima</span>
+                              <Badge variant="neutral">Anônima</Badge>
                             ) : (
-                              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800">Identificada</span>
+                              <Badge variant="pending">Identificada</Badge>
                             )}
+                            <Badge variant={whistleblowerStatusVariant(r.status ?? 'recebida')}>
+                              {(r.status ?? 'recebida').replace('_', ' ')}
+                            </Badge>
                           </div>
                           {r.is_anonymous === false && (r.reporter_name || r.reporter_contact) && (
                             <div className="mt-3 rounded-lg border border-violet-200 bg-violet-50/50 px-3 py-2 text-sm text-slate-800">
@@ -463,10 +497,49 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                               {r.reporter_contact && <p className="text-slate-600">{r.reporter_contact}</p>}
                             </div>
                           )}
-                          {r.category && <p className="mt-3 text-sm font-semibold text-slate-900">{r.category}</p>}
+                          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                            {(r.subject ?? '').trim() !== '' && (
+                              <>
+                                <dt className="font-medium text-slate-500">Assunto</dt>
+                                <dd className="text-slate-900">{r.subject}</dd>
+                              </>
+                            )}
+                            {(r.complaint_category ?? r.category) && (
+                              <>
+                                <dt className="font-medium text-slate-500">Categoria</dt>
+                                <dd className="text-slate-900">{r.complaint_category ?? r.category}</dd>
+                              </>
+                            )}
+                            {r.accused_relationship && (
+                              <>
+                                <dt className="font-medium text-slate-500">Relação com o denunciado</dt>
+                                <dd className="text-slate-900">{r.accused_relationship}</dd>
+                              </>
+                            )}
+                            {r.complainant_gender && (
+                              <>
+                                <dt className="font-medium text-slate-500">Gênero (declarado)</dt>
+                                <dd className="text-slate-900">{r.complainant_gender}</dd>
+                              </>
+                            )}
+                            {r.incident_date && (
+                              <>
+                                <dt className="font-medium text-slate-500">Data da ocorrência</dt>
+                                <dd className="text-slate-900">{formatIncidentDateOnly(r.incident_date)}</dd>
+                              </>
+                            )}
+                            {r.location_has_camera && (
+                              <>
+                                <dt className="font-medium text-slate-500">Local com câmera</dt>
+                                <dd className="text-slate-900">{cameraLabel(r.location_has_camera)}</dd>
+                              </>
+                            )}
+                          </dl>
                           <div className="mt-2 rounded-lg bg-white border border-slate-100 p-4">
+                            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Descrição</p>
                             <p className="whitespace-pre-wrap text-sm text-slate-700">{r.body}</p>
                           </div>
+                          <WhistleblowerEvidenceLinks items={normalizeEvidencePaths(r.evidence_paths)} />
                           
                           <div className="mt-4 flex flex-wrap items-center gap-3">
                             <label className="text-sm font-medium text-slate-700">Status da denúncia:</label>

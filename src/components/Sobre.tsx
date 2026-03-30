@@ -1,6 +1,7 @@
 import { motion } from 'motion/react'
 import { Info, Shield, Clock, ClipboardList, BarChart3 } from 'lucide-react'
 import { getAppName } from '../lib/tenant'
+import { PageShell, PageShellCard } from './layout/PageShell'
 
 const DIMENSOES = [
   {
@@ -50,88 +51,106 @@ export function Sobre({ onVoltar }: SobreProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35 }}
-      className="mx-auto max-w-3xl space-y-10"
     >
-      <div className="text-center">
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          Como funciona a pesquisa?
-        </h2>
-        <p className="mt-4 text-left text-slate-600 sm:text-center">
-          Esta pesquisa avalia como os colaboradores percebem o ambiente de trabalho e o bem-estar no dia a dia.
-        </p>
-        <p className="mt-3 text-left text-slate-600 sm:text-center">
-          As perguntas são baseadas no modelo internacional de gestão de riscos psicossociais desenvolvido pelo Health and Safety Executive (HSE), utilizado em diversos países para avaliar fatores que podem impactar a saúde e o bem-estar no trabalho.
-        </p>
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-3">
-        <div className="bg-card-escritorio flex h-full flex-col items-center rounded-2xl border border-slate-200/60 px-5 py-6 text-center shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-            <Clock className="h-6 w-6" />
+      <PageShell
+        onBack={onVoltar}
+        backLabel="Voltar ao início"
+        maxWidth="wide"
+        title="Como funciona a pesquisa?"
+        subtitle={
+          <div className="space-y-3 text-left sm:text-center">
+            <p>
+              O diagnóstico de clima e fatores psicossociais avalia como os colaboradores percebem o ambiente de trabalho e o bem-estar no dia a dia.
+            </p>
+            <p>
+              As perguntas seguem o modelo internacional de gestão de riscos psicossociais do Health and Safety Executive (HSE), usado em diversos países para
+              mapear fatores que podem impactar saúde e bem-estar no trabalho.
+            </p>
           </div>
-          <h3 className="mt-4 text-balance text-base font-semibold leading-snug text-slate-900">
-            Tempo estimado de resposta
-          </h3>
-          <p className="mt-2 text-pretty text-sm leading-relaxed text-slate-600">Cerca de 2 a 5 minutos.</p>
+        }
+      >
+        <div className="grid gap-5 sm:grid-cols-3">
+          <PageShellCard padding="sm" className="flex h-full flex-col items-center text-center">
+            <div className="brand-icon-tile h-12 w-12 rounded-2xl">
+              <Clock className="h-6 w-6" aria-hidden />
+            </div>
+            <h2 className="mt-4 text-balance text-base font-semibold leading-snug text-[var(--color-brand-900)]">
+              Tempo estimado de resposta
+            </h2>
+            <p className="mt-2 text-pretty text-sm leading-relaxed text-[var(--muted-foreground)]">Cerca de 2 a 5 minutos.</p>
+          </PageShellCard>
+          <PageShellCard padding="sm" className="flex h-full flex-col items-center text-center">
+            <div className="brand-icon-tile h-12 w-12 rounded-2xl">
+              <Shield className="h-6 w-6" aria-hidden />
+            </div>
+            <h2 className="mt-4 text-balance text-base font-semibold leading-snug text-[var(--color-brand-900)]">Confidencialidade</h2>
+            <p className="mt-2 text-pretty text-sm leading-relaxed text-[var(--muted-foreground)]">
+              As respostas são anônimas. Os resultados são analisados por setor, sem identificar quem respondeu.
+            </p>
+          </PageShellCard>
+          <PageShellCard padding="sm" className="flex h-full flex-col items-center text-center">
+            <div className="brand-icon-tile h-12 w-12 rounded-2xl">
+              <ClipboardList className="h-6 w-6" aria-hidden />
+            </div>
+            <h2 className="mt-4 text-balance text-base font-semibold leading-snug text-[var(--color-brand-900)]">Método</h2>
+            <p className="mt-2 text-pretty text-sm leading-relaxed text-[var(--muted-foreground)]">
+              HSE-IT (35 perguntas sobre 7 dimensões / aspectos do trabalho).
+            </p>
+          </PageShellCard>
         </div>
-        <div className="bg-card-escritorio flex h-full flex-col items-center rounded-2xl border border-slate-200/60 px-5 py-6 text-center shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-            <Shield className="h-6 w-6" />
-          </div>
-          <h3 className="mt-4 text-balance text-base font-semibold leading-snug text-slate-900">Confidencialidade</h3>
-          <p className="mt-2 text-pretty text-sm leading-relaxed text-slate-600">
-            As respostas são anônimas. Os resultados são analisados por setor, sem identificar quem respondeu.
+
+        <p className="text-center text-[var(--muted-foreground)]">
+          A análise desses fatores ajuda a empresa a identificar oportunidades de melhoria no ambiente de trabalho e promover o bem-estar dos colaboradores.
+        </p>
+
+        <section>
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--color-brand-900)]">
+            <BarChart3 className="h-5 w-5 text-[var(--color-brand-600)]" aria-hidden />
+            As 7 dimensões avaliadas
+          </h2>
+          <ul className="space-y-3">
+            {DIMENSOES.map((d) => (
+              <li key={d.id}>
+                <PageShellCard padding="sm">
+                  <span className="font-medium text-[var(--color-brand-900)]">{d.label}</span>
+                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">{d.desc}</p>
+                </PageShellCard>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <PageShellCard>
+          <h2 className="mb-3 flex items-center gap-2 font-semibold text-[var(--color-brand-900)]">
+            <Info className="h-5 w-5 text-[var(--color-brand-600)]" aria-hidden />
+            {getAppName()}
+          </h2>
+          <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
+            Este diagnóstico integra o compromisso da organização com a saúde e o bem-estar de seus colaboradores. Os resultados são utilizados de forma
+            agregada para orientar ações internas e melhorias no ambiente de trabalho, sem identificação individual.
           </p>
-        </div>
-        <div className="bg-card-escritorio flex h-full flex-col items-center rounded-2xl border border-slate-200/60 px-5 py-6 text-center shadow-sm">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-            <ClipboardList className="h-6 w-6" />
+        </PageShellCard>
+
+        <PageShellCard>
+          <h2 className="mb-3 text-lg font-semibold text-[var(--color-brand-900)]">Conceito do Confiara</h2>
+          <div className="space-y-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
+            <p>
+              O nome <strong className="text-[var(--color-brand-900)]">Confiara</strong> deriva do verbo confiar no pretérito
+              mais-que-perfeito, evocando a ideia de que a confiança ja deveria estar presente nas relações de trabalho, mas em
+              muitos contextos encontra-se fragilizada ou ausente.
+            </p>
+            <p>
+              Partimos de uma premissa central: a ausencia de confiança no ambiente de trabalho nao e apenas um problema cultural,
+              mas um indicativo de risco organizacional que pode se refletir em conflitos, afastamentos e passivos trabalhistas.
+            </p>
+            <p>
+              Por isso, o Confiara integra diagnóstico psicossocial estruturado e canal de denúncias com gestão e controle para
+              transformar a confiança em elemento mensuravel e gerenciavel, fortalecendo a prevenção, a governança interna e o
+              alinhamento com a NR-1.
+            </p>
           </div>
-          <h3 className="mt-4 text-balance text-base font-semibold leading-snug text-slate-900">Método</h3>
-          <p className="mt-2 text-pretty text-sm leading-relaxed text-slate-600">
-            HSE-IT (São 35 perguntas sobre 7 dimensões / aspectos do trabalho).
-          </p>
-        </div>
-      </div>
-
-      <p className="text-center text-slate-600">
-        A análise desses fatores ajuda a empresa a identificar oportunidades de melhoria no ambiente de trabalho e promover o bem-estar dos colaboradores.
-      </p>
-
-      <section>
-        <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-          <BarChart3 className="h-5 w-5 text-violet-600" />
-          São as 7 dimensões avaliadas
-        </h3>
-        <ul className="space-y-3">
-          {DIMENSOES.map((d) => (
-            <li key={d.id} className="bg-card-escritorio rounded-xl border border-slate-200/60 p-4">
-              <span className="font-medium text-slate-900">{d.label}</span>
-              <p className="mt-1 text-sm text-slate-600">{d.desc}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-6">
-        <h3 className="mb-3 flex items-center gap-2 font-semibold text-slate-900">
-          <Info className="h-5 w-5 text-violet-600" />
-          {getAppName()}
-        </h3>
-        <p className="text-sm leading-relaxed text-slate-600">
-          Esta pesquisa faz parte do compromisso da organização com a saúde e o bem-estar de seus colaboradores. Os resultados são utilizados de forma agregada para orientar ações internas e melhorias no ambiente de trabalho, sem identificação individual.
-        </p>
-      </section>
-
-      <div className="flex justify-center">
-        <button
-          type="button"
-          onClick={onVoltar}
-          className="btn-escritorio rounded-full px-6 py-3 text-sm font-medium"
-        >
-          Voltar ao início
-        </button>
-      </div>
+        </PageShellCard>
+      </PageShell>
     </motion.div>
   )
 }

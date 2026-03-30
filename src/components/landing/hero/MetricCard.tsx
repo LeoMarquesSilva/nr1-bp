@@ -8,8 +8,7 @@ const SPARKLINE_DATA = [
 
 type Props = {
   icon: LucideIcon
-  iconBgClass: string
-  iconColorClass: string
+  tone?: 'brand' | 'success' | 'warning' | 'neutral'
   value: string | number
   label: string
   badge?: string
@@ -20,22 +19,26 @@ type Props = {
 
 export function MetricCard({
   icon: Icon,
-  iconBgClass,
-  iconColorClass,
+  tone = 'brand',
   value,
   label,
   badge,
-  badgeClass = 'bg-amber-50 text-amber-700',
+  badgeClass = 'bg-[var(--color-warning-50)] text-[var(--color-warning-700)]',
   sparkline = false,
-  valueClassName = 'text-2xl font-bold text-slate-900',
+  valueClassName = 'text-2xl font-bold text-[var(--color-brand-900)]',
 }: Props) {
+  const toneClass = {
+    brand: 'bg-[var(--color-brand-100)] text-[var(--color-brand-700)]',
+    success: 'bg-[var(--color-success-50)] text-[var(--color-success-700)]',
+    warning: 'bg-[var(--color-warning-50)] text-[var(--color-warning-700)]',
+    neutral: 'bg-[var(--color-brand-50)] text-[var(--color-brand-600)]',
+  }[tone]
+
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-4">
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
       <div className="flex items-start justify-between gap-2">
-        <div
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${iconBgClass}`}
-        >
-          <Icon className={`h-4 w-4 ${iconColorClass}`} aria-hidden />
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${toneClass}`}>
+          <Icon className="h-4 w-4" aria-hidden />
         </div>
         {badge && (
           <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${badgeClass}`}>
@@ -44,7 +47,7 @@ export function MetricCard({
         )}
       </div>
       <p className={`mt-2 ${valueClassName}`}>{value}</p>
-      <p className="text-xs text-slate-400">{label}</p>
+      <p className="text-xs text-[var(--muted-foreground)]">{label}</p>
       {sparkline && (
         <div className="mt-2 h-10 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -52,7 +55,7 @@ export function MetricCard({
               <Line
                 type="monotone"
                 dataKey="v"
-                stroke="#10b981"
+                stroke="var(--color-success-500)"
                 strokeWidth={1.5}
                 dot={false}
               />

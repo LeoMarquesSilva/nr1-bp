@@ -54,10 +54,10 @@ export function AdminHeader({
 
   return (
     <header
-      className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-slate-200/60 bg-white/90 backdrop-blur-sm px-4 sm:px-6 lg:px-8"
+      className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[var(--border)] bg-white/90 backdrop-blur-sm px-4 sm:px-6 lg:px-8"
       role="banner"
     >
-      <h1 className="text-lg font-semibold tracking-tight text-slate-900 truncate">
+      <h1 className="text-lg font-semibold tracking-tight text-[var(--color-brand-900)] truncate">
         {title}
       </h1>
       {children != null ? (
@@ -69,8 +69,8 @@ export function AdminHeader({
           <label htmlFor="admin-search" className="sr-only">
             Pesquisar empresas
           </label>
-          <div className="flex w-full items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2">
-            <Search className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+          <div className="flex w-full items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--color-brand-50)] px-3 py-2">
+            <Search className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" aria-hidden />
             <input
               id="admin-search"
               type="search"
@@ -78,16 +78,16 @@ export function AdminHeader({
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Pesquisar empresas..."
               autoComplete="off"
-              className="min-w-0 flex-1 bg-transparent text-sm text-slate-900 placeholder-slate-500 focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none"
             />
           </div>
           {showDropdown && (
             <div
-              className="absolute right-0 top-full z-50 mt-1 max-h-64 w-full min-w-[220px] overflow-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+              className="absolute right-0 top-full z-50 mt-1 max-h-64 w-full min-w-[220px] overflow-auto rounded-lg border border-[var(--border)] bg-white py-1 shadow-[var(--shadow-sm)]"
               role="listbox"
             >
               {searchResults.length === 0 ? (
-                <div className="px-3 py-4 text-center text-sm text-slate-500">
+                <div className="px-3 py-4 text-center text-sm text-[var(--muted-foreground)]">
                   Nenhuma empresa encontrada
                 </div>
               ) : (
@@ -97,10 +97,10 @@ export function AdminHeader({
                     type="button"
                     role="option"
                     onClick={() => onSelectSearchResult?.(c.tenant_id)}
-                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left text-sm transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left text-sm transition hover:bg-[var(--color-brand-50)] focus:bg-[var(--color-brand-50)] focus:outline-none"
                   >
-                    <span className="font-medium text-slate-900">{c.display_name}</span>
-                    <span className="text-xs text-slate-500 font-mono">{c.tenant_id}</span>
+                    <span className="font-medium text-[var(--color-brand-900)]">{c.display_name}</span>
+                    <span className="text-xs text-[var(--muted-foreground)] font-mono">{c.tenant_id}</span>
                   </button>
                 ))
               )}
@@ -108,7 +108,7 @@ export function AdminHeader({
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-500 md:max-w-[200px]">
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--color-brand-50)] px-3 py-2 text-sm text-[var(--muted-foreground)] md:max-w-[200px]">
           <Search className="h-4 w-4 shrink-0" aria-hidden />
           <span className="truncate">Pesquisa</span>
         </div>

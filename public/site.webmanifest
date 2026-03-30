@@ -1,0 +1,25 @@
+{
+  "name": "Confiara — Canal de denúncias e compliance",
+  "short_name": "Confiara",
+  "description": "Plataforma Confiara: canal de denúncias seguro com anonimato, diagnóstico psicossocial HSE-IT em 7 dimensões e conformidade NR-1, Lei 14.457/22 e LGPD.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "lang": "pt-BR",
+  "theme_color": "#122c4f",
+  "background_color": "#040c1e",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

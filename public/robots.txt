@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://confiara.com.br/sitemap.xml

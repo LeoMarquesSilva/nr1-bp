@@ -160,13 +160,13 @@ export function AdminEmpresas() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[var(--muted-foreground)]">
           Cadastre empresas e defina as opções de setor para o formulário de diagnóstico de cada uma.
         </p>
         <button
           type="button"
           onClick={startNew}
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-slate-800"
+          className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-sm)] transition hover:bg-[var(--primary-hover)]"
         >
           <Plus className="h-4 w-4" />
           Nova empresa
@@ -174,36 +174,36 @@ export function AdminEmpresas() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-            <Building2 className="h-5 w-5 text-slate-500" />
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
+          <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--color-brand-900)]">
+            <Building2 className="h-5 w-5 text-[var(--muted-foreground)]" />
             Empresas no registro
           </h3>
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-[var(--muted-foreground)]" />
             </div>
           ) : list.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">Nenhuma empresa cadastrada.</p>
+            <p className="py-6 text-center text-sm text-[var(--muted-foreground)]">Nenhuma empresa cadastrada.</p>
           ) : (
             <ul className="space-y-2">
               {list.map((item) => (
                 <li
                   key={item.tenant_id}
                   className={cn(
-                    'flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3',
-                    editing?.tenant_id === item.tenant_id && 'ring-2 ring-slate-300'
+                    'flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/60 px-4 py-3',
+                    editing?.tenant_id === item.tenant_id && 'ring-2 ring-[var(--color-brand-300)]'
                   )}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-900 truncate">{item.display_name || item.tenant_id}</p>
-                    <p className="text-xs text-slate-500 truncate">{item.tenant_id}</p>
+                    <p className="font-medium text-[var(--color-brand-900)] truncate">{item.display_name || item.tenant_id}</p>
+                    <p className="text-xs text-[var(--muted-foreground)] truncate">{item.tenant_id}</p>
                   </div>
                   <div className="flex shrink-0 gap-1">
                     <button
                       type="button"
                       onClick={() => startEdit(item)}
-                      className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-200 hover:text-slate-700"
+                      className="rounded-lg p-2 text-[var(--muted-foreground)] transition hover:bg-[var(--color-brand-100)] hover:text-[var(--color-brand-700)]"
                       title="Editar"
                     >
                       <Pencil className="h-4 w-4" />
@@ -211,7 +211,7 @@ export function AdminEmpresas() {
                     <button
                       type="button"
                       onClick={() => handleDelete(item.tenant_id)}
-                      className="rounded-lg p-2 text-slate-500 transition hover:bg-red-100 hover:text-red-600"
+                      className="rounded-lg p-2 text-[var(--muted-foreground)] transition hover:bg-[var(--color-error-50)] hover:text-[var(--color-error-700)]"
                       title="Excluir do registro"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -223,13 +223,13 @@ export function AdminEmpresas() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-slate-900">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
+          <h3 className="mb-4 text-lg font-semibold text-[var(--color-brand-900)]">
             {editing ? 'Editar empresa' : 'Nova empresa'}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="emp-display_name" className="mb-1 block text-sm font-medium text-slate-700">
+              <label htmlFor="emp-display_name" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Nome de exibição *
               </label>
               <input
@@ -239,11 +239,11 @@ export function AdminEmpresas() {
                 onChange={(e) => handleDisplayNameChange(e.target.value)}
                 placeholder="Ex.: Empresa Alpha"
                 required
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
               />
             </div>
             <div>
-              <label htmlFor="emp-tenant_id" className="mb-1 block text-sm font-medium text-slate-700">
+              <label htmlFor="emp-tenant_id" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Identificador (slug) *
               </label>
               <input
@@ -254,12 +254,12 @@ export function AdminEmpresas() {
                 placeholder="ex: empresa-alpha"
                 required
                 disabled={!!editing}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 disabled:bg-slate-50 disabled:text-slate-500"
+                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm disabled:bg-[var(--color-brand-50)] disabled:text-[var(--muted-foreground)]"
               />
               {!editing && (
-                <p className="mt-1 text-xs text-slate-500">Gerado automaticamente pelo nome. Você pode editar.</p>
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">Gerado automaticamente pelo nome. Você pode editar.</p>
               )}
-              {editing && <p className="mt-1 text-xs text-slate-500">Não é possível alterar o identificador.</p>}
+              {editing && <p className="mt-1 text-xs text-[var(--muted-foreground)]">Não é possível alterar o identificador.</p>}
             </div>
             <div>
               <label htmlFor="emp-cnpj" className="mb-1 block text-sm font-medium text-slate-700">

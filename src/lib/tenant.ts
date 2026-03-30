@@ -33,9 +33,9 @@ export function getTenantId(): string {
   return (id?.trim() || 'default').toLowerCase()
 }
 
-/** Nome da empresa/organização. Usa VITE_APP_NAME; fallback "NR1 Form". */
+/** Nome da marca no front-end. */
 export function getAppName(): string {
-  return (env.VITE_APP_NAME as string | undefined)?.trim() || 'NR1 Form'
+  return 'Confiara'
 }
 
 /** URL do logo (caminho relativo ou URL absoluta). Ex.: /logo.png ou https://... */
@@ -43,9 +43,9 @@ export function getAppLogoUrl(): string {
   return (env.VITE_APP_LOGO_URL as string | undefined)?.trim() || '/logo.png'
 }
 
-/** Nome do produto exibido no header. Usa VITE_PRODUCT_NAME; fallback "NR1 Form". */
+/** Nome do produto exibido no front-end. */
 export function getProductName(): string {
-  return (env.VITE_PRODUCT_NAME as string | undefined)?.trim() || 'NR1 Form'
+  return 'Confiara'
 }
 
 /** Link do questionário (?org= sem channel=denuncia): ocultar atalho ao canal de denúncia no header/rodapé. */

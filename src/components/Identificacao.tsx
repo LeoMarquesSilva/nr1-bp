@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'motion/react'
 import { ArrowRight, Shield, Clock, FileCheck, ChevronRight } from 'lucide-react'
+import { Button } from './ui/button'
 import { SETORES } from '../data/opcoes'
 import { getTenantSetores } from '../types/submission'
 import { getTenantId } from '../lib/tenant'
@@ -46,23 +47,23 @@ export function Identificacao({ onIniciar }: Props) {
     >
       <motion.section
         variants={item}
-        className="relative overflow-hidden rounded-2xl bg-slate-900 px-6 py-10 shadow-xl shadow-slate-900/20 sm:px-10 sm:py-14"
+        className="relative overflow-hidden rounded-2xl landing-premium-bg px-6 py-10 shadow-[var(--shadow-md)] sm:px-10 sm:py-14"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
         <div className="relative">
           <motion.p
             variants={item}
-            className="text-xs font-semibold uppercase tracking-widest text-violet-300"
+            className="text-xs font-semibold uppercase tracking-widest text-[var(--color-brand-100)]"
           >
             Sua opinião é importante para melhorar o bem-estar no trabalho.
           </motion.p>
-          <motion.h2
+          <motion.h1
             variants={item}
             className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl md:text-4xl"
           >
             Avaliação sobre saúde e bem-estar no trabalho
-          </motion.h2>
-          <motion.div variants={item} className="mt-4 max-w-2xl space-y-3 text-base text-slate-300 sm:text-lg">
+          </motion.h1>
+          <motion.div variants={item} className="mt-4 max-w-2xl space-y-3 text-base text-[var(--color-brand-100)] sm:text-lg">
             <p>Esta pesquisa quer entender como está o seu dia a dia no trabalho.</p>
             <p>
               Suas respostas são anônimas e confidenciais e serão usadas apenas para identificar melhorias no ambiente de trabalho.
@@ -74,21 +75,21 @@ export function Identificacao({ onIniciar }: Props) {
         </div>
       </motion.section>
 
-      <motion.div variants={item} className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-6 shadow-lg sm:p-8">
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-          <span className="rounded-full bg-violet-100 px-2.5 py-0.5 text-violet-700">Passo 1</span>
+      <motion.div variants={item} className="bg-card-escritorio rounded-2xl border border-[var(--border)] p-6 shadow-[var(--shadow-sm)] sm:p-8">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+          <span className="rounded-full bg-[var(--color-brand-100)] px-2.5 py-0.5 text-[var(--color-brand-700)]">Passo 1</span>
           <ChevronRight className="h-3.5 w-3.5" />
           <span>Identifique seu setor</span>
         </div>
-        <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+        <h2 className="text-xl font-bold tracking-tight text-[var(--color-brand-900)] sm:text-2xl">
           Bem-vindo à Pesquisa sobre o Ambiente de Trabalho.
-        </h3>
-        <p className="mt-2 text-sm text-slate-600">
+        </h2>
+        <p className="mt-2 text-sm text-[var(--muted-foreground)]">
           Antes de começar, selecione o setor onde você trabalha. Essa informação ajuda a entender como está o ambiente de trabalho em cada área da empresa.
         </p>
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div>
-            <label htmlFor="setor" className="mb-2 block text-sm font-semibold text-slate-900">
+            <label htmlFor="setor" className="mb-2 block text-sm font-semibold text-[var(--color-brand-900)]">
               Setor
             </label>
             <select
@@ -96,7 +97,7 @@ export function Identificacao({ onIniciar }: Props) {
               value={setor}
               onChange={(e) => setSetor(e.target.value)}
               required
-              className="input-escritorio w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 transition focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+              className="input-escritorio w-full rounded-xl border border-[var(--border)] bg-white px-4 py-3.5 text-[var(--color-brand-900)] transition focus:border-[var(--color-brand-300)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
             >
               <option value="">Selecione o setor</option>
               {opcoesSetor.map((s) => (
@@ -106,16 +107,16 @@ export function Identificacao({ onIniciar }: Props) {
               ))}
             </select>
           </div>
-          <motion.button
+          <Button
             type="submit"
+            variant="primary"
+            size="default"
             disabled={!setor}
-            whileHover={{ scale: setor ? 1.02 : 1 }}
-            whileTap={{ scale: setor ? 0.98 : 1 }}
-            className="btn-escritorio flex w-full items-center justify-center gap-2 py-3.5 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:min-w-[220px] sm:px-8"
+            className="flex h-12 w-full min-w-[220px] items-center justify-center gap-2 rounded-[var(--radius-pill)] px-8 sm:w-auto"
           >
             Iniciar formulário
             <ArrowRight className="h-5 w-5" />
-          </motion.button>
+          </Button>
         </form>
       </motion.div>
 
@@ -129,14 +130,14 @@ export function Identificacao({ onIniciar }: Props) {
             key={title}
             variants={item}
             whileHover={{ y: -2 }}
-            className="bg-card-escritorio flex gap-4 rounded-xl border border-slate-200/60 p-4 transition-shadow hover:shadow-md"
+            className="bg-card-escritorio flex gap-4 rounded-xl border border-[var(--border)] p-4 transition-shadow hover:shadow-[var(--shadow-sm)]"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-100)] text-[var(--color-brand-700)]">
               <Icon className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-slate-900">{title}</p>
-              <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+              <p className="text-sm font-semibold text-[var(--color-brand-900)]">{title}</p>
+              <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{desc}</p>
             </div>
           </motion.div>
         ))}

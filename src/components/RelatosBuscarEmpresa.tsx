@@ -1,13 +1,14 @@
 import { useState, useCallback, useEffect } from 'react'
-import { Search, Building2, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { Search, Building2, ArrowRight, Loader2 } from 'lucide-react'
 import { searchOrganizations } from '../types/submission'
+import { PageShell, PageShellCard } from './layout/PageShell'
 
 type Props = {
   onVoltar: () => void
 }
 
 function buildCanalUrl(tenantId: string, form?: boolean, consultar?: boolean): string {
-  const base = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname || '/'}` : ''
+  const base = typeof window !== 'undefined' ? `${window.location.origin}/` : ''
   const params = new URLSearchParams()
   params.set('org', tenantId)
   params.set('channel', 'denuncia')
@@ -55,50 +56,40 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <button
-        type="button"
-        onClick={onVoltar}
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar
-      </button>
-
-      <div className="rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm">
+    <PageShell
+      onBack={onVoltar}
+      title="Encontrar minha organização"
+      subtitle="Digite o nome da empresa para acessar o canal de denúncia."
+    >
+      <PageShellCard>
         <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
-            <Building2 className="h-6 w-6" />
+          <div className="brand-icon-tile h-12 w-12 rounded-xl">
+            <Building2 className="h-6 w-6" aria-hidden />
           </div>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-900">
-              Encontrar minha organização
-            </h2>
-            <p className="text-sm text-slate-600">
-              Digite o nome da empresa para acessar o canal de denúncia
-            </p>
-          </div>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Resultados direcionam para o canal de denúncias da organização escolhida.
+          </p>
         </div>
 
         <div className="mt-6">
-          <label htmlFor="org-search" className="sr-only">
+          <label htmlFor="org-search" className="mb-2 block text-sm font-semibold text-[var(--color-brand-900)]">
             Buscar organização
           </label>
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--color-brand-400)]" aria-hidden />
             <input
               id="org-search"
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ex.: Bismarchi Pires"
-              className="input-escritorio w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-slate-900 placeholder:text-slate-400"
+              className="input-escritorio w-full rounded-xl border bg-white py-3.5 pl-12 pr-12 text-[var(--color-brand-900)] placeholder:text-[var(--muted-foreground)]"
               autoComplete="off"
               autoFocus
             />
             {loading && (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
+              <div className="absolute right-4 top-1/2 -translate-y-1/2" aria-live="polite">
+                <Loader2 className="h-5 w-5 animate-spin text-[var(--color-brand-600)]" aria-hidden />
               </div>
             )}
           </div>
@@ -107,7 +98,7 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
         {searched && !loading && (
           <div className="mt-4 min-h-[120px]">
             {results.length === 0 ? (
-              <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-600">
+              <p className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/80 px-4 py-6 text-center text-sm text-[var(--muted-foreground)]">
                 Nenhuma organização encontrada. Verifique o nome e tente novamente.
               </p>
             ) : (
@@ -117,19 +108,19 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
                     <button
                       type="button"
                       onClick={() => handleSelect(org.tenant_id)}
-                      className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-left transition hover:border-violet-300 hover:bg-violet-50/50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2"
+                      className="flex w-full items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3.5 text-left transition hover:border-[var(--color-brand-300)] hover:bg-[var(--color-brand-50)]/60 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2"
                       role="option"
                     >
-                      <Building2 className="h-5 w-5 shrink-0 text-slate-500" />
+                      <Building2 className="h-5 w-5 shrink-0 text-[var(--color-brand-500)]" aria-hidden />
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-slate-900">
+                        <p className="font-medium text-[var(--color-brand-900)]">
                           {org.display_name || org.tenant_id}
                         </p>
                         {org.display_name && org.tenant_id !== org.display_name && (
-                          <p className="text-xs text-slate-500">{org.tenant_id}</p>
+                          <p className="text-xs text-[var(--muted-foreground)]">{org.tenant_id}</p>
                         )}
                       </div>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-slate-400" />
+                      <ArrowRight className="h-4 w-4 shrink-0 text-[var(--color-brand-400)]" aria-hidden />
                     </button>
                   </li>
                 ))}
@@ -137,7 +128,7 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
             )}
           </div>
         )}
-      </div>
-    </div>
+      </PageShellCard>
+    </PageShell>
   )
 }

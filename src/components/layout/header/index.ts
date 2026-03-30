@@ -1,5 +1,5 @@
 export { HealthqoeHeader } from "./header"
-export type { HealthqoeHeaderProps } from "./header"
+export type { HealthqoeHeaderProps, HeaderAppearance } from "./header"
 export { Logo } from "./logo"
 export type { LogoProps } from "./logo"
 export { NavLinks } from "./nav-links"

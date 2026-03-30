@@ -79,7 +79,7 @@ export function Login({ onSuccess, onCancel }: LoginProps) {
   if (checkingSession) {
     return (
       <div className="mx-auto flex max-w-sm items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-slate-700" aria-label="Verificando sessão" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-brand-300)] border-t-[var(--color-brand-700)]" aria-label="Verificando sessão" />
       </div>
     )
   }
@@ -91,16 +91,16 @@ export function Login({ onSuccess, onCancel }: LoginProps) {
       transition={{ duration: 0.35 }}
       className="mx-auto max-w-sm"
     >
-      <div className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-8 shadow-lg">
+      <div className="bg-card-escritorio rounded-2xl border border-[var(--border)] p-8 shadow-[var(--shadow-sm)]">
         <div className="mb-6 flex justify-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-brand-100)] text-[var(--color-brand-700)]">
             <LogIn className="h-6 w-6" />
           </div>
         </div>
-        <h2 className="text-center text-xl font-bold tracking-tight text-slate-900">
+        <h2 className="text-center text-xl font-bold tracking-tight text-[var(--color-brand-900)]">
           Entrar
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-600">
+        <p className="mt-2 text-center text-sm text-[var(--muted-foreground)]">
           Use suas credenciais para acessar sua conta.
         </p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -109,7 +109,7 @@ export function Login({ onSuccess, onCancel }: LoginProps) {
               E-mail
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
               <input
                 id="login-email"
                 type="email"
@@ -118,7 +118,7 @@ export function Login({ onSuccess, onCancel }: LoginProps) {
                 placeholder="E-mail"
                 required
                 autoComplete="email"
-                className="input-escritorio w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition"
+                className="input-escritorio w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-[var(--color-brand-900)] transition"
               />
             </div>
           </div>
@@ -127,7 +127,7 @@ export function Login({ onSuccess, onCancel }: LoginProps) {
               Senha
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
               <input
                 id="login-password"
                 type="password"
@@ -136,7 +136,7 @@ export function Login({ onSuccess, onCancel }: LoginProps) {
                 placeholder="Senha"
                 required
                 autoComplete="current-password"
-                className="input-escritorio w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition"
+                className="input-escritorio w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-[var(--color-brand-900)] transition"
               />
             </div>
           </div>
@@ -147,7 +147,7 @@ export function Login({ onSuccess, onCancel }: LoginProps) {
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 rounded-full border-2 border-slate-300 bg-white py-3 font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+              className="flex-1 rounded-full border-2 border-[var(--color-brand-300)] bg-white py-3 font-semibold text-[var(--color-brand-700)] transition hover:border-[var(--color-brand-400)] hover:bg-[var(--color-brand-50)]"
             >
               Voltar
             </button>

@@ -11,8 +11,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
+import { getHrefForView, type AppRouteView } from "@/lib/routes"
 import { Logo } from "./logo"
-import type { View } from "./nav-links"
+import type { HeaderAppearance, View } from "./nav-links"
 
 const APP_NAV: { view: View; label: string }[] = [
   { view: "landing", label: "Início" },
@@ -26,6 +28,7 @@ export interface MobileMenuProps {
   onNavigate: (view: View) => void
   showNavAndAdmin: boolean
   hideCanalDenunciaNav?: boolean
+  appearance?: HeaderAppearance
 }
 
 export function MobileMenu({
@@ -33,7 +36,9 @@ export function MobileMenu({
   onNavigate,
   showNavAndAdmin,
   hideCanalDenunciaNav = false,
+  appearance = "light",
 }: MobileMenuProps) {
+  const isDark = appearance === "dark"
   const links = hideCanalDenunciaNav
     ? APP_NAV.filter((item) => item.view !== "relatos-buscar")
     : APP_NAV
@@ -50,7 +55,12 @@ export function MobileMenu({
         <Button
           variant="ghost"
           size="icon"
-          className="lg:hidden text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+          className={cn(
+            "lg:hidden",
+            isDark
+              ? "text-white hover:bg-white/10 hover:text-white focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-brand-900)]"
+              : "text-[var(--color-brand-700)] hover:bg-[var(--color-brand-100)] hover:text-[var(--color-brand-900)]"
+          )}
           aria-label={open ? "Fechar menu" : "Abrir menu"}
         >
           <Menu className="h-5 w-5" />
@@ -58,14 +68,20 @@ export function MobileMenu({
       </SheetTrigger>
       <SheetContent
         side="right"
-        className="flex flex-col w-[min(100vw-2rem,320px)] sm:max-w-[320px]"
+        className={cn(
+          "flex flex-col w-[min(100vw-2rem,320px)] sm:max-w-[320px]",
+          isDark &&
+            "border-white/10 bg-[var(--color-brand-900)] text-white [&>button]:text-white [&>button]:hover:bg-white/10 [&>button]:ring-offset-[var(--color-brand-900)]"
+        )}
       >
         <SheetHeader className="sr-only">
           <SheetTitle>Menu</SheetTitle>
         </SheetHeader>
         <div className="flex flex-1 flex-col gap-6 pt-8">
-          <div>
-            <Logo onNavigateHome={() => handleNav("landing")} />
+          <div
+            className={cn("border-b pb-6", isDark ? "border-white/15" : "border-[var(--border)]")}
+          >
+            <Logo variant={isDark ? "dark" : "light"} onNavigateHome={() => handleNav("landing")} />
           </div>
           {showNavAndAdmin && (
             <nav aria-label="Navegação mobile" className="flex flex-col gap-1">
@@ -76,34 +92,57 @@ export function MobileMenu({
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.03 * i, duration: 0.2 }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => handleNav(item.view)}
-                    className={`block w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${
+                  <a
+                    href={getHrefForView(item.view as AppRouteView)}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      handleNav(item.view)
+                    }}
+                    className={cn(
+                      "block w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors",
                       view === item.view
-                        ? "bg-slate-100 text-slate-900"
-                        : "text-slate-700 hover:bg-slate-100"
-                    }`}
+                        ? isDark
+                          ? "bg-white/15 text-white"
+                          : "bg-[var(--color-brand-100)] text-[var(--color-brand-900)]"
+                        : isDark
+                          ? "text-white/90 hover:bg-white/10"
+                          : "text-[var(--color-brand-700)] hover:bg-[var(--color-brand-50)]"
+                    )}
                   >
                     {item.label}
-                  </button>
+                  </a>
                 </motion.div>
               ))}
             </nav>
           )}
-          <div className="mt-auto flex flex-col gap-3 border-t border-slate-200 pt-6">
+          <div
+            className={cn(
+              "mt-auto flex flex-col gap-3 border-t pt-6",
+              isDark ? "border-white/15" : "border-[var(--border)]"
+            )}
+          >
             {showNavAndAdmin && (
               <>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="w-full justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  className={cn(
+                    "w-full justify-center",
+                    isDark
+                      ? "text-white/90 hover:bg-white/10 hover:text-white"
+                      : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--accent)]"
+                  )}
                   onClick={() => handleNav("login")}
                 >
                   Entrar
                 </Button>
                 <Button
-                  className="w-full rounded-full bg-slate-900 hover:bg-slate-800 text-white px-5 text-sm font-semibold shadow-lg shadow-slate-900/10"
+                  className={cn(
+                    "w-full rounded-full px-5 text-sm font-semibold shadow-[var(--shadow-sm)]",
+                    isDark
+                      ? "bg-[var(--color-brand-cream)] text-[var(--color-brand-900)] hover:bg-white"
+                      : "bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)]"
+                  )}
                   onClick={() => handleNav("contato")}
                 >
                   Entre em contato

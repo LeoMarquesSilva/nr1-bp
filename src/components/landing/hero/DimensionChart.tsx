@@ -20,7 +20,7 @@ const DIMENSION_DATA = [
 ]
 
 const getBarColor = (value: number): string =>
-  value >= 70 ? '#10B981' : value >= 50 ? '#F59E0B' : '#EF4444'
+  value >= 70 ? 'var(--color-success-500)' : value >= 50 ? 'var(--color-warning-500)' : 'var(--color-error-500)'
 
 const dataWithColors = DIMENSION_DATA.map((d) => ({
   ...d,
@@ -29,12 +29,12 @@ const dataWithColors = DIMENSION_DATA.map((d) => ({
 
 export function DimensionChart() {
   return (
-    <div className="h-[140px] w-full" role="img" aria-label="Gráfico de resultado por dimensão HSE-IT em percentual">
+    <div className="h-[150px] w-full" role="img" aria-label="Gráfico de resultado por dimensão HSE-IT em percentual">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={dataWithColors}
           layout="vertical"
-          margin={{ top: 4, right: 40, left: 100, bottom: 4 }}
+          margin={{ top: 4, right: 38, left: 110, bottom: 4 }}
         >
           <XAxis type="number" domain={[0, 100]} hide />
           <YAxis
@@ -48,14 +48,14 @@ export function DimensionChart() {
             contentStyle={{
               fontSize: 12,
               borderRadius: 8,
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--border)',
             }}
             formatter={(value: number | undefined) => [value != null ? `${value}%` : '—', 'Score']}
-            labelStyle={{ color: '#0f172a' }}
+            labelStyle={{ color: 'var(--color-brand-900)' }}
           />
-          <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={10}>
-            <LabelList dataKey="name" position="left" style={{ fontSize: 10, fill: '#64748b' }} />
-            <LabelList dataKey="value" position="right" formatter={(value) => (typeof value === 'number' ? `${value}%` : '')} style={{ fontSize: 10, fill: '#475569', fontWeight: 600 }} />
+          <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={10}>
+            <LabelList dataKey="name" position="left" style={{ fontSize: 10, fill: 'var(--muted-foreground)' }} />
+            <LabelList dataKey="value" position="right" formatter={(value) => (typeof value === 'number' ? `${value}%` : '')} style={{ fontSize: 10, fill: 'var(--color-brand-700)', fontWeight: 700 }} />
             {dataWithColors.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}

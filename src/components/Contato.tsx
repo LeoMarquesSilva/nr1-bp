@@ -26,38 +26,38 @@ export function Contato({ onVoltar }: ContatoProps) {
       className="mx-auto max-w-xl"
     >
       <div className="text-center mb-10">
-        <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-brand-900)] sm:text-3xl">
           Entre em contato
         </h2>
-        <p className="mt-3 text-slate-600">
+        <p className="mt-3 text-[var(--muted-foreground)]">
           Envie uma mensagem e retornaremos o mais breve possível.
         </p>
       </div>
 
       {sent ? (
-        <div className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-8 text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+        <div className="bg-card-escritorio rounded-2xl border border-[var(--border)] p-8 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-success-50)] text-[var(--color-success-700)]">
             <Mail className="h-7 w-7" />
           </div>
-          <h3 className="mt-4 text-lg font-semibold text-slate-900">
+          <h3 className="mt-4 text-lg font-semibold text-[var(--color-brand-900)]">
             Mensagem enviada
           </h3>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-[var(--muted-foreground)]">
             Responderemos ao seu e-mail em breve.
           </p>
           <button
             type="button"
             onClick={onVoltar}
-            className="mt-6 rounded-full border-2 border-slate-300 bg-white px-6 py-2.5 font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            className="mt-6 rounded-full border-2 border-[var(--color-brand-300)] bg-white px-6 py-2.5 font-semibold text-[var(--color-brand-700)] transition hover:border-[var(--color-brand-400)] hover:bg-[var(--color-brand-50)]"
           >
             Voltar
           </button>
         </div>
       ) : (
-        <div className="bg-card-escritorio rounded-2xl border border-slate-200/60 p-8 shadow-lg">
+        <div className="bg-card-escritorio rounded-2xl border border-[var(--border)] p-8 shadow-[var(--shadow-sm)]">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="contato-name" className="block text-sm font-medium text-slate-900 mb-1.5">
+              <label htmlFor="contato-name" className="block text-sm font-medium text-[var(--color-brand-900)] mb-1.5">
                 Nome
               </label>
               <input
@@ -67,15 +67,15 @@ export function Contato({ onVoltar }: ContatoProps) {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Seu nome"
                 required
-                className="input-escritorio w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 transition"
+                className="input-escritorio w-full rounded-xl border bg-white px-4 py-3 text-[var(--color-brand-900)] transition"
               />
             </div>
             <div>
-              <label htmlFor="contato-email" className="block text-sm font-medium text-slate-900 mb-1.5">
+              <label htmlFor="contato-email" className="block text-sm font-medium text-[var(--color-brand-900)] mb-1.5">
                 E-mail
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted-foreground)]" />
                 <input
                   id="contato-email"
                   type="email"
@@ -83,16 +83,16 @@ export function Contato({ onVoltar }: ContatoProps) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu@email.com"
                   required
-                  className="input-escritorio w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition"
+                  className="input-escritorio w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-[var(--color-brand-900)] transition"
                 />
               </div>
             </div>
             <div>
-              <label htmlFor="contato-message" className="block text-sm font-medium text-slate-900 mb-1.5">
+              <label htmlFor="contato-message" className="block text-sm font-medium text-[var(--color-brand-900)] mb-1.5">
                 Mensagem
               </label>
               <div className="relative">
-                <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-[var(--muted-foreground)]" />
                 <textarea
                   id="contato-message"
                   value={message}
@@ -100,7 +100,7 @@ export function Contato({ onVoltar }: ContatoProps) {
                   placeholder="Sua mensagem..."
                   required
                   rows={4}
-                  className="input-escritorio w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-slate-900 transition resize-none"
+                  className="input-escritorio w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-[var(--color-brand-900)] transition resize-none"
                 />
               </div>
             </div>
@@ -108,7 +108,7 @@ export function Contato({ onVoltar }: ContatoProps) {
               <button
                 type="button"
                 onClick={onVoltar}
-                className="flex-1 rounded-full border-2 border-slate-300 bg-white py-3 font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+                className="flex-1 rounded-full border-2 border-[var(--color-brand-300)] bg-white py-3 font-semibold text-[var(--color-brand-700)] transition hover:border-[var(--color-brand-400)] hover:bg-[var(--color-brand-50)]"
               >
                 Voltar
               </button>

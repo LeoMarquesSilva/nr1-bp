@@ -16,7 +16,6 @@ import {
 } from 'recharts'
 import { useRef, useState, useCallback } from 'react'
 import { Copy, Check } from 'lucide-react'
-import html2canvas from 'html2canvas'
 import type { DimensionSummary } from '../data/hseIt'
 import { getRiskLevel, RISK_LEVELS } from '../data/riskLevels'
 
@@ -70,10 +69,11 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
     try {
       // Pequena pausa para o gráfico SVG estar totalmente renderizado
       await new Promise((r) => setTimeout(r, 300))
+      const { default: html2canvas } = await import('html2canvas')
       const canvas = await html2canvas(ref.current, {
         useCORS: true,
         scale: 2,
-        backgroundColor: '#FAFBFB',
+        backgroundColor: '#f7f9fc',
         logging: false,
         allowTaint: true,
         // Melhora captura de SVG (Recharts)
@@ -149,31 +149,31 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
             <div className="mt-4 h-[320px] w-full sm:h-[360px]">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart data={dadosRadar} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
-              <PolarGrid stroke="rgba(16,31,46,0.15)" />
+              <PolarGrid stroke="rgba(4,12,30,0.14)" />
               <PolarAngleAxis
                 dataKey="subject"
-                tick={{ fill: '#101F2E', fontSize: 11 }}
+                tick={{ fill: '#040c1e', fontSize: 11 }}
                 tickLine={false}
               />
               <PolarRadiusAxis
                 angle={90}
                 domain={[0, 5]}
-                tick={{ fill: '#101F2E', fontSize: 10 }}
+                tick={{ fill: '#040c1e', fontSize: 10 }}
               />
               <Radar
                 name="Média"
                 dataKey="media"
-                stroke="#D5B170"
-                fill="#D5B170"
+                stroke="#5b88b2"
+                fill="#5b88b2"
                 fillOpacity={0.4}
                 strokeWidth={2}
               />
               <Tooltip
                 contentStyle={{
                   borderRadius: '10px',
-                  border: '1px solid rgba(16,31,46,0.1)',
-                  background: '#FAFBFB',
-                  color: '#101F2E',
+                  border: '1px solid rgba(4,12,30,0.1)',
+                  background: '#f7f9fc',
+                  color: '#040c1e',
                   boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
                 }}
                 formatter={(value: number | undefined) => [value != null ? value.toFixed(1) : '–', 'Média']}
@@ -214,26 +214,26 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
                   layout="vertical"
                   margin={{ top: 10, right: 30, left: 80, bottom: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(16,31,46,0.12)" />
-                  <XAxis type="number" domain={[0, 5]} tick={{ fill: '#101F2E', fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(4,12,30,0.12)" />
+                  <XAxis type="number" domain={[0, 5]} tick={{ fill: '#040c1e', fontSize: 11 }} />
                   <YAxis
                     type="category"
                     dataKey="dimensao"
                     width={75}
-                    tick={{ fill: '#101F2E', fontSize: 11 }}
+                    tick={{ fill: '#040c1e', fontSize: 11 }}
                   />
                   <Tooltip
                     contentStyle={{
                       borderRadius: '10px',
-                      border: '1px solid rgba(16,31,46,0.1)',
-                      background: '#FAFBFB',
-                      color: '#101F2E',
+                      border: '1px solid rgba(4,12,30,0.1)',
+                      background: '#f7f9fc',
+                      color: '#040c1e',
                       boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
                     }}
                     formatter={(value: number | undefined) => [value != null ? value.toFixed(1) : '–', 'Média']}
-                    cursor={{ fill: 'rgba(213,177,112,0.12)' }}
+                    cursor={{ fill: 'rgba(91,136,178,0.14)' }}
                   />
-                  <ReferenceLine x={3} stroke="#D5B170" strokeDasharray="4 4" />
+                  <ReferenceLine x={3} stroke="#5b88b2" strokeDasharray="4 4" />
                   <Bar dataKey="media" name="Média" radius={[0, 4, 4, 0]} maxBarSize={32}>
                     {dadosBarras.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.cor} />

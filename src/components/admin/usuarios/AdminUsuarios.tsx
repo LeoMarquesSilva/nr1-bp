@@ -185,49 +185,49 @@ export function AdminUsuarios() {
     <>
       <div className="space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[var(--muted-foreground)]">
             Gerencie os administradores que têm acesso ao painel.
           </p>
         </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-            <Users className="h-5 w-5 text-slate-500" />
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
+          <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--color-brand-900)]">
+            <Users className="h-5 w-5 text-[var(--muted-foreground)]" />
             Usuários Cadastrados
           </h3>
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              <Loader2 className="h-8 w-8 animate-spin text-[var(--muted-foreground)]" />
             </div>
           ) : users.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">Nenhum usuário cadastrado.</p>
+            <p className="py-6 text-center text-sm text-[var(--muted-foreground)]">Nenhum usuário cadastrado.</p>
           ) : (
             <ul className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
               {users.map((user) => (
                 <li
                   key={user.id}
-                  className="flex items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3"
+                  className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/60 px-4 py-3"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       {user.avatar_url ? (
-                        <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover shadow-sm ring-1 ring-slate-200" />
+                          <img src={user.avatar_url} alt="" className="h-8 w-8 rounded-full object-cover shadow-sm ring-1 ring-[var(--border)]" />
                       ) : (
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600 shadow-sm ring-1 ring-slate-200">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-brand-100)] text-xs font-semibold text-[var(--color-brand-700)] shadow-sm ring-1 ring-[var(--border)]">
                           {user.name.trim().split(/\s+/).map(s => s[0]).slice(0, 2).join('').toUpperCase() || 'A'}
                         </div>
                       )}
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-slate-900 truncate">{user.name}</p>
+                          <p className="font-medium text-[var(--color-brand-900)] truncate">{user.name}</p>
                           {!user.is_active && (
                             <span className="rounded-md bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-700">
                               Inativo
                             </span>
                           )}
                           {user.auth_id === currentUserAuthId && (
-                            <span className="rounded-md bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-700">
+                            <span className="rounded-md bg-[var(--color-brand-100)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-brand-700)]">
                               Você
                             </span>
                           )}
@@ -237,8 +237,8 @@ export function AdminUsuarios() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 truncate">{user.email}</p>
-                        {user.department && <p className="text-[10px] text-slate-400 mt-0.5">{user.department}</p>}
+                        <p className="text-xs text-[var(--muted-foreground)] truncate">{user.email}</p>
+                        {user.department && <p className="text-[10px] text-[var(--color-brand-500)] mt-0.5">{user.department}</p>}
                       </div>
                     </div>
                   </div>
@@ -275,13 +275,13 @@ export function AdminUsuarios() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="mb-4 text-lg font-semibold text-slate-900">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
+          <h3 className="mb-4 text-lg font-semibold text-[var(--color-brand-900)]">
             Novo Usuário Admin
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="usr-name" className="mb-1 block text-sm font-medium text-slate-700">
+              <label htmlFor="usr-name" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Nome completo *
               </label>
               <input
@@ -291,11 +291,11 @@ export function AdminUsuarios() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Ex.: João Silva"
                 required
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
               />
             </div>
             <div>
-              <label htmlFor="usr-email" className="mb-1 block text-sm font-medium text-slate-700">
+              <label htmlFor="usr-email" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 E-mail *
               </label>
               <input
@@ -305,11 +305,11 @@ export function AdminUsuarios() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="joao@empresa.com"
                 required
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
               />
             </div>
             <div>
-              <label htmlFor="usr-password" className="mb-1 block text-sm font-medium text-slate-700">
+              <label htmlFor="usr-password" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Senha inicial *
               </label>
               <input
@@ -320,11 +320,11 @@ export function AdminUsuarios() {
                 placeholder="Mínimo 6 caracteres"
                 required
                 minLength={6}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
               />
             </div>
             <div>
-              <label htmlFor="usr-department" className="mb-1 block text-sm font-medium text-slate-700">
+              <label htmlFor="usr-department" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Departamento (Opcional)
               </label>
               <input
@@ -333,7 +333,7 @@ export function AdminUsuarios() {
                 value={form.department}
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
                 placeholder="Ex.: TI, RH"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
               />
             </div>
             
@@ -341,7 +341,7 @@ export function AdminUsuarios() {
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow transition disabled:opacity-50 hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-[var(--shadow-sm)] transition disabled:opacity-50 hover:bg-[var(--primary-hover)]"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 Criar administrador

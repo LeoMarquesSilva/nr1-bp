@@ -1,5 +1,6 @@
 import { LayoutDashboard, User, LogOut, Home, Building2, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Logo } from '@/components/layout/header/logo'
 
 export type AdminPage = 'dashboard' | 'perfil' | 'empresas' | 'empresa' | 'usuarios'
 
@@ -35,21 +36,24 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
       <aside
         className={cn(
           'fixed left-0 top-0 z-40 hidden h-screen w-16 flex-col border-r md:flex',
-          'bg-gradient-to-b from-[var(--escritorio-escuro)] to-slate-900',
-          'border-slate-700/50'
+          'bg-gradient-to-b from-[var(--color-brand-900)] to-[var(--color-brand-700)]',
+          'border-[color-mix(in_srgb,var(--color-brand-400)_30%,black)]'
         )}
         aria-label="Navegação do painel"
       >
         {/* Logo / Voltar ao site */}
-        <div className="flex h-16 shrink-0 items-center justify-center border-b border-slate-700/50">
+        <div className="flex h-16 shrink-0 items-center justify-center border-b border-[color-mix(in_srgb,var(--color-brand-400)_30%,black)]">
           <button
             type="button"
             onClick={onGoToSite}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--color-brand-200)] transition hover:bg-white/10 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
             title="Voltar ao site"
           >
             <Home className="h-5 w-5" />
           </button>
+        </div>
+        <div className="flex justify-center px-2 py-3">
+          <Logo variant="dark" className="w-full justify-center opacity-95" />
         </div>
 
         <nav className="flex flex-1 flex-col gap-1 p-2 pt-4">
@@ -62,8 +66,8 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
               className={cn(
                 'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg transition focus:outline-none focus:ring-2 focus:ring-white/30',
                 page === id
-                  ? 'bg-white/15 text-white'
-                  : 'text-slate-400 hover:bg-white/10 hover:text-slate-200'
+                  ? 'bg-[var(--color-brand-400)]/25 text-white'
+                  : 'text-[var(--color-brand-200)] hover:bg-white/10 hover:text-white'
               )}
             >
               <Icon className="h-5 w-5" />
@@ -71,7 +75,7 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
           ))}
         </nav>
 
-        <div className="border-t border-slate-700/50 p-2">
+        <div className="border-t border-[color-mix(in_srgb,var(--color-brand-400)_30%,black)] p-2">
           {/* Avatar → Perfil */}
           <button
             type="button"
@@ -79,8 +83,8 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
             title={profile ? profile.name : 'Perfil'}
             className={cn(
               'mb-2 flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 transition focus:outline-none focus:ring-2 focus:ring-white/30',
-              'border-slate-600 bg-slate-700/50 text-slate-200 hover:border-slate-500 hover:bg-slate-600/50',
-              page === 'perfil' && 'border-violet-400 bg-violet-500/20 text-white'
+              'border-[var(--color-brand-400)]/50 bg-[var(--color-brand-700)]/60 text-[var(--color-brand-100)] hover:border-[var(--color-brand-300)] hover:bg-[var(--color-brand-700)]/90',
+              page === 'perfil' && 'border-[var(--color-brand-400)] bg-[var(--color-brand-400)]/25 text-white'
             )}
           >
             {profile?.avatar_url ? (
@@ -95,7 +99,7 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
             type="button"
             onClick={onLogout}
             title="Sair"
-            className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-500/20 hover:text-red-300 focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="flex h-11 w-11 items-center justify-center rounded-lg text-[var(--color-brand-200)] transition hover:bg-[var(--color-error-500)]/20 hover:text-[var(--color-error-50)] focus:outline-none focus:ring-2 focus:ring-white/30"
           >
             <LogOut className="h-5 w-5" />
           </button>
@@ -105,15 +109,15 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
       {/* Mobile: bottom navigation */}
       <nav
         className={cn(
-          'fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t bg-[var(--escritorio-escuro)] px-2 py-2 md:hidden',
-          'border-slate-700/50'
+          'fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t bg-[var(--color-brand-900)] px-2 py-2 md:hidden',
+          'border-[color-mix(in_srgb,var(--color-brand-400)_30%,black)]'
         )}
         aria-label="Navegação mobile"
       >
         <button
           type="button"
           onClick={onGoToSite}
-          className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-slate-400 transition hover:text-white"
+          className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-[var(--color-brand-200)] transition hover:text-white"
           title="Voltar ao site"
         >
           <Home className="h-5 w-5" />
@@ -126,7 +130,7 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
             onClick={() => onNavigate(id)}
             className={cn(
               'flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 transition',
-              page === id ? 'text-white' : 'text-slate-400 hover:text-slate-200'
+              page === id ? 'text-white' : 'text-[var(--color-brand-200)] hover:text-white'
             )}
           >
             <Icon className="h-5 w-5" />
@@ -136,7 +140,7 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
         <button
           type="button"
           onClick={onLogout}
-          className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-slate-400 transition hover:text-red-300"
+          className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 text-[var(--color-brand-200)] transition hover:text-[var(--color-error-50)]"
           title="Sair"
         >
           <LogOut className="h-5 w-5" />

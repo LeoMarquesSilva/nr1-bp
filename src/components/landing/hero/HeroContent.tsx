@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { MessageSquareWarning } from 'lucide-react'
+import { MessageSquareWarning, ArrowRight } from 'lucide-react'
 import { ComplianceBadge } from './ComplianceBadge'
 
 type Props = {
@@ -33,20 +33,16 @@ export function HeroContent({ onFazerRelato }: Props) {
 
       <motion.h1
         variants={itemLeft}
-        className="mt-5 text-4xl font-bold leading-[1.15] tracking-tight text-slate-900 lg:text-5xl"
+        className="mt-5 text-4xl font-bold leading-[1.1] tracking-tight text-white lg:text-5xl"
       >
-        Diagnóstico Psicossocial e Canal de Denúncias em{' '}
-        <span className="relative inline-block">
-          <span className="relative z-10 rounded bg-violet-100 px-2">uma única plataforma</span>
-        </span>
-        .
+        Confiara: canal de denúncias e gestão psicossocial com confiança total.
       </motion.h1>
 
       <motion.p
         variants={itemLeft}
-        className="mt-6 max-w-lg text-lg leading-relaxed text-slate-500"
+        className="mt-6 max-w-lg text-lg leading-relaxed text-[var(--color-brand-100)]"
       >
-        Avalie riscos psicossociais com o método HSE-IT, receba denúncias com protocolo seguro e gerencie tudo em um painel centralizado. Multi-tenant, pronto para sua organização.
+        Compliance e cuidado humano num só lugar: denúncias seguras, visibilidade para RH e apoio às exigências legais.
       </motion.p>
 
       <motion.div variants={itemLeft} className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
@@ -54,40 +50,25 @@ export function HeroContent({ onFazerRelato }: Props) {
           type="button"
           onClick={onFazerRelato}
           aria-label="Abrir canal de denúncias"
-          className="inline-flex min-h-[48px] min-w-[44px] items-center justify-center gap-2 rounded-full bg-slate-900 px-8 py-3 text-base font-semibold text-white shadow-lg shadow-slate-900/10 transition-all hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:ring-offset-2"
+          className="inline-flex min-h-[48px] min-w-[44px] items-center justify-center gap-2 rounded-full bg-[var(--color-brand-cream)] px-8 py-3 text-base font-semibold text-[var(--color-brand-900)] shadow-[var(--shadow-md)] transition-all hover:bg-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[var(--color-brand-900)]"
         >
           <MessageSquareWarning className="h-[18px] w-[18px] shrink-0" aria-hidden />
           Canal de denúncias
         </button>
+        <a
+          href="#plataforma-funcionalidades"
+          className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full border border-white/40 bg-transparent px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-[var(--color-brand-900)]"
+        >
+          Ver o que a plataforma oferece
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </a>
       </motion.div>
 
       <motion.p
         variants={itemLeft}
-        className="mt-3 text-xs text-slate-400"
+        className="mt-4 text-xs text-[var(--color-brand-200)]"
       >
-        🔒 100% anônimo · Protocolo rastreável · Acessível via Celular/QR Code
-      </motion.p>
-
-      <motion.p variants={itemLeft} className="mt-6 rounded-lg border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm leading-relaxed text-slate-600">
-        O <strong>diagnóstico psicossocial (HSE-IT)</strong> é disponibilizado mediante link enviado pela sua empresa após cadastro e contratação dos serviços. Se você recebeu o link, acesse-o diretamente para responder.
-      </motion.p>
-
-      <motion.div variants={itemLeft} className="mt-12 flex flex-wrap gap-3">
-        <span className="rounded-md bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-          NR-1
-        </span>
-        <span className="rounded-md bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-          Lei 14.457/22
-        </span>
-        <span className="rounded-md bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-          ISO 37002
-        </span>
-        <span className="rounded-md bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-          Gestão de Políticas
-        </span>
-      </motion.div>
-      <motion.p variants={itemLeft} className="mt-2 text-xs text-slate-400">
-        Atende às exigências do MTE a partir de maio/2025
+        100% anônimo · Protocolo rastreável · Acessível via celular e QR Code
       </motion.p>
     </motion.div>
   )

@@ -1,119 +1,370 @@
 @import "tailwindcss";
 
-/* Design system unificado — Hero/LP (SaaS premium: slate, violet, emerald) */
-:root {
-  /* Cores principais (slate) */
-  --escritorio-escuro: #0f172a;       /* slate-900 */
-  --slate-200: #e2e8f0;
-  --slate-300: #cbd5e1;
-  --slate-400: #94a3b8;
-  --slate-500: #64748b;
-  --slate-700: #334155;
-  --slate-900: #0f172a;
-  /* Destaque (violet) — ícones e ênfase */
-  --escritorio-dourado: #7c3aed;      /* violet-600 */
-  --escritorio-dourado-hover: #6d28d9;
-  --escritorio-dourado-light: rgba(196, 181, 253, 0.4); /* violet-200/40 */
-  --branco-gelo: #f8fafc;             /* slate-50 */
-  --branco-gelo-card: #ffffff;
-  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 12px rgba(15, 23, 42, 0.04);
-  --shadow-card-hover: 0 4px 12px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.06);
-  --radius-card: 16px;
-  --radius-btn: 9999px;               /* rounded-full para botões hero */
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-XLig.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
 
-  /* Semantic tokens — header e UI (consistente com hero) */
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-Book.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-Demi.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-XLigOblique.ttf") format("truetype");
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-BookOblique.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-MediumOblique.ttf") format("truetype");
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-DemiOblique.ttf") format("truetype");
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "All Round Gothic";
+  src: url("/fonts/All-Round-Gothic/AllRoundGothic-BoldOblique.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+@theme {
+  --color-brand-50: #f7f9fc;
+  --color-brand-100: #eaf0f7;
+  --color-brand-200: #cedeed;
+  --color-brand-300: #9bb9d4;
+  --color-brand-400: #5b88b2;
+  --color-brand-500: #3f6f9b;
+  --color-brand-600: #294f7a;
+  --color-brand-700: #122c4f;
+  --color-brand-800: #0d1f38;
+  --color-brand-900: #040c1e;
+  --font-sans: "All Round Gothic", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --color-brand-50: #f7f9fc;
+  --color-brand-100: #eaf0f7;
+  --color-brand-200: #cedeed;
+  --color-brand-300: #9bb9d4;
+  --color-brand-400: #5b88b2;
+  --color-brand-500: #3f6f9b;
+  --color-brand-600: #294f7a;
+  --color-brand-700: #122c4f;
+  --color-brand-800: #0d1f38;
+  --color-brand-900: #040c1e;
+  --color-brand-cream: #fbf9e4;
+
+  --color-success-50: #ecfdf3;
+  --color-success-500: #16a34a;
+  --color-success-700: #15803d;
+  --color-warning-50: #fffbeb;
+  --color-warning-500: #eab308;
+  --color-warning-700: #a16207;
+  --color-error-50: #fef2f2;
+  --color-error-500: #dc2626;
+  --color-error-700: #b91c1c;
+  --color-info-50: #eff6ff;
+  --color-info-500: #2563eb;
+  --color-info-700: #1d4ed8;
+
   --background: #ffffff;
-  --foreground: var(--slate-900);
-  --muted-foreground: var(--slate-500);
-  --muted: rgba(15, 23, 42, 0.08);
-  --border: var(--slate-200);
-  --primary: var(--slate-900);
+  --foreground: var(--color-brand-900);
+  --muted: color-mix(in srgb, var(--color-brand-100) 70%, white);
+  --muted-foreground: var(--color-brand-600);
+  --card: #ffffff;
+  --card-foreground: var(--color-brand-900);
+  --border: color-mix(in srgb, var(--color-brand-200) 70%, white);
+  --input-border: var(--color-brand-200);
+  --input-focus: var(--color-brand-400);
+  --ring: color-mix(in srgb, var(--color-brand-400) 35%, white);
+
+  --primary: var(--color-brand-700);
+  --primary-hover: var(--color-brand-800);
   --primary-foreground: #ffffff;
-  --card: var(--branco-gelo-card);
-  --card-foreground: var(--slate-900);
-  --accent: rgba(15, 23, 42, 0.06);
-  --radius: 0.5rem;
+  --secondary: var(--color-brand-cream);
+  --secondary-hover: color-mix(in srgb, var(--color-brand-cream) 70%, white);
+  --secondary-foreground: var(--color-brand-700);
+  --accent: color-mix(in srgb, var(--color-brand-100) 60%, white);
+  --accent-foreground: var(--color-brand-800);
+  --danger: var(--color-error-500);
+  --danger-hover: var(--color-error-700);
+  --danger-foreground: #ffffff;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-pill: 9999px;
+
+  --shadow-xs: 0 1px 2px rgba(4, 12, 30, 0.06);
+  --shadow-sm: 0 2px 8px rgba(4, 12, 30, 0.08);
+  --shadow-md: 0 10px 20px rgba(4, 12, 30, 0.12);
+
+  --text-h1: 2rem;
+  --text-h2: 1.5rem;
+  --text-h3: 1.25rem;
+  --text-h4: 1.125rem;
+  --text-body: 1rem;
+  --text-small: 0.875rem;
+  --leading-tight: 1.2;
+  --leading-body: 1.6;
+
+  /* Compatibilidade legada */
+  --escritorio-escuro: var(--color-brand-900);
+  --escritorio-dourado: var(--color-brand-400);
+  --escritorio-dourado-hover: var(--color-brand-500);
+  --escritorio-dourado-light: color-mix(in srgb, var(--color-brand-100) 75%, white);
+  --branco-gelo: var(--color-brand-50);
+  --branco-gelo-card: #ffffff;
+
+  /* Formulários longos e páginas legais: pilha system-ui (glifos e legibilidade) */
+  --font-reading: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 @layer base {
-  body {
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    background: var(--branco-gelo);
-    color: var(--slate-900);
+  html {
+    scroll-behavior: smooth;
   }
+
+  body {
+    font-family: "All Round Gothic", ui-sans-serif, system-ui, sans-serif;
+    background: var(--color-brand-50);
+    color: var(--foreground);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, .h1 {
+    font-size: var(--text-h1);
+    line-height: var(--leading-tight);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  h2, .h2 {
+    font-size: var(--text-h2);
+    line-height: var(--leading-tight);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  h3, .h3 {
+    font-size: var(--text-h3);
+    line-height: var(--leading-tight);
+    font-weight: 600;
+  }
+
+  h4, .h4 {
+    font-size: var(--text-h4);
+    line-height: var(--leading-tight);
+    font-weight: 600;
+  }
+
+  p, .body {
+    font-size: var(--text-body);
+    line-height: var(--leading-body);
+  }
+
+  small, .small {
+    font-size: var(--text-small);
+    line-height: 1.5;
+  }
+
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
 }
 
-/* Fundo global — mesmo gradiente do hero (slate-50 / white) */
 .app-bg {
-  background: linear-gradient(to bottom right, var(--branco-gelo) 0%, #ffffff 50%, var(--branco-gelo) 100%);
+  background: radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--color-brand-100) 70%, white) 0%, transparent 30%),
+    linear-gradient(135deg, var(--color-brand-50) 0%, #ffffff 45%, var(--color-brand-100) 100%);
   min-height: 100vh;
 }
 
-html {
-  scroll-behavior: smooth;
+/** Superfície pública alinhada ao hero (wash de brand-700 + accent 400 + base clara). */
+.flow-brand-surface {
+  background:
+    radial-gradient(ellipse 120% 75% at 50% -18%, color-mix(in srgb, var(--color-brand-700) 18%, transparent) 0%, transparent 52%),
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--color-brand-400) 16%, transparent) 0%, transparent 42%),
+    linear-gradient(180deg, var(--color-brand-50) 0%, #ffffff 38%, color-mix(in srgb, var(--color-brand-50) 80%, white) 100%);
+  min-height: 100vh;
 }
 
-.progress-fill {
+.landing-premium-bg {
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--color-brand-400) 25%, transparent) 0%, transparent 35%),
+    radial-gradient(circle at 80% 22%, color-mix(in srgb, var(--color-brand-300) 20%, transparent) 0%, transparent 28%),
+    linear-gradient(165deg, var(--color-brand-900) 0%, var(--color-brand-800) 45%, var(--color-brand-700) 100%);
+}
+
+/**
+ * Canal de denúncias: mesma linguagem da hero (gradiente navy + halos accent).
+ * Conteúdo em coluna flexível; filhos usam painéis .denuncia-glass-panel / .denuncia-glass-dark.
+ */
+.denuncia-flow-canvas {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  background:
+    radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--color-brand-400) 25%, transparent) 0%, transparent 35%),
+    radial-gradient(circle at 80% 22%, color-mix(in srgb, var(--color-brand-300) 20%, transparent) 0%, transparent 28%),
+    linear-gradient(165deg, var(--color-brand-900) 0%, var(--color-brand-800) 45%, var(--color-brand-700) 100%);
+}
+
+/** Painel claro fosco sobre o gradiente (formulário / cards principais). */
+.denuncia-glass-panel {
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, white 32%, transparent);
+  background: color-mix(in srgb, white 93%, transparent);
+  box-shadow:
+    0 20px 50px rgba(4, 12, 30, 0.42),
+    inset 0 1px 0 color-mix(in srgb, white 55%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/** Faixa escura semitransparente (compromisso / destaques sobre o azul). */
+.denuncia-glass-dark {
+  border-radius: var(--radius-xl);
+  border: 1px solid color-mix(in srgb, white 18%, transparent);
+  background: color-mix(in srgb, var(--color-brand-900) 35%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 12%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.brand-gradient-surface {
+  background: linear-gradient(165deg, var(--color-brand-900) 0%, var(--color-brand-800) 45%, var(--color-brand-700) 100%);
+}
+
+.progress-fill,
+.dimension-bar {
   transition: width 0.4s ease-out;
 }
 
-.dimension-bar {
-  transition: width 0.5s ease-out;
+.input-escritorio {
+  border: 1px solid var(--input-border);
+  color: var(--foreground);
+  background: #fff;
 }
 
-/* Inputs — focus com borda slate (hero) */
 .input-escritorio:focus {
   outline: none;
-  border-color: var(--slate-400);
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px var(--ring);
 }
 
-/* Botão primário — mesmo do hero: slate-900, rounded-full, shadow */
 .btn-escritorio {
-  background: var(--slate-900);
-  color: white;
-  border-radius: 9999px;
-  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.1);
-}
-.btn-escritorio:hover:not(:disabled) {
-  background: var(--slate-700);
-  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.15);
-}
-@media (prefers-reduced-motion: reduce) {
-  .btn-escritorio:hover { transform: none; }
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Cards — branco, borda slate-200, sombra suave (hero) */
+.btn-escritorio:hover:not(:disabled) {
+  background: var(--primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
 .bg-card-escritorio {
-  background: var(--branco-gelo-card);
-  border: 1px solid var(--slate-200);
-  border-radius: var(--radius-card);
-  box-shadow: var(--shadow-card);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xs);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
+
 .bg-card-escritorio:hover {
-  box-shadow: var(--shadow-card-hover);
-  border-color: var(--slate-200);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-brand-300);
 }
 
-.text-escritorio { color: var(--slate-900); }
+.font-reading {
+  font-family: var(--font-reading);
+}
+
+/** Ícone em “pastilha” creme + anel accent (mesma linguagem do CTA do hero). */
+.brand-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--color-brand-cream) 90%, white);
+  color: var(--color-brand-900);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand-400) 28%, transparent);
+}
+
+.text-escritorio { color: var(--color-brand-900); }
 .bg-dourado-light { background: var(--escritorio-dourado-light); }
 .border-dourado { border-color: var(--escritorio-dourado); }
-.bg-escuro { background: var(--slate-900); }
+.bg-escuro { background: var(--color-brand-900); }
 
-/* Hero dashboard preview — leve rotação 3D em desktop */
 @media (min-width: 1024px) {
   .hero-dashboard-card {
-    transform: perspective(1000px) rotateY(-2deg) rotateX(1deg);
+    transform: translateY(0);
   }
   .hero-dashboard-card:hover {
-    transform: perspective(1000px) rotateY(0) rotateX(0);
+    transform: translateY(-2px);
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .hero-dashboard-card { transform: none; }
+  .btn-escritorio:hover,
+  .hero-dashboard-card {
+    transform: none;
+  }
 }

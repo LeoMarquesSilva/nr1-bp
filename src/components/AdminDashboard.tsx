@@ -159,10 +159,10 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-brand-900)]">
             Painel de Clientes
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             Gerencie as empresas, crie links de acesso e visualize os dashboards.
           </p>
         </div>
@@ -172,7 +172,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
               <button
                 type="button"
                 onClick={onClose}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 font-medium text-[var(--color-brand-700)] shadow-[var(--shadow-xs)] transition hover:bg-[var(--color-brand-50)]"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Voltar ao site
@@ -180,7 +180,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
               <button
                 type="button"
                 onClick={handleLogout}
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 font-medium text-[var(--color-brand-700)] shadow-[var(--shadow-xs)] transition hover:bg-[var(--color-brand-50)]"
               >
                 <LogOut className="h-4 w-4" />
                 Sair
@@ -191,12 +191,12 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
       </div>
 
       {/* Gerar link para cliente */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-        <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-slate-900">
-          <Link2 className="h-5 w-5 text-slate-500" />
+      <div className="bg-white rounded-2xl border border-[var(--border)] p-6 shadow-[var(--shadow-xs)]">
+        <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-[var(--color-brand-900)]">
+          <Link2 className="h-5 w-5 text-[var(--muted-foreground)]" />
           Gerar link para cliente
         </h3>
-        <p className="mb-4 text-sm text-slate-500">
+        <p className="mb-4 text-sm text-[var(--muted-foreground)]">
           Informe o identificador da empresa (ex.: nome ou código). Quem abrir o link não precisará preencher a empresa.
         </p>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -205,16 +205,16 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
             value={linkSlug}
             onChange={(e) => setLinkSlug(e.target.value)}
             placeholder="ex: empresa-alpha"
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="input-escritorio rounded-xl px-4 py-2.5 text-sm"
           />
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <span className="truncate text-sm text-slate-600">{generatedLink || '—'}</span>
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)] px-3 py-2.5">
+            <span className="truncate text-sm text-[var(--muted-foreground)]">{generatedLink || '—'}</span>
           </div>
           <button
             type="button"
             onClick={() => copyLink()}
             disabled={!generatedLink}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-800"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--primary-hover)]"
           >
             {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {linkCopied ? 'Copiado!' : 'Copiar link'}
