@@ -31,12 +31,12 @@ export function HeroDashboard() {
           className="mb-4 flex items-center justify-between rounded-2xl border border-white/20 bg-[var(--color-brand-900)]/55 px-4 py-3"
         >
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-brand-200)]">Visão Executiva</p>
-            <p className="text-sm font-semibold text-white">Painel Confiara</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-[var(--color-brand-200)]">Gestão integrada</p>
+            <p className="text-sm font-semibold text-white">Denúncias · HSE-IT · NR-1</p>
           </div>
           <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-brand-400)]/20 px-2.5 py-1 text-[11px] font-semibold text-[var(--color-brand-100)]">
             <Sparkles className="h-3.5 w-3.5" />
-            Atualizado agora
+            Indicadores ao vivo
           </span>
         </motion.div>
 
@@ -96,7 +96,7 @@ export function HeroDashboard() {
               <span className="mr-1 inline-flex align-middle">
                 <CircleAlert className="h-3.5 w-3.5" />
               </span>
-              Indicadores em tempo real para decisões rápidas e seguras.
+              Dados consolidados para priorizar riscos e apoiar decisões preventivas.
             </div>
           </motion.div>
         </div>

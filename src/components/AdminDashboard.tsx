@@ -25,8 +25,8 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
   const [togglingTenant, setTogglingTenant] = useState<string | null>(null)
   const [removingTenant, setRemovingTenant] = useState<string | null>(null)
 
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname || '/'}`.replace(/\?.*$/, '') : ''
-  const generatedLink = linkSlug.trim() ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(linkSlug.trim().toLowerCase())}` : ''
+  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : ''
+  const generatedLink = linkSlug.trim() ? `${baseUrl}?org=${encodeURIComponent(linkSlug.trim().toLowerCase())}` : ''
 
   const copyLink = async (url?: string) => {
     const toCopy = url ?? generatedLink
@@ -76,8 +76,8 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
       })
     : registryTenantIds
   const overviewOnlyIds = overviewList.map((o) => o.tenant_id).filter((tid) => !registryByTenant[tid]).sort()
-  const linkForSlug = (slug: string) => `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(slug)}`
-  const denunciaLinkForSlug = (slug: string) => `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(slug)}&channel=denuncia`
+  const linkForSlug = (slug: string) => `${baseUrl}?org=${encodeURIComponent(slug)}`
+  const denunciaLinkForSlug = (slug: string) => `${baseUrl}?org=${encodeURIComponent(slug)}&channel=denuncia`
   const displayNameFor = (tid: string) => registryByTenant[tid]?.display_name?.trim() || tid
 
   const emailBody = (slug: string, isDenuncia: boolean) => {

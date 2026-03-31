@@ -113,9 +113,9 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
   const [deleting, setDeleting] = useState(false)
   const [toggling, setToggling] = useState(false)
 
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}${window.location.pathname || '/'}`.replace(/\?.*$/, '') : ''
-  const linkDiagnostico = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(tenantId)}`
-  const linkDenuncia = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}org=${encodeURIComponent(tenantId)}&channel=denuncia`
+  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : ''
+  const linkDiagnostico = `${baseUrl}?org=${encodeURIComponent(tenantId)}`
+  const linkDenuncia = `${baseUrl}?org=${encodeURIComponent(tenantId)}&channel=denuncia`
 
   const loadBaseData = () => {
     return Promise.all([getTenantRegistry()]).then(([regList]) => {

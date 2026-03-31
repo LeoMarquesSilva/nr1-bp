@@ -3,11 +3,11 @@ import type { View } from '../App'
 /** Keep in sync with default meta in index.html (build-time SEO). */
 export const SEO_SITE_NAME = 'Confiara'
 
-export const SEO_DEFAULT_TITLE = 'Confiara | Canal de denúncias, HSE-IT e compliance'
+export const SEO_DEFAULT_TITLE = 'Confiara | Gestão da confiança organizacional'
 
 /** ~155–160 chars; aligned with hero (HeroContent). */
 export const SEO_DEFAULT_DESCRIPTION =
-  'Confiara: sistema de gestão da confiança organizacional com canal de denúncias seguro, diagnóstico HSE-IT em 7 dimensões e conformidade NR-1, Lei 14.457/22 e LGPD.'
+  'Confiara: sistema de gestão da confiança organizacional que integra canal de denúncias, diagnóstico HSE-IT e apoio técnico à prevenção de riscos psicossociais na NR-1.'
 
 const suffix = ` | ${SEO_SITE_NAME}`
 

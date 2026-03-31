@@ -35,14 +35,14 @@ export function HeroContent({ onFazerRelato }: Props) {
         variants={itemLeft}
         className="mt-5 text-4xl font-bold leading-[1.1] tracking-tight text-white lg:text-5xl"
       >
-        Confiara: canal de denúncias e gestão psicossocial com confiança total.
+        Confiara: confiança organizacional transformada em método de gestão preventiva.
       </motion.h1>
 
       <motion.p
         variants={itemLeft}
         className="mt-6 max-w-lg text-lg leading-relaxed text-[var(--color-brand-100)]"
       >
-        Compliance e cuidado humano num só lugar: denúncias seguras, visibilidade para RH e apoio às exigências legais.
+        Integre canal de denúncias, diagnóstico HSE-IT e conformidade NR-1 para identificar riscos psicossociais, estruturar respostas e apoiar decisões de RH e compliance.
       </motion.p>
 
       <motion.div variants={itemLeft} className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap">

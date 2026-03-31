@@ -92,7 +92,7 @@ export function LandingPage({ onFazerRelato }: Props) {
             Conformidade e confiança
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-[var(--muted-foreground)]">
-            A plataforma apoia sua organização nos requisitos de canal de denúncias, riscos psicossociais e evidências para auditoria.
+            A plataforma estrutura a escuta organizacional e o diagnóstico psicossocial para apoiar decisões preventivas de RH e compliance.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-2">
             {['NR-1', 'Lei 14.457/22', 'ISO 37002', 'Gestão de políticas'].map((tag) => (
@@ -109,9 +109,13 @@ export function LandingPage({ onFazerRelato }: Props) {
             mediante link enviado pela sua empresa após cadastro e contratação dos serviços. Se você recebeu o link, acesse-o
             diretamente para responder.
           </p>
+          <p className="mt-4 text-left text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-center">
+            Os resultados consolidados contribuem para priorização de ações no GRO/PGR e para demonstrar diligência na gestão da
+            organização do trabalho, em linha com a NR-1.
+          </p>
           <p className="mt-4 flex items-center justify-center gap-2 text-xs text-[var(--color-brand-600)]">
             <Shield className="h-4 w-4 shrink-0" aria-hidden />
-            Atende às exigências do MTE a partir de maio/2025
+            Apoia a gestão preventiva exigida pela NR-1
           </p>
         </div>
       </motion.section>
@@ -132,6 +136,10 @@ export function LandingPage({ onFazerRelato }: Props) {
           <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-base">
             A plataforma transforma esse desafio em gestão prática ao integrar diagnóstico psicossocial e canal de denúncias para
             reconhecer, estruturar e reconstruir a confiança de forma consciente, técnica e preventiva.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-base">
+            Na prática, o Confiara permite identificar sinais de risco organizacional mais cedo, priorizar medidas proporcionais e
+            monitorar evolução com base em evidências.
           </p>
         </div>
       </motion.section>

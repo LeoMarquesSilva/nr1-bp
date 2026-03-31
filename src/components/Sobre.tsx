@@ -136,19 +136,28 @@ export function Sobre({ onVoltar }: SobreProps) {
           <div className="space-y-3 text-sm leading-relaxed text-[var(--muted-foreground)]">
             <p>
               O nome <strong className="text-[var(--color-brand-900)]">Confiara</strong> deriva do verbo confiar no pretérito
-              mais-que-perfeito, evocando a ideia de que a confiança ja deveria estar presente nas relações de trabalho, mas em
+              mais-que-perfeito, evocando a ideia de que a confiança já deveria estar presente nas relações de trabalho, mas em
               muitos contextos encontra-se fragilizada ou ausente.
             </p>
             <p>
-              Partimos de uma premissa central: a ausencia de confiança no ambiente de trabalho nao e apenas um problema cultural,
+              Partimos de uma premissa central: a ausência de confiança no ambiente de trabalho não é apenas um problema cultural,
               mas um indicativo de risco organizacional que pode se refletir em conflitos, afastamentos e passivos trabalhistas.
             </p>
             <p>
               Por isso, o Confiara integra diagnóstico psicossocial estruturado e canal de denúncias com gestão e controle para
-              transformar a confiança em elemento mensuravel e gerenciavel, fortalecendo a prevenção, a governança interna e o
+              transformar a confiança em elemento mensurável e gerenciável, fortalecendo a prevenção, a governança interna e o
               alinhamento com a NR-1.
             </p>
           </div>
+        </PageShellCard>
+
+        <PageShellCard>
+          <h2 className="mb-3 text-lg font-semibold text-[var(--color-brand-900)]">Premissa de risco organizacional</h2>
+          <p className="text-sm leading-relaxed text-[var(--muted-foreground)]">
+            Ambientes em que as pessoas não se sentem seguras para se manifestar tendem a ampliar conflitos, afastamentos e riscos
+            trabalhistas. O Confiara organiza essa escuta em um fluxo técnico e contínuo para identificar fatores críticos,
+            priorizar respostas e acompanhar evolução com base em dados consolidados.
+          </p>
         </PageShellCard>
       </PageShell>
     </motion.div>
