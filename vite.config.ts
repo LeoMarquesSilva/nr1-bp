@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const SEO_DESCRIPTION =
-  'Plataforma Confiara: canal de denúncias seguro com anonimato, diagnóstico psicossocial HSE-IT em 7 dimensões e conformidade NR-1, Lei 14.457/22 e LGPD.'
+  'Confiara: canal de denúncias e diagnóstico de riscos psicossociais com confiança total. Compliance trabalhista e cuidado humano em um só lugar.'
 
 function buildAbsoluteSeoBlock(originRaw: string): string {
   const base = originRaw.trim().replace(/\/$/, '')

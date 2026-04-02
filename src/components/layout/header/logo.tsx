@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 
-const LOGO_LIGHT = "/logos/logo-horizontal-azul.png"
+const LOGO_LIGHT = "/logos/confiara powered by bp.png"
 const LOGO_DARK = "/logos/logo-horizontal-branca.png"
 const LOGO_ALT = "CONFIARA"
 
@@ -9,16 +9,22 @@ export interface LogoProps {
   onNavigateHome?: () => void
   className?: string
   variant?: "light" | "dark"
+  size?: "default" | "footer"
 }
 
-export function Logo({ onNavigateHome, className, variant = "light" }: LogoProps) {
+export function Logo({ onNavigateHome, className, variant = "light", size = "default" }: LogoProps) {
+  const isFooter = size === "footer"
   const img = (
     <img
       src={variant === "dark" ? LOGO_DARK : LOGO_LIGHT}
       alt={LOGO_ALT}
-      className="h-9 w-auto max-h-[2.5rem] object-contain object-left sm:h-10"
-      width={200}
-      height={44}
+      className={
+        isFooter
+          ? "h-auto w-[273px] max-w-full object-contain object-left"
+          : "h-11 w-auto max-h-[3rem] object-contain object-left sm:h-12"
+      }
+      width={isFooter ? 273 : 245}
+      height={isFooter ? 60 : 54}
       loading="eager"
     />
   )

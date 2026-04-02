@@ -651,7 +651,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="mb-2 text-sm font-semibold text-slate-900">Diagnóstico (HSE-IT)</p>
+                    <p className="mb-2 text-sm font-semibold text-slate-900">Diagnóstico de riscos psicossociais</p>
                     <div className="flex flex-col gap-2">
                       <code className="text-xs text-slate-600 break-all bg-white p-2 rounded border border-slate-200">{linkDiagnostico}</code>
                       <button

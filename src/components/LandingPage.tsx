@@ -1,15 +1,10 @@
 import { motion } from 'motion/react'
 import {
   Shield,
-  FileCheck,
-  Scale,
   ArrowRight,
   MessageSquarePlus,
   BarChart3,
-  Filter,
-  GraduationCap,
   MessageSquareWarning,
-  ClipboardCheck,
   Gavel,
 } from 'lucide-react'
 import { HeroSection } from './landing/hero/HeroSection'
@@ -25,36 +20,60 @@ const sectionMotion = {
   transition: { duration: 0.45 },
 }
 
-const features = [
+const solutionGroups = [
   {
     Icon: MessageSquarePlus,
-    title: 'Canal de denúncia acessível',
-    desc: 'Receba denúncias com opção de anonimato ou identificação. Acesso facilitado via celular e QR Code.',
-  },
-  {
-    Icon: Filter,
-    title: 'Triagem inteligente',
-    desc: 'Separe denúncias sérias de dúvidas ou reclamações, organizando as demandas e evitando a sobrecarga da equipe de RH.',
-  },
-  {
-    Icon: FileCheck,
-    title: 'Gestão de evidências e políticas',
-    desc: 'Distribua o Código de Conduta e registre o "Li e Aceito" dos colaboradores, garantindo a comprovação em auditorias exigida pela NR-1.',
-  },
-  {
-    Icon: GraduationCap,
-    title: 'Treinamento e conscientização',
-    desc: 'Apoio educativo e capacitação de lideranças e colaboradores para garantir a adequação completa à Lei 14.457/22.',
+    title: 'Canal de denúncias',
+    items: [
+      {
+        title: 'Canal acessível e confidencial',
+        desc: 'Recebimento de denúncias anônimas, com acesso facilitado via celular e QR Code.',
+      },
+      {
+        title: 'Triagem inteligente',
+        desc: 'Organização das denúncias conforme natureza e nível de criticidade, facilitando a visualização e o direcionamento interno pela empresa.',
+      },
+      {
+        title: 'Gestão estruturada das denúncias',
+        desc: 'Recebimento, registro e organização das denúncias, com encaminhamento estruturado à empresa para adoção das providências cabíveis.',
+      },
+    ],
   },
   {
     Icon: BarChart3,
-    title: 'Diagnóstico HSE-IT',
-    desc: 'Avalie as condições psicossociais da organização em 7 dimensões. 35 perguntas validadas para mapear demandas, controle, apoio e clima.',
+    title: 'Diagnóstico de riscos psicossociais',
+    items: [
+      {
+        title: 'Identificação de fatores de riscos',
+        desc: 'Mapeamento de aspectos do ambiente de trabalho que podem impactar a saúde dos colaboradores e a exposição jurídica da empresa.',
+      },
+      {
+        title: 'Análise por setor',
+        desc: 'Identificação dos setores mais expostos e dos principais fatores de risco organizacionais.',
+      },
+      {
+        title: 'Plano de ação',
+        desc: 'Indicação de medidas preventivas, fundamentadas nos dados coletados, voltadas à adequação normativa e à mitigação de riscos.',
+      },
+    ],
   },
   {
-    Icon: Scale,
-    title: 'Conformidade legal',
-    desc: 'Adequação à NR-1 (riscos psicossociais), Lei 14.457/22, LGPD e boas práticas de compliance. Criptografia, não retaliação e comitê de ética.',
+    Icon: Gavel,
+    title: 'Vantagens',
+    items: [
+      {
+        title: 'Prevenção',
+        desc: 'Atuação antecipada para evitar passivos trabalhistas e exposições jurídicas.',
+      },
+      {
+        title: 'Economia',
+        desc: 'Diminuição de impactos financeiros decorrentes de afastamentos, multas, ações judiciais e tributos.',
+      },
+      {
+        title: 'Sustentabilidade organizacional',
+        desc: 'Ambiente de trabalho mais estruturado, com ganhos de eficiência, produtividade e qualidade na gestão interna.',
+      },
+    ],
   },
 ]
 
@@ -62,17 +81,17 @@ const pilares = [
   {
     Icon: MessageSquareWarning,
     title: 'Canal de denúncias',
-    desc: 'Recepção segura, triagem e trilha de auditoria para o comitê e o RH.',
+    desc: 'Gestão de denúncias com confidencialidade e segurança jurídica.',
   },
   {
     Icon: BarChart3,
-    title: 'Diagnóstico psicossocial',
-    desc: 'HSE-IT em 7 dimensões para apoiar decisões e ações preventivas.',
+    title: 'Diagnóstico de riscos psicossociais',
+    desc: 'Análise de fatores que impactam o ambiente de trabalho para orientar decisões e ações preventivas.',
   },
   {
     Icon: Gavel,
-    title: 'Marco legal',
-    desc: 'Fluxos e registros alinhados à NR-1, Lei 14.457/22 e boas práticas de compliance.',
+    title: 'Segurança jurídica',
+    desc: 'Plataforma para prevenir riscos e proteger a empresa.',
   },
 ]
 
@@ -89,33 +108,14 @@ export function LandingPage({ onFazerRelato }: Props) {
       >
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-2xl font-bold tracking-tight text-[var(--color-brand-900)] sm:text-3xl">
-            Conformidade e confiança
+            Confiança estruturada com segurança jurídica.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-[var(--muted-foreground)]">
-            A plataforma estrutura a escuta organizacional e o diagnóstico psicossocial para apoiar decisões preventivas de RH e compliance.
+            A Confiara contribui para a identificação dos riscos psicossociais, organização de denúncias e redução da exposição jurídica da sua empresa.
           </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-2">
-            {['NR-1', 'Lei 14.457/22', 'ISO 37002', 'Gestão de políticas'].map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-3 py-1.5 text-xs font-semibold text-[var(--color-brand-800)]"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-          <p className="mt-8 text-left text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-center">
-            O <strong className="text-[var(--color-brand-900)]">diagnóstico psicossocial (HSE-IT)</strong> é disponibilizado
-            mediante link enviado pela sua empresa após cadastro e contratação dos serviços. Se você recebeu o link, acesse-o
-            diretamente para responder.
-          </p>
-          <p className="mt-4 text-left text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-center">
-            Os resultados consolidados contribuem para priorização de ações no GRO/PGR e para demonstrar diligência na gestão da
-            organização do trabalho, em linha com a NR-1.
-          </p>
-          <p className="mt-4 flex items-center justify-center gap-2 text-xs text-[var(--color-brand-600)]">
+          <p className="mt-5 flex items-center justify-center gap-2 text-sm text-[var(--color-brand-600)]">
             <Shield className="h-4 w-4 shrink-0" aria-hidden />
-            Apoia a gestão preventiva exigida pela NR-1
+            Em conformidade com a atualização da NR-1, vigente a partir de maio/2026.
           </p>
         </div>
       </motion.section>
@@ -124,23 +124,22 @@ export function LandingPage({ onFazerRelato }: Props) {
         {...sectionMotion}
         className="border-t border-[var(--border)] bg-[var(--color-brand-50)] px-4 py-12 sm:px-6 sm:py-16"
       >
-        <div className="mx-auto max-w-4xl rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)] sm:p-8">
-          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-brand-900)] sm:text-3xl">
-            Por que Confiara?
-          </h2>
-          <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-base">
+        <div className="mx-auto max-w-4xl rounded-3xl border border-[var(--color-brand-200)] bg-gradient-to-b from-white to-[var(--color-brand-50)] p-6 shadow-[var(--shadow-sm)] sm:p-10">
+          <div className="mb-4 inline-flex items-center rounded-full border border-[var(--color-brand-200)] bg-white px-3 py-1 text-xs font-semibold text-[var(--color-brand-700)]">
+            Confiança organizacional
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-[var(--color-brand-900)] sm:text-3xl">Por que Confiara?</h2>
+          <p className="mt-4 text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-base">
             O nome <strong className="text-[var(--color-brand-900)]">Confiara</strong> deriva do verbo confiar no pretérito
-            mais-que-perfeito: a confiança que deveria estar presente nas relações de trabalho, mas que muitas vezes se encontra
-            fragilizada.
+            mais-que-perfeito, representando a confiança que deveria existir nas relações de trabalho, mas que, na prática, muitas
+            vezes está fragilizada ou ausente.
           </p>
-          <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-base">
-            A plataforma transforma esse desafio em gestão prática ao integrar diagnóstico psicossocial e canal de denúncias para
-            reconhecer, estruturar e reconstruir a confiança de forma consciente, técnica e preventiva.
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-[var(--muted-foreground)] sm:text-base">
-            Na prática, o Confiara permite identificar sinais de risco organizacional mais cedo, priorizar medidas proporcionais e
-            monitorar evolução com base em evidências.
-          </p>
+          <div className="mt-5 rounded-2xl border border-[var(--color-brand-200)] bg-white/80 p-4 sm:p-5">
+            <p className="text-sm leading-relaxed text-[var(--color-brand-800)] sm:text-base">
+              O Confiara transforma essa lacuna em gestão estruturada, integrando diagnóstico psicossocial e canal de denúncias
+              para identificar riscos, gerar evidências e fortalecer a segurança jurídica da empresa.
+            </p>
+          </div>
         </div>
       </motion.section>
 
@@ -154,7 +153,7 @@ export function LandingPage({ onFazerRelato }: Props) {
             Três frentes integradas
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-[var(--color-brand-100)]">
-            Um fluxo único para escuta, diagnóstico e demonstração de conformidade.
+            Uma plataforma integrada de escuta estruturada, diagnóstico de riscos psicossociais e gestão com segurança jurídica.
           </p>
           <div className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
             {pilares.map(({ Icon, title, desc }) => (
@@ -183,21 +182,30 @@ export function LandingPage({ onFazerRelato }: Props) {
           <h2 className="text-center text-2xl font-bold tracking-tight text-[var(--color-brand-900)] sm:text-3xl">
             Por que usar nossa plataforma
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-center text-[var(--muted-foreground)]">
-            Ferramentas integradas para RH e compliance: canal de denúncia, diagnóstico psicossocial e conformidade legal.
+          <p className="mx-auto mt-3 max-w-2xl text-center text-base text-[var(--muted-foreground)] sm:text-lg">
+            Estrutura segura, confiável, anônima e auditável, orientada à prevenção de riscos e ao fortalecimento da governança corporativa.
           </p>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map(({ Icon, title, desc }) => (
+          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+            {solutionGroups.map(({ Icon, title, items }) => (
               <motion.div
                 key={title}
                 whileHover={{ y: -4 }}
-                className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--color-brand-50)]/50 p-6 shadow-[var(--shadow-xs)] transition-shadow hover:shadow-[var(--shadow-sm)]"
+                className="rounded-2xl border border-[var(--border)] bg-[var(--color-brand-50)]/50 p-6 shadow-[var(--shadow-xs)] transition-shadow hover:shadow-[var(--shadow-sm)]"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-brand-100)] text-[var(--color-brand-700)]">
-                  <Icon className="h-6 w-6" />
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-brand-100)] text-[var(--color-brand-700)]">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-[var(--color-brand-900)]">{title}</h3>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-[var(--color-brand-900)]">{title}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--muted-foreground)]">{desc}</p>
+                <div className="mt-5 space-y-4">
+                  {items.map((item) => (
+                    <div key={item.title} className="rounded-xl border border-[var(--border)] bg-white/70 p-4">
+                      <p className="text-base font-semibold text-[var(--color-brand-900)]">{item.title}</p>
+                      <p className="mt-1 text-base leading-relaxed text-[var(--muted-foreground)]">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
               </motion.div>
             ))}
           </div>
@@ -213,41 +221,19 @@ export function LandingPage({ onFazerRelato }: Props) {
           <Shield className="mx-auto h-12 w-12 text-white/90" aria-hidden />
           <h2 className="mt-4 text-2xl font-bold tracking-tight text-white sm:text-3xl">Nova denúncia</h2>
           <p className="mx-auto mt-3 max-w-lg text-[var(--color-brand-100)]">
-            Encontre sua organização, envie uma denúncia ou acompanhe o andamento pelo código de protocolo.
+            Encontre sua organização, envie uma denúncia e acompanhe o andamento através do código de protocolo.
           </p>
           <button
             type="button"
             onClick={onFazerRelato}
             className="mt-8 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full bg-[var(--color-brand-cream)] px-8 py-3.5 text-base font-semibold text-[var(--color-brand-900)] shadow-[var(--shadow-sm)] transition hover:bg-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[var(--color-brand-900)]"
           >
-            Acessar canal de denúncia
+            Acesse o canal e faça sua denúncia.
             <ArrowRight className="h-5 w-5" />
           </button>
         </div>
       </motion.section>
 
-      {/* 6 — Claro: diagnóstico HSE-IT */}
-      <motion.section
-        {...sectionMotion}
-        className="border-t border-[var(--border)] bg-[var(--color-brand-50)] px-4 pb-20 pt-16 sm:px-6 sm:pb-28 sm:pt-20"
-      >
-        <div className="mx-auto max-w-3xl rounded-2xl border border-[var(--border)] bg-white p-8 shadow-[var(--shadow-xs)] sm:p-10">
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand-100)] text-[var(--color-brand-700)]">
-                <ClipboardCheck className="h-7 w-7" aria-hidden />
-              </div>
-              <div className="text-left">
-                <h3 className="text-xl font-bold text-[var(--color-brand-900)]">Diagnóstico HSE-IT</h3>
-                <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
-                  Saúde e bem-estar no trabalho · 35 perguntas · 7 dimensões. Disponibilizado mediante link enviado pela sua
-                  empresa após cadastro e contratação dos serviços.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </motion.section>
     </div>
   )
 }

@@ -58,8 +58,7 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
   return (
     <PageShell
       onBack={onVoltar}
-      title="Encontrar minha organização"
-      subtitle="Digite o nome da empresa para acessar o canal de denúncia."
+      title="Faça sua denúncia!"
     >
       <PageShellCard>
         <div className="flex items-center gap-3">
@@ -67,7 +66,7 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
             <Building2 className="h-6 w-6" aria-hidden />
           </div>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Resultados direcionam para o canal de denúncias da organização escolhida.
+            Digite o nome da empresa e selecione a organização correta para continuar.
           </p>
         </div>
 

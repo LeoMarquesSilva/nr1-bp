@@ -33,10 +33,10 @@ export function Footer({ onNavigate, hideCanalDenunciaNav = false }: Props) {
           {/* Brand & SEO Description */}
           <div className="col-span-1 md:col-span-2 lg:col-span-1">
             <div className="mb-3">
-              <Logo className="w-fit" />
+              <Logo className="w-fit" size="footer" />
             </div>
             <p className="mt-4 text-sm leading-relaxed text-[var(--muted-foreground)]" itemProp="description">
-              Plataforma completa e segura para gestão de Canal de Denúncias, Diagnóstico Psicossocial HSE-IT e Conformidade Legal (NR-1 e Lei 14.457/22). Proteja sua empresa e promova um ambiente ético.
+              Plataforma completa e segura para gestão de Canal de Denúncias, Diagnóstico de Riscos Psicossociais e Conformidade Legal (NR-1 e Lei 14.457/22). Proteja sua empresa e promova um ambiente ético.
             </p>
             <p className="mt-3 text-xs leading-relaxed text-[var(--color-brand-600)]">
               Confiara: a confiança transformada em método de gestão e prevenção.

@@ -7,7 +7,7 @@ export const SEO_DEFAULT_TITLE = 'Confiara | Gestão da confiança organizaciona
 
 /** ~155–160 chars; aligned with hero (HeroContent). */
 export const SEO_DEFAULT_DESCRIPTION =
-  'Confiara: sistema de gestão da confiança organizacional que integra canal de denúncias, diagnóstico HSE-IT e apoio técnico à prevenção de riscos psicossociais na NR-1.'
+  'Confiara: canal de denúncias e diagnóstico de riscos psicossociais com confiança total. Compliance trabalhista e cuidado humano em um só lugar.'
 
 const suffix = ` | ${SEO_SITE_NAME}`
 
@@ -18,8 +18,8 @@ const VIEW_TITLES: Partial<Record<View, string>> = {
   privacidade: `Privacidade e uso dos dados${suffix}`,
   login: `Entrar${suffix}`,
   contato: `Fale conosco${suffix}`,
-  identificacao: `Diagnóstico psicossocial HSE-IT${suffix}`,
-  form: `Questionário HSE-IT${suffix}`,
+  identificacao: `Diagnóstico de riscos psicossociais${suffix}`,
+  form: `Questionário de riscos psicossociais${suffix}`,
   obrigado: `Resposta registrada${suffix}`,
   'coleta-encerrada': `Coleta encerrada${suffix}`,
   'admin-gate': `Área administrativa${suffix}`,
@@ -35,14 +35,14 @@ const VIEW_DESCRIPTIONS: Partial<Record<View, string>> = {
   'relatos-buscar':
     'Busque sua organização pelo nome para acessar o canal de denúncias com segurança e anonimato quando permitido pela empresa.',
   sobre:
-    'Entenda como funciona o diagnóstico HSE-IT em 7 dimensões, o canal de denúncias e a conformidade com NR-1 e Lei 14.457/22 na Confiara.',
+    'Entenda como funciona o diagnóstico de riscos psicossociais em 7 dimensões, o canal de denúncias e a conformidade com NR-1 e Lei 14.457/22 na Confiara.',
   privacidade:
-    'Transparência sobre coleta e uso de dados no diagnóstico HSE e no canal de denúncias, em linha com a LGPD.',
+    'Transparência sobre coleta e uso de dados no diagnóstico de riscos psicossociais e no canal de denúncias, em linha com a LGPD.',
   login: 'Acesso seguro à área administrativa da Confiara para gestão de diagnósticos e denúncias.',
   contato: 'Entre em contato com a equipe Confiara para demonstrações e informações comerciais.',
   identificacao:
-    'Inicie o questionário de clima organizacional HSE-IT: escolha o setor e responda com confidencialidade.',
-  form: 'Questionário HSE-IT com 35 perguntas em 7 dimensões para mapeamento de riscos psicossociais.',
+    'Inicie o questionário de riscos psicossociais: escolha o setor e responda com confidencialidade.',
+  form: 'Questionário de riscos psicossociais com 35 perguntas em 7 dimensões para mapeamento preventivo.',
   obrigado: 'Sua participação no diagnóstico foi registrada. Obrigado por contribuir com o clima organizacional.',
   'coleta-encerrada': 'O período de coleta deste diagnóstico foi encerrado pela organização.',
   'admin-gate': 'Área restrita para administradores da plataforma Confiara.',
@@ -51,7 +51,7 @@ const VIEW_DESCRIPTIONS: Partial<Record<View, string>> = {
   'denuncia-obrigado':
     'Denúncia registrada com sucesso. Guarde o protocolo para acompanhar o andamento quando permitido.',
   'denuncia-consultar': 'Consulte o status da sua denúncia informando o número do protocolo.',
-  admin: 'Painel administrativo Confiara: gestão de empresas, diagnósticos HSE-IT e canal de denúncias.',
+  admin: 'Painel administrativo Confiara: gestão de empresas, diagnósticos de riscos psicossociais e canal de denúncias.',
 }
 
 export function getSeoTitleForView(view: View): string {

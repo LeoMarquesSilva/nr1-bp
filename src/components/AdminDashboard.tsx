@@ -82,7 +82,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
 
   const emailBody = (slug: string, isDenuncia: boolean) => {
     const link = isDenuncia ? denunciaLinkForSlug(slug) : linkForSlug(slug)
-    const tipo = isDenuncia ? 'Canal de denúncias (anônimo)' : 'Diagnóstico HSE-IT'
+    const tipo = isDenuncia ? 'Canal de denúncias (anônimo)' : 'Diagnóstico de riscos psicossociais'
     return encodeURIComponent(
       `Prezado(a),\n\nSegue o link para ${tipo}:\n\n${link}\n\nAtenciosamente.`
     )

@@ -29,7 +29,7 @@ const dataWithColors = DIMENSION_DATA.map((d) => ({
 
 export function DimensionChart() {
   return (
-    <div className="h-[150px] w-full" role="img" aria-label="Gráfico de resultado por dimensão HSE-IT em percentual">
+    <div className="h-[150px] w-full" role="img" aria-label="Gráfico de resultado por dimensão de riscos psicossociais em percentual">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={dataWithColors}

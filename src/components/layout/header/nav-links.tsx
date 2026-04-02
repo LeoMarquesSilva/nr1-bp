@@ -23,8 +23,8 @@ export type View =
 
 const APP_NAV: { view: View; label: string }[] = [
   { view: "landing", label: "Início" },
-  { view: "relatos-buscar", label: "Canal de denúncia" },
   { view: "sobre", label: "Sobre" },
+  { view: "relatos-buscar", label: "Faça sua denúncia" },
   { view: "privacidade", label: "Privacidade" },
 ]
 
