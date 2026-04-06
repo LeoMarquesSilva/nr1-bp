@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, LogOut, Building2, Trash2, Loader2, Link2, Copy, Check, List, RefreshCw, Mail, Ban, RotateCcw, Pencil, Shield } from 'lucide-react'
+import { ArrowLeft, LogOut, Building2, Trash2, Loader2, Link2, Copy, RefreshCw, Mail, Ban, RotateCcw, Pencil, Shield, QrCode, Download } from 'lucide-react'
 import { getTenantRegistry, getTenantOverview, addTenantToRegistry, updateTenantRegistry, deleteTenantFromRegistry, type TenantOverviewItem, type TenantRegistryItem } from '../types/submission'
 import { logoutAdmin } from '../lib/adminAuth'
 import { getSupabase } from '../lib/supabase'
+import { QRCodeCanvas } from 'qrcode.react'
 
 type Props = {
   onClose: () => void
@@ -16,25 +17,24 @@ type Props = {
 }
 
 export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQuery = '', onSelectTenant }: Props) {
-  const [linkSlug, setLinkSlug] = useState('')
-  const [linkCopied, setLinkCopied] = useState(false)
+  const qrLogoSrc = '/logos/elemento-logo-azul.png'
+  const qrExportSize = 640
+  const qrPreviewSize = 120
   const [overviewList, setOverviewList] = useState<TenantOverviewItem[]>([])
   const [registryList, setRegistryList] = useState<TenantRegistryItem[]>([])
   const [overviewLoading, setOverviewLoading] = useState(true)
-  const [addingSlug, setAddingSlug] = useState<string | null>(null)
   const [togglingTenant, setTogglingTenant] = useState<string | null>(null)
   const [removingTenant, setRemovingTenant] = useState<string | null>(null)
+  const [qrTenantId, setQrTenantId] = useState<string | null>(null)
+  const [qrMode, setQrMode] = useState<'diagnostico' | 'denuncia'>('diagnostico')
 
   const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : ''
-  const generatedLink = linkSlug.trim() ? `${baseUrl}?org=${encodeURIComponent(linkSlug.trim().toLowerCase())}` : ''
 
   const copyLink = async (url?: string) => {
-    const toCopy = url ?? generatedLink
+    const toCopy = url
     if (!toCopy) return
     try {
       await navigator.clipboard.writeText(toCopy)
-      setLinkCopied(true)
-      setTimeout(() => setLinkCopied(false), 2000)
     } catch {
       alert('Não foi possível copiar. Copie o link manualmente.')
     }
@@ -47,21 +47,6 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
       setOverviewList(overview)
       setOverviewLoading(false)
     })
-  }
-
-  const handleAddToList = async () => {
-    const slug = linkSlug.trim().toLowerCase()
-    if (!slug) return
-    setAddingSlug(slug)
-    try {
-      await addTenantToRegistry(slug)
-      loadOverview()
-      setLinkSlug(slug)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Não foi possível adicionar.')
-    } finally {
-      setAddingSlug(null)
-    }
   }
 
   // Visão geral: só empresas do registro (ao excluir, some da lista).
@@ -132,6 +117,41 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     }
   }
 
+  const getQrCanvas = (tid: string): HTMLCanvasElement | null => {
+    const el = document.getElementById(`qr-canvas-${tid}`)
+    return el instanceof HTMLCanvasElement ? el : null
+  }
+
+  const downloadQrImage = (tid: string) => {
+    const canvas = getQrCanvas(tid)
+    if (!canvas) return
+    const href = canvas.toDataURL('image/png')
+    const a = document.createElement('a')
+    a.href = href
+    a.download = `qrcode-${tid}-${qrMode}.png`
+    a.click()
+  }
+
+  const copyQrImage = async (tid: string) => {
+    const canvas = getQrCanvas(tid)
+    if (!canvas) return
+    if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
+      alert('Seu navegador não suporta copiar imagem. Use o botão de baixar.')
+      return
+    }
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
+    if (!blob) {
+      alert('Não foi possível gerar a imagem do QR Code.')
+      return
+    }
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+      alert('QR Code copiado como imagem.')
+    } catch {
+      alert('Não foi possível copiar a imagem. Use o botão de baixar.')
+    }
+  }
+
   useEffect(() => {
     loadOverview()
   }, [])
@@ -187,47 +207,6 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
               </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Gerar link para cliente */}
-      <div className="rounded-2xl border border-[var(--color-brand-200)] bg-white p-6 shadow-[var(--shadow-xs)]">
-        <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold text-[var(--color-brand-900)]">
-          <Link2 className="h-5 w-5 text-[var(--muted-foreground)]" />
-          Gerar link para cliente
-        </h3>
-        <p className="mb-4 text-sm text-[var(--muted-foreground)]">
-          Informe o identificador da empresa (ex.: nome ou código). Quem abrir o link não precisará preencher a empresa.
-        </p>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <input
-            type="text"
-            value={linkSlug}
-            onChange={(e) => setLinkSlug(e.target.value)}
-            placeholder="ex: empresa-alpha"
-            className="input-escritorio rounded-xl px-4 py-2.5 text-sm"
-          />
-          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)] px-3 py-2.5">
-            <span className="truncate text-sm text-[var(--muted-foreground)]">{generatedLink || '—'}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => copyLink()}
-            disabled={!generatedLink}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--primary-hover)]"
-          >
-            {linkCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {linkCopied ? 'Copiado!' : 'Copiar link'}
-          </button>
-          <button
-            type="button"
-            onClick={handleAddToList}
-            disabled={!linkSlug.trim() || addingSlug !== null}
-            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50"
-          >
-            {addingSlug ? <Loader2 className="h-4 w-4 animate-spin" /> : <List className="h-4 w-4" />}
-            {addingSlug ? 'Adicionando...' : 'Adicionar à lista'}
-          </button>
         </div>
       </div>
 
@@ -311,9 +290,9 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                       type="button"
                       onClick={() => copyLink(link)}
                       className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-slate-900"
-                      title="Copiar link diagnóstico"
+                      title="Gerar/Copiar link diagnóstico"
                     >
-                      <Copy className="h-4 w-4" />
+                      <Link2 className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
@@ -330,6 +309,17 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                       title="Copiar link do canal de denúncias"
                     >
                       <Shield className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQrTenantId((current) => (current === tid ? null : tid))
+                        setQrMode('diagnostico')
+                      }}
+                      className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-slate-900"
+                      title="Gerar QR Code"
+                    >
+                      <QrCode className="h-4 w-4" />
                     </button>
                     {registry && (
                       <>
@@ -356,11 +346,82 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                     <button
                       type="button"
                       onClick={() => onSelectTenant && onSelectTenant(tid)}
-                    className="ml-2 rounded-xl bg-[var(--color-brand-700)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-brand-800)]"
+                      className="ml-2 rounded-xl bg-[var(--color-brand-700)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[var(--color-brand-800)]"
                     >
                       Ver
                     </button>
                   </div>
+                  {qrTenantId === tid && (
+                    <div className="basis-full rounded-xl border border-[var(--color-brand-200)] bg-white p-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-[var(--color-brand-900)]">QR Code da empresa</p>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setQrMode('diagnostico')}
+                            className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
+                              qrMode === 'diagnostico'
+                                ? 'bg-[var(--color-brand-700)] text-white'
+                                : 'bg-[var(--color-brand-50)] text-[var(--color-brand-700)]'
+                            }`}
+                          >
+                            Diagnóstico
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setQrMode('denuncia')}
+                            className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
+                              qrMode === 'denuncia'
+                                ? 'bg-[var(--color-brand-700)] text-white'
+                                : 'bg-[var(--color-brand-50)] text-[var(--color-brand-700)]'
+                            }`}
+                          >
+                            Denúncia
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-lg border border-[var(--color-brand-200)] bg-white p-2">
+                          <QRCodeCanvas
+                            id={`qr-canvas-${tid}`}
+                            value={qrMode === 'denuncia' ? denunciaLinkForSlug(tid) : linkForSlug(tid)}
+                            size={qrExportSize}
+                            style={{ width: qrPreviewSize, height: qrPreviewSize }}
+                            level="H"
+                            imageSettings={{
+                              src: qrLogoSrc,
+                              height: 138,
+                              width: 138,
+                              excavate: true,
+                            }}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs text-[var(--muted-foreground)]">
+                            Compartilhe este QR Code com a empresa para acesso rápido no celular.
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => copyQrImage(tid)}
+                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-2 py-1 text-[11px] font-semibold text-[var(--color-brand-700)] transition hover:bg-[var(--color-brand-100)]"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                              Copiar imagem
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => downloadQrImage(tid)}
+                              className="inline-flex items-center gap-1 rounded-md border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-2 py-1 text-[11px] font-semibold text-[var(--color-brand-700)] transition hover:bg-[var(--color-brand-100)]"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              Baixar PNG
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </li>
               )
             })}

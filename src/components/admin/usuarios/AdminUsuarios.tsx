@@ -58,7 +58,7 @@ export function AdminUsuarios() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      alert('Erro ao carregar usuários: ' + error.message)
+      showModal('error', 'Erro ao carregar usuários', error.message)
     } else {
       setUsers(data as AdminUser[])
     }
@@ -191,7 +191,7 @@ export function AdminUsuarios() {
         </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
+        <div className="rounded-2xl border border-[var(--color-brand-200)] bg-white p-6 shadow-[var(--shadow-xs)]">
           <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[var(--color-brand-900)]">
             <Users className="h-5 w-5 text-[var(--muted-foreground)]" />
             Usuários Cadastrados
@@ -207,7 +207,7 @@ export function AdminUsuarios() {
               {users.map((user) => (
                 <li
                   key={user.id}
-                  className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/60 px-4 py-3"
+                  className="flex items-center justify-between gap-2 rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-50)]/55 px-4 py-3 transition hover:border-[var(--color-brand-300)]"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -275,12 +275,17 @@ export function AdminUsuarios() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
+        <div className="rounded-2xl border border-[var(--color-brand-200)] bg-white p-6 shadow-[var(--shadow-xs)]">
+          <div className="mb-3">
+            <span className="inline-flex rounded-full border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-2.5 py-1 text-xs font-semibold text-[var(--color-brand-700)]">
+              Cadastro
+            </span>
+          </div>
           <h3 className="mb-4 text-lg font-semibold text-[var(--color-brand-900)]">
             Novo Usuário Admin
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label htmlFor="usr-name" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Nome completo *
               </label>
@@ -291,10 +296,10 @@ export function AdminUsuarios() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Ex.: João Silva"
                 required
-                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
+                className="input-escritorio w-full rounded-xl border border-[var(--color-brand-200)] bg-white px-4 py-2.5 text-sm focus:border-[var(--color-brand-400)] focus:ring-[var(--color-brand-200)]"
               />
             </div>
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label htmlFor="usr-email" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 E-mail *
               </label>
@@ -305,10 +310,10 @@ export function AdminUsuarios() {
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 placeholder="joao@empresa.com"
                 required
-                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
+                className="input-escritorio w-full rounded-xl border border-[var(--color-brand-200)] bg-white px-4 py-2.5 text-sm focus:border-[var(--color-brand-400)] focus:ring-[var(--color-brand-200)]"
               />
             </div>
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label htmlFor="usr-password" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Senha inicial *
               </label>
@@ -320,10 +325,10 @@ export function AdminUsuarios() {
                 placeholder="Mínimo 6 caracteres"
                 required
                 minLength={6}
-                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
+                className="input-escritorio w-full rounded-xl border border-[var(--color-brand-200)] bg-white px-4 py-2.5 text-sm focus:border-[var(--color-brand-400)] focus:ring-[var(--color-brand-200)]"
               />
             </div>
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label htmlFor="usr-department" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Departamento (Opcional)
               </label>
@@ -333,7 +338,7 @@ export function AdminUsuarios() {
                 value={form.department}
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
                 placeholder="Ex.: TI, RH"
-                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
+                className="input-escritorio w-full rounded-xl border border-[var(--color-brand-200)] bg-white px-4 py-2.5 text-sm focus:border-[var(--color-brand-400)] focus:ring-[var(--color-brand-200)]"
               />
             </div>
             
@@ -387,7 +392,7 @@ export function AdminUsuarios() {
                 <button
                   type="button"
                   onClick={() => modal.onConfirm?.()}
-                  className="flex-1 rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                  className="flex-1 rounded-xl bg-[var(--color-brand-700)] py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-brand-800)]"
                 >
                   Confirmar
                 </button>
@@ -399,7 +404,7 @@ export function AdminUsuarios() {
                 className={cn(
                   "w-full rounded-xl py-2.5 text-sm font-semibold text-white transition",
                   modal.type === 'success' 
-                    ? "bg-slate-900 hover:bg-slate-800" 
+                    ? "bg-[var(--color-brand-700)] hover:bg-[var(--color-brand-800)]" 
                     : "bg-red-600 hover:bg-red-700"
                 )}
               >
