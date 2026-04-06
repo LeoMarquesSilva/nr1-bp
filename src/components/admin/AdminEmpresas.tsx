@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Building2, Plus, Pencil, Loader2, Trash2 } from 'lucide-react'
-import { getTenantRegistry, upsertTenantRegistry, deleteTenantFromRegistry, type TenantRegistryItem } from '@/types/submission'
+import {
+  getTenantRegistry,
+  upsertTenantRegistry,
+  deleteTenantFromRegistry,
+  type TenantRegistryItem,
+  type TenantGroupCnpj,
+} from '@/types/submission'
 import { slugify, maskCnpj, formatCnpjDisplay } from '@/lib/masks'
 import { SETORES } from '@/data/opcoes'
 import { cn } from '@/lib/utils'
@@ -27,7 +33,7 @@ type FormState = {
   tenant_id: string
   display_name: string
   cnpj: string
-  cnpjs: string[]
+  cnpjs: TenantGroupCnpj[]
   nicho: string
   setores: string[]
 }
@@ -41,6 +47,26 @@ const emptyForm: FormState = {
   setores: [],
 }
 
+function displayCnpj(value: string): string {
+  const { raw, masked } = maskCnpj(value)
+  return raw.length === 14 ? masked : value
+}
+
+function normalizeGroupCnpjs(entries: Array<string | TenantGroupCnpj> | undefined): TenantGroupCnpj[] {
+  if (!entries || entries.length === 0) return []
+  return entries
+    .map((entry) => {
+      if (typeof entry === 'string') {
+        return { cnpj: displayCnpj(entry), razao_social: '' }
+      }
+      return {
+        cnpj: displayCnpj(entry.cnpj ?? ''),
+        razao_social: (entry.razao_social ?? '').trim(),
+      }
+    })
+    .filter((entry) => entry.cnpj.replace(/\D/g, '').length > 0)
+}
+
 export function AdminEmpresas() {
   const [list, setList] = useState<TenantRegistryItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -49,6 +75,8 @@ export function AdminEmpresas() {
   const [saving, setSaving] = useState(false)
   const [newSetor, setNewSetor] = useState('')
   const [newCnpj, setNewCnpj] = useState('')
+  const [newRazaoSocial, setNewRazaoSocial] = useState('')
+  const canAddGroupCnpj = maskCnpj(newCnpj).raw.length === 14 && newRazaoSocial.trim().length > 0
 
   const load = () => {
     setLoading(true)
@@ -64,6 +92,7 @@ export function AdminEmpresas() {
     setEditing(null)
     setForm(emptyForm)
     setNewCnpj('')
+    setNewRazaoSocial('')
   }
 
   const startEdit = (item: TenantRegistryItem) => {
@@ -74,11 +103,12 @@ export function AdminEmpresas() {
       tenant_id: item.tenant_id,
       display_name: item.display_name ?? '',
       cnpj: cnpjDisplay,
-      cnpjs: item.cnpjs ?? [],
+      cnpjs: normalizeGroupCnpjs(item.cnpjs),
       nicho: item.nicho ?? '',
       setores: item.setores ?? [],
     })
     setNewCnpj('')
+    setNewRazaoSocial('')
   }
 
   // Slug automático a partir do nome (apenas ao criar nova empresa)
@@ -97,9 +127,16 @@ export function AdminEmpresas() {
 
   const addCnpj = () => {
     const { raw, masked } = maskCnpj(newCnpj)
-    if (raw.length < 14) return
-    setForm((f) => ({ ...f, cnpjs: [...f.cnpjs, masked] }))
+    const razao = newRazaoSocial.trim()
+    if (raw.length < 14 || !razao) return
+    setForm((f) => {
+      const cnpjPrincipalRaw = f.cnpj.replace(/\D/g, '')
+      const exists = f.cnpjs.some((c) => c.cnpj.replace(/\D/g, '') === raw)
+      if (exists || cnpjPrincipalRaw === raw) return f
+      return { ...f, cnpjs: [...f.cnpjs, { cnpj: masked, razao_social: razao }] }
+    })
     setNewCnpj('')
+    setNewRazaoSocial('')
   }
 
   const removeCnpj = (index: number) => {
@@ -123,16 +160,31 @@ export function AdminEmpresas() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const slug = form.tenant_id.trim().toLowerCase()
+    const slug = (editing ? form.tenant_id : slugify(form.display_name)).trim().toLowerCase()
     if (!slug) return
     setSaving(true)
     try {
       const cnpjRaw = form.cnpj.replace(/\D/g, '')
+      if (form.cnpj && cnpjRaw.length !== 14) {
+        alert('CNPJ principal inválido. Use o formato 00.000.000/0000-00.')
+        return
+      }
+      const hasMissingRazao = form.cnpjs.some((c) => c.cnpj.replace(/\D/g, '').length === 14 && !c.razao_social.trim())
+      if (hasMissingRazao) {
+        alert('Preencha a razão social de todos os CNPJs adicionais.')
+        return
+      }
+      const filteredCnpjs = form.cnpjs
+        .map((c) => ({ cnpj: displayCnpj(c.cnpj), razao_social: c.razao_social.trim() }))
+        .filter((c) => c.cnpj.replace(/\D/g, '').length === 14)
+        .filter((c) => c.razao_social.length > 0)
+        .filter((c, i, arr) => arr.findIndex((x) => x.cnpj.replace(/\D/g, '') === c.cnpj.replace(/\D/g, '')) === i)
+        .filter((c) => c.cnpj.replace(/\D/g, '') !== cnpjRaw)
       await upsertTenantRegistry({
         tenant_id: slug,
         display_name: form.display_name || null,
         cnpj: cnpjRaw.length === 14 ? form.cnpj : null,
-        cnpjs: form.cnpjs.filter((c) => c.replace(/\D/g, '').length === 14),
+        cnpjs: filteredCnpjs,
         nicho: form.nicho || null,
         setores: form.setores.filter(Boolean),
       })
@@ -156,6 +208,8 @@ export function AdminEmpresas() {
       alert(err instanceof Error ? err.message : 'Erro ao remover.')
     }
   }
+
+  const computedSlug = editing ? form.tenant_id : slugify(form.display_name)
 
   return (
     <div className="space-y-8">
@@ -191,8 +245,10 @@ export function AdminEmpresas() {
                 <li
                   key={item.tenant_id}
                   className={cn(
-                    'flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/60 px-4 py-3',
-                    editing?.tenant_id === item.tenant_id && 'ring-2 ring-[var(--color-brand-300)]'
+                    'flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/55 px-4 py-3 transition',
+                    editing?.tenant_id === item.tenant_id
+                      ? 'border-[var(--color-brand-300)] ring-2 ring-[var(--color-brand-200)]'
+                      : 'hover:border-[var(--color-brand-200)]'
                   )}
                 >
                   <div className="min-w-0 flex-1">
@@ -224,11 +280,16 @@ export function AdminEmpresas() {
         </div>
 
         <div className="rounded-2xl border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-xs)]">
+          <div className="mb-3">
+            <span className="inline-flex rounded-full border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-2.5 py-1 text-xs font-semibold text-[var(--color-brand-700)]">
+              Cadastro
+            </span>
+          </div>
           <h3 className="mb-4 text-lg font-semibold text-[var(--color-brand-900)]">
             {editing ? 'Editar empresa' : 'Nova empresa'}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label htmlFor="emp-display_name" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Nome de exibição *
               </label>
@@ -239,29 +300,27 @@ export function AdminEmpresas() {
                 onChange={(e) => handleDisplayNameChange(e.target.value)}
                 placeholder="Ex.: Empresa Alpha"
                 required
-                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
+                className="input-escritorio w-full rounded-xl border border-[var(--color-brand-200)] bg-white px-4 py-2.5 text-sm focus:border-[var(--color-brand-400)] focus:ring-[var(--color-brand-200)]"
               />
             </div>
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label htmlFor="emp-tenant_id" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
                 Identificador (slug) *
               </label>
               <input
                 id="emp-tenant_id"
                 type="text"
-                value={form.tenant_id}
-                onChange={(e) => !editing && setForm((f) => ({ ...f, tenant_id: e.target.value }))}
+                value={computedSlug}
                 placeholder="ex: empresa-alpha"
                 required
-                disabled={!!editing}
-                className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm disabled:bg-[var(--color-brand-50)] disabled:text-[var(--muted-foreground)]"
+                readOnly
+                className="input-escritorio w-full rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-100)] px-4 py-2.5 text-sm text-[var(--color-brand-700)]"
               />
-              {!editing && (
-                <p className="mt-1 text-xs text-[var(--muted-foreground)]">Gerado automaticamente pelo nome. Você pode editar.</p>
-              )}
-              {editing && <p className="mt-1 text-xs text-[var(--muted-foreground)]">Não é possível alterar o identificador.</p>}
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                Gerado automaticamente pelo sistema a partir do nome de exibição.
+              </p>
             </div>
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label htmlFor="emp-cnpj" className="mb-1 block text-sm font-medium text-slate-700">
                 CNPJ principal
               </label>
@@ -272,36 +331,68 @@ export function AdminEmpresas() {
                 onChange={(e) => handleCnpjChange(e.target.value)}
                 placeholder="00.000.000/0000-00"
                 maxLength={18}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                className="w-full rounded-xl border border-[var(--color-brand-200)] bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-[var(--color-brand-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-200)]"
               />
             </div>
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label className="mb-1 block text-sm font-medium text-slate-700">
                 Outros CNPJs (grupo de empresas)
               </label>
-              <div className="flex gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <input
+                  type="text"
+                  value={newRazaoSocial}
+                  onChange={(e) => setNewRazaoSocial(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCnpj())}
+                  placeholder="Razão social"
+                  className={cn(
+                    'rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2',
+                    newRazaoSocial.trim().length === 0
+                      ? 'border-[var(--color-brand-200)] focus:border-[var(--color-brand-400)] focus:ring-[var(--color-brand-200)]'
+                      : 'border-[var(--color-brand-400)] focus:border-[var(--color-brand-500)] focus:ring-[var(--color-brand-200)]'
+                  )}
+                />
                 <input
                   type="text"
                   value={newCnpj}
-                  onChange={(e) => setNewCnpj(e.target.value)}
+                  onChange={(e) => setNewCnpj(maskCnpj(e.target.value).masked)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addCnpj())}
                   placeholder="00.000.000/0000-00"
                   maxLength={18}
-                  className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  className={cn(
+                    'flex-1 rounded-xl border bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2',
+                    maskCnpj(newCnpj).raw.length === 14
+                      ? 'border-[var(--color-brand-400)] focus:border-[var(--color-brand-500)] focus:ring-[var(--color-brand-200)]'
+                      : 'border-[var(--color-brand-200)] focus:border-[var(--color-brand-400)] focus:ring-[var(--color-brand-200)]'
+                  )}
                 />
                 <button
                   type="button"
                   onClick={addCnpj}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                  disabled={!canAddGroupCnpj}
+                  className={cn(
+                    'rounded-xl px-4 py-2.5 text-sm font-semibold transition sm:col-span-2',
+                    canAddGroupCnpj
+                      ? 'border border-[var(--color-brand-700)] bg-[var(--color-brand-700)] text-white hover:bg-[var(--color-brand-800)]'
+                      : 'cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400'
+                  )}
                 >
-                  Adicionar CNPJ
+                  Adicionar
                 </button>
               </div>
+              <p className={cn('mt-1 text-xs', canAddGroupCnpj ? 'text-[var(--color-brand-700)]' : 'text-slate-500')}>
+                {canAddGroupCnpj
+                  ? 'Tudo certo: clique em "Adicionar" para incluir este CNPJ.'
+                  : 'Para adicionar, preencha a razão social e um CNPJ válido.'}
+              </p>
               {form.cnpjs.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {form.cnpjs.map((c, i) => (
-                    <li key={i} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                      <span className="font-mono">{c}</span>
+                    <li key={i} className="flex items-start justify-between gap-2 rounded-lg border border-[var(--color-brand-200)] bg-white px-3 py-2 text-sm text-slate-700">
+                      <div className="min-w-0">
+                        <p className="font-mono">{c.cnpj}</p>
+                        <p className="truncate text-xs text-slate-500">{c.razao_social || 'Razão social não informada'}</p>
+                      </div>
                       <button type="button" onClick={() => removeCnpj(i)} className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -310,7 +401,7 @@ export function AdminEmpresas() {
                 </ul>
               )}
             </div>
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label className="mb-1 block text-sm font-medium text-slate-700">
                 Nicho
               </label>
@@ -323,8 +414,8 @@ export function AdminEmpresas() {
                     className={cn(
                       'rounded-xl border px-3 py-2 text-sm font-medium transition',
                       form.nicho === n
-                        ? 'border-slate-900 bg-slate-900 text-white'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        ? 'border-[var(--color-brand-700)] bg-[var(--color-brand-700)] text-white'
+                        : 'border-[var(--color-brand-200)] bg-white text-[var(--color-brand-700)] hover:bg-[var(--color-brand-50)]'
                     )}
                   >
                     {n}
@@ -332,7 +423,7 @@ export function AdminEmpresas() {
                 ))}
               </div>
             </div>
-            <div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label className="mb-1 block text-sm font-medium text-slate-700">
                 Opções de setor (formulário de diagnóstico)
               </label>
@@ -342,7 +433,7 @@ export function AdminEmpresas() {
               <button
                 type="button"
                 onClick={useDefaultSetores}
-                className="mb-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                className="mb-2 rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-100)] px-4 py-2.5 text-sm font-medium text-[var(--color-brand-700)] hover:bg-[var(--color-brand-200)]"
               >
                 Usar setores padrão do diagnóstico
               </button>
@@ -353,16 +444,16 @@ export function AdminEmpresas() {
                   onChange={(e) => setNewSetor(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSetor())}
                   placeholder="Ex.: Diretoria"
-                  className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+                  className="flex-1 rounded-xl border border-[var(--color-brand-200)] bg-white px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-[var(--color-brand-400)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-200)]"
                 />
-                <button type="button" onClick={addSetor} className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
+                <button type="button" onClick={addSetor} className="rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-100)] px-4 py-2.5 text-sm font-medium text-[var(--color-brand-700)] hover:bg-[var(--color-brand-200)]">
                   Adicionar
                 </button>
               </div>
               {form.setores.length > 0 && (
                 <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto">
                   {form.setores.map((s, i) => (
-                    <li key={i} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    <li key={i} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--color-brand-200)] bg-white px-3 py-2 text-sm text-slate-700">
                       <span>{s}</span>
                       <button type="button" onClick={() => removeSetor(i)} className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600">
                         <Trash2 className="h-3.5 w-3.5" />
@@ -375,7 +466,7 @@ export function AdminEmpresas() {
             <div className="flex gap-2 pt-2">
               <button
                 type="submit"
-                disabled={saving || !form.tenant_id.trim()}
+                disabled={saving || !computedSlug.trim()}
                 className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow transition disabled:opacity-50 hover:bg-slate-800"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

@@ -36,7 +36,7 @@ export function Footer({ onNavigate, hideCanalDenunciaNav = false }: Props) {
               <Logo className="w-fit" size="footer" />
             </div>
             <p className="mt-4 text-sm leading-relaxed text-[var(--muted-foreground)]" itemProp="description">
-              Plataforma completa e segura para gestão de Canal de Denúncias, Diagnóstico de Riscos Psicossociais e Conformidade Legal (NR-1 e Lei 14.457/22). Proteja sua empresa e promova um ambiente ético.
+              Plataforma completa e segura para gestão de Canal de Denúncias e Diagnóstico de Riscos Psicossociais. Proteja sua empresa e promova um ambiente saudável e seguro.
             </p>
             <p className="mt-3 text-xs leading-relaxed text-[var(--color-brand-600)]">
               Confiara: a confiança transformada em método de gestão e prevenção.
@@ -64,7 +64,6 @@ export function Footer({ onNavigate, hideCanalDenunciaNav = false }: Props) {
               <li className="flex items-center gap-2"><Lock className="h-4 w-4 text-[var(--color-brand-400)]"/> Criptografia Ponta a Ponta</li>
               <li className="flex items-center gap-2"><Building className="h-4 w-4 text-[var(--color-brand-400)]"/> Conformidade ISO 37002</li>
               <li className="flex items-center gap-2"><FileCheck className="h-4 w-4 text-[var(--color-brand-400)]"/> Adequação à NR-1</li>
-              <li className="flex items-center gap-2"><Shield className="h-4 w-4 text-[var(--color-brand-400)]"/> Comitê de Ética e LGPD</li>
             </ul>
           </div>
 

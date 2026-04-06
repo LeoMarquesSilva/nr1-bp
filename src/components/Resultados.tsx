@@ -51,7 +51,7 @@ export function Resultados({ answers, setor, onVoltar, isAdmin, scoresOverride }
           return (
             <div
               key={d.dimensionId}
-              className={`rounded-2xl border-2 border-slate-200/60 bg-white p-5 shadow-sm ${risk.bgClass}`}
+              className={`rounded-2xl border-2 p-5 shadow-sm ${risk.bgClass}`}
             >
               <div className="mb-3 flex items-start justify-between gap-2">
                 <h3 className="font-semibold text-slate-900">{d.dimensionLabel}</h3>

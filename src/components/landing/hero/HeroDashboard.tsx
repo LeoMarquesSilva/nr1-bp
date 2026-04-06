@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { ShieldCheck, Clock3, CheckCircle2, ClipboardCheck } from 'lucide-react'
+import { ShieldCheck, Clock3, CheckCircle2, ClipboardCheck, ChevronRight, MousePointerClick } from 'lucide-react'
+import { DimensionChart } from './DimensionChart'
 
 const cardStagger = {
   hidden: { opacity: 0, y: 12 },
@@ -33,6 +34,9 @@ export function HeroDashboard() {
           custom={0}
           className="mb-4 rounded-2xl border border-white/20 bg-[var(--color-brand-900)]/55 p-2"
         >
+          <p className="px-2 pb-2 text-xs font-medium text-[var(--color-brand-200)]">
+            Clique para alternar as informações
+          </p>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -44,8 +48,14 @@ export function HeroDashboard() {
                   : 'bg-transparent text-[var(--color-brand-100)] hover:bg-white/10'
               }`}
             >
-              <p className="text-[11px] font-semibold uppercase tracking-wide">Relatos</p>
-              <p className="text-sm font-semibold">Canal de denúncia</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold">Canal de denúncia</p>
+                {activeTab === 'tab01' ? (
+                  <ChevronRight className="h-4 w-4 shrink-0" />
+                ) : (
+                  <MousePointerClick className="h-4 w-4 shrink-0" />
+                )}
+              </div>
             </button>
             <button
               type="button"
@@ -57,8 +67,14 @@ export function HeroDashboard() {
                   : 'bg-transparent text-[var(--color-brand-100)] hover:bg-white/10'
               }`}
             >
-              <p className="text-[11px] font-semibold uppercase tracking-wide">Riscos psicossociais</p>
-              <p className="text-sm font-semibold">Diagnóstico de riscos psicossociais</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-semibold">Diagnóstico de riscos psicossociais</p>
+                {activeTab === 'tab02' ? (
+                  <ChevronRight className="h-4 w-4 shrink-0" />
+                ) : (
+                  <MousePointerClick className="h-4 w-4 shrink-0" />
+                )}
+              </div>
             </button>
           </div>
         </motion.div>
@@ -135,17 +151,17 @@ export function HeroDashboard() {
                 Exemplo de informações que o diagnóstico entrega para apoiar decisões preventivas:
               </p>
               <div className="mt-3 space-y-2">
-                <div className="rounded-xl border border-[var(--color-warning-500)]/25 bg-[var(--color-warning-50)] p-3">
-                  <p className="text-sm font-semibold text-[var(--color-warning-700)]">Dimensão: Exigências do trabalho</p>
-                  <p className="text-xs text-[var(--muted-foreground)]">Nível de risco: moderado (3,4/5) · equipe operacional</p>
-                </div>
-                <div className="rounded-xl border border-[var(--color-info-500)]/25 bg-[var(--color-info-50)] p-3">
-                  <p className="text-sm font-semibold text-[var(--color-info-700)]">Dimensão: Apoio da liderança</p>
-                  <p className="text-xs text-[var(--muted-foreground)]">Nível de risco: atenção (2,9/5) · plano de ação em 30 dias</p>
+                <div className="rounded-xl border border-[var(--border)] bg-white p-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
+                    Médias por dimensão
+                  </p>
+                  <DimensionChart />
                 </div>
                 <div className="rounded-xl border border-[var(--color-success-500)]/25 bg-[var(--color-success-50)] p-3">
                   <p className="text-sm font-semibold text-[var(--color-success-700)]">Resumo executivo</p>
-                  <p className="text-xs text-[var(--muted-foreground)]">Áreas prioritárias, tendência mensal e recomendação de próximos passos.</p>
+                  <p className="text-xs text-[var(--muted-foreground)]">
+                    Indicação dos setores e temas críticos, e recomendação do plano de ação.
+                  </p>
                 </div>
               </div>
             </motion.div>

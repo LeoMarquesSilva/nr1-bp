@@ -45,6 +45,11 @@ export interface TenantOverviewItem {
   last_submitted_at: string | null
 }
 
+export interface TenantGroupCnpj {
+  cnpj: string
+  razao_social: string
+}
+
 /** Lista empresas com total de respostas e data da última (para a visão geral). */
 export async function getTenantOverview(): Promise<TenantOverviewItem[]> {
   const supabase = getSupabase()
@@ -61,7 +66,7 @@ export interface TenantRegistryItem {
   display_name: string | null
   active: boolean
   cnpj?: string | null
-  cnpjs?: string[]
+  cnpjs?: Array<string | TenantGroupCnpj>
   nicho?: string | null
   setores?: string[]
 }
@@ -96,7 +101,14 @@ export async function getTenantRegistry(): Promise<TenantRegistryItem[]> {
     display_name: r.display_name ?? null,
     active: r.active ?? true,
     cnpj: r.cnpj ?? null,
-    cnpjs: Array.isArray(r.cnpjs) ? (r.cnpjs as string[]) : [],
+    cnpjs: Array.isArray(r.cnpjs)
+      ? (r.cnpjs as unknown[]).filter((entry) => {
+          if (typeof entry === 'string') return true
+          if (!entry || typeof entry !== 'object') return false
+          const obj = entry as Record<string, unknown>
+          return typeof obj.cnpj === 'string'
+        }) as Array<string | TenantGroupCnpj>
+      : [],
     nicho: r.nicho ?? null,
     setores: Array.isArray(r.setores) ? (r.setores as string[]) : [],
   }))
@@ -180,7 +192,7 @@ export async function upsertTenantRegistry(payload: {
   display_name?: string | null
   active?: boolean
   cnpj?: string | null
-  cnpjs?: string[]
+  cnpjs?: Array<string | TenantGroupCnpj>
   nicho?: string | null
   setores?: string[]
 }): Promise<void> {

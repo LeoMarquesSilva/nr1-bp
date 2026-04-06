@@ -60,7 +60,7 @@ export function Sobre({ onVoltar }: SobreProps) {
         onBack={onVoltar}
         backLabel="Voltar ao início"
         maxWidth="wide"
-        title="Painel sobre"
+        title="Saiba mais sobre"
         subtitle={
           <div className="mx-auto flex w-full max-w-3xl flex-wrap justify-center gap-2">
             <button

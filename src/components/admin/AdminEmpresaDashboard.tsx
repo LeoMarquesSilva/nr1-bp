@@ -26,6 +26,15 @@ import { formatCnpjDisplay } from '@/lib/masks'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
+function getGroupCnpjLabel(entry: unknown): { cnpj: string; razao: string | null } {
+  if (typeof entry === 'string') return { cnpj: entry, razao: null }
+  if (entry && typeof entry === 'object') {
+    const obj = entry as { cnpj?: string; razao_social?: string }
+    return { cnpj: obj.cnpj ?? '', razao: obj.razao_social?.trim() || null }
+  }
+  return { cnpj: '', razao: null }
+}
+
 type Props = {
   tenantId: string
   onBack: () => void
@@ -614,11 +623,17 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                   <div className="sm:col-span-2 lg:col-span-3">
                     <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Outros CNPJs</dt>
                     <dd className="mt-2 flex flex-wrap gap-2">
-                      {registry.cnpjs.map((c, i) => (
-                        <span key={i} className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-sm text-slate-700">
-                          {c.replace(/\D/g, '').length === 14 ? formatCnpjDisplay(c) : c}
-                        </span>
-                      ))}
+                      {registry.cnpjs.map((entry, i) => {
+                        const item = getGroupCnpjLabel(entry)
+                        const cnpjDisplay =
+                          item.cnpj.replace(/\D/g, '').length === 14 ? formatCnpjDisplay(item.cnpj) : item.cnpj
+                        return (
+                          <span key={i} className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-sm text-slate-700">
+                            <span className="font-mono">{cnpjDisplay}</span>
+                            {item.razao && <span className="ml-2 text-xs text-slate-500">- {item.razao}</span>}
+                          </span>
+                        )
+                      })}
                     </dd>
                   </div>
                 )}
