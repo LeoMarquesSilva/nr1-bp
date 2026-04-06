@@ -66,7 +66,7 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
               className={cn(
                 'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg transition focus:outline-none focus:ring-2 focus:ring-white/30',
                 page === id
-                  ? 'bg-[var(--color-brand-400)]/25 text-white'
+                  ? 'bg-white/20 text-white ring-1 ring-white/30'
                   : 'text-[var(--color-brand-200)] hover:bg-white/10 hover:text-white'
               )}
             >
@@ -130,7 +130,7 @@ export function AdminSidebar({ page, onNavigate, onGoToSite, onLogout, profile }
             onClick={() => onNavigate(id)}
             className={cn(
               'flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 transition',
-              page === id ? 'text-white' : 'text-[var(--color-brand-200)] hover:text-white'
+            page === id ? 'bg-white/15 text-white' : 'text-[var(--color-brand-200)] hover:text-white'
             )}
           >
             <Icon className="h-5 w-5" />

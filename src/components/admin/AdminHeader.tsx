@@ -54,7 +54,7 @@ export function AdminHeader({
 
   return (
     <header
-      className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[var(--border)] bg-white/90 backdrop-blur-sm px-4 sm:px-6 lg:px-8"
+      className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[var(--color-brand-200)] bg-[var(--color-brand-50)]/95 backdrop-blur-sm px-4 sm:px-6 lg:px-8"
       role="banner"
     >
       <h1 className="text-lg font-semibold tracking-tight text-[var(--color-brand-900)] truncate">
@@ -69,7 +69,7 @@ export function AdminHeader({
           <label htmlFor="admin-search" className="sr-only">
             Pesquisar empresas
           </label>
-          <div className="flex w-full items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--color-brand-50)] px-3 py-2">
+          <div className="flex w-full items-center gap-2 rounded-lg border border-[var(--color-brand-200)] bg-white px-3 py-2 shadow-[var(--shadow-xs)]">
             <Search className="h-4 w-4 shrink-0 text-[var(--muted-foreground)]" aria-hidden />
             <input
               id="admin-search"
@@ -83,7 +83,7 @@ export function AdminHeader({
           </div>
           {showDropdown && (
             <div
-              className="absolute right-0 top-full z-50 mt-1 max-h-64 w-full min-w-[220px] overflow-auto rounded-lg border border-[var(--border)] bg-white py-1 shadow-[var(--shadow-sm)]"
+              className="absolute right-0 top-full z-50 mt-1 max-h-64 w-full min-w-[220px] overflow-auto rounded-lg border border-[var(--color-brand-200)] bg-white py-1 shadow-[var(--shadow-sm)]"
               role="listbox"
             >
               {searchResults.length === 0 ? (
@@ -108,7 +108,7 @@ export function AdminHeader({
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--color-brand-50)] px-3 py-2 text-sm text-[var(--muted-foreground)] md:max-w-[200px]">
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--color-brand-200)] bg-white px-3 py-2 text-sm text-[var(--muted-foreground)] md:max-w-[200px]">
           <Search className="h-4 w-4 shrink-0" aria-hidden />
           <span className="truncate">Pesquisa</span>
         </div>

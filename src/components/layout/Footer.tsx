@@ -1,4 +1,4 @@
-import { Shield, Mail, Phone, MapPin, Building, Lock, FileCheck } from 'lucide-react'
+import { Mail, Phone, MapPin, Building, Lock, FileCheck } from 'lucide-react'
 import { getAppName } from '../../lib/tenant'
 import { Logo } from './header/logo'
 import { getHrefForView } from '../../lib/routes'

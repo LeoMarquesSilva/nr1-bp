@@ -351,7 +351,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
             {loadingSubmissions ? (
               <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-slate-400" /></div>
             ) : submissions.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
+              <div className="rounded-2xl border border-[var(--color-brand-200)] bg-white p-12 text-center shadow-sm">
                 <BarChart3 className="mx-auto h-12 w-12 text-slate-300" />
                 <p className="mt-4 font-medium text-slate-900">Nenhum envio ainda para esta empresa</p>
                 <p className="mt-1 text-sm text-slate-500">
@@ -399,7 +399,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                   }}
                 />
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="rounded-2xl border border-[var(--color-brand-200)] bg-white p-6 shadow-sm">
                   <h3 className="mb-1 text-lg font-semibold text-slate-900">
                     Envios por setor e função
                   </h3>
@@ -465,7 +465,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
 
         {activeTab === 'denuncias' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-[var(--color-brand-200)] bg-white p-6 shadow-sm">
               <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
                 <Shield className="h-5 w-5 text-slate-500" />
                 Canal de denúncias
@@ -600,7 +600,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
 
         {activeTab === 'configuracoes' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-[var(--color-brand-200)] bg-white p-6 shadow-sm">
               <h3 className="mb-6 text-lg font-semibold text-slate-900">Dados da Empresa</h3>
               <dl className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <div>

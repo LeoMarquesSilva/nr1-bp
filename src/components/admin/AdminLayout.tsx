@@ -151,7 +151,8 @@ export function AdminLayout({ onClose, onLogout }: AdminLayoutProps) {
         <main
           className={cn(
             'flex-1 overflow-auto pb-24 md:pb-8',
-            'px-4 sm:px-6 lg:px-8 pt-4'
+            'px-4 sm:px-6 lg:px-8 pt-4',
+            'bg-[var(--color-brand-50)]'
           )}
         >
           {page === 'dashboard' && (

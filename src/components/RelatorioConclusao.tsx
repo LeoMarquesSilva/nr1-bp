@@ -197,7 +197,7 @@ export function RelatorioConclusao({ scores, setor, showCopy = true, meta }: Pro
             return (
               <li
                 key={d.dimensionId}
-                className={`rounded-xl border-2 p-4 ${risk.bgClass}`}
+                className={`rounded-xl border-2 p-4 transition-colors ${risk.bgClass}`}
               >
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <span className="font-semibold text-slate-900">{d.dimensionLabel}</span>

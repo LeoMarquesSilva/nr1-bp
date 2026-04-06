@@ -76,6 +76,8 @@ export function AdminEmpresas() {
   const [newSetor, setNewSetor] = useState('')
   const [newCnpj, setNewCnpj] = useState('')
   const [newRazaoSocial, setNewRazaoSocial] = useState('')
+  const [formError, setFormError] = useState('')
+  const [formSuccess, setFormSuccess] = useState('')
   const canAddGroupCnpj = maskCnpj(newCnpj).raw.length === 14 && newRazaoSocial.trim().length > 0
 
   const load = () => {
@@ -93,6 +95,8 @@ export function AdminEmpresas() {
     setForm(emptyForm)
     setNewCnpj('')
     setNewRazaoSocial('')
+    setFormError('')
+    setFormSuccess('')
   }
 
   const startEdit = (item: TenantRegistryItem) => {
@@ -109,6 +113,8 @@ export function AdminEmpresas() {
     })
     setNewCnpj('')
     setNewRazaoSocial('')
+    setFormError('')
+    setFormSuccess('')
   }
 
   // Slug automático a partir do nome (apenas ao criar nova empresa)
@@ -160,18 +166,23 @@ export function AdminEmpresas() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFormError('')
+    setFormSuccess('')
     const slug = (editing ? form.tenant_id : slugify(form.display_name)).trim().toLowerCase()
-    if (!slug) return
+    if (!slug) {
+      setFormError('Informe um nome de exibição válido para gerar o identificador.')
+      return
+    }
     setSaving(true)
     try {
       const cnpjRaw = form.cnpj.replace(/\D/g, '')
       if (form.cnpj && cnpjRaw.length !== 14) {
-        alert('CNPJ principal inválido. Use o formato 00.000.000/0000-00.')
+        setFormError('CNPJ principal inválido. Use o formato 00.000.000/0000-00.')
         return
       }
       const hasMissingRazao = form.cnpjs.some((c) => c.cnpj.replace(/\D/g, '').length === 14 && !c.razao_social.trim())
       if (hasMissingRazao) {
-        alert('Preencha a razão social de todos os CNPJs adicionais.')
+        setFormError('Preencha a razão social de todos os CNPJs adicionais.')
         return
       }
       const filteredCnpjs = form.cnpjs
@@ -190,9 +201,9 @@ export function AdminEmpresas() {
       })
       startNew()
       await load()
-      alert('Empresa criada com sucesso. Ela já aparece na lista ao lado e no Dashboard.')
+      setFormSuccess('Empresa salva com sucesso. Ela já aparece na lista ao lado e no dashboard.')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erro ao salvar.')
+      setFormError(err instanceof Error ? err.message : 'Erro ao salvar.')
     } finally {
       setSaving(false)
     }
@@ -478,6 +489,18 @@ export function AdminEmpresas() {
                 </button>
               )}
             </div>
+            {(formError || formSuccess) && (
+              <div
+                className={cn(
+                  'rounded-xl border px-3 py-2 text-sm',
+                  formError
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : 'border-[var(--color-brand-200)] bg-[var(--color-brand-50)] text-[var(--color-brand-700)]'
+                )}
+              >
+                {formError || formSuccess}
+              </div>
+            )}
             {editing && (
               <div className="mt-8 border-t border-slate-200 pt-6">
                 <h4 className="text-sm font-semibold text-red-800">Excluir empresa do registro</h4>
