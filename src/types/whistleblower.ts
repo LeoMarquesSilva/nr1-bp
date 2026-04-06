@@ -1,6 +1,7 @@
 import { getSupabase } from '../lib/supabase'
 import { getTenantId } from '../lib/tenant'
 import { MAX_EVIDENCE_BYTES, MAX_EVIDENCE_FILES } from '../data/denunciaForm'
+import type { Database } from './database'
 
 export type WhistleblowerStatus = 'recebida' | 'em_analise' | 'concluida' | 'arquivada'
 
@@ -26,6 +27,8 @@ export interface WhistleblowerReport {
   location_has_camera?: string | null
   evidence_paths?: EvidencePathEntry[] | null
 }
+
+type WhistleblowerRow = Database['public']['Tables']['whistleblower_reports']['Row']
 
 /** Gera um protocol_id único no formato WB-XXXXXXXX (8 caracteres alfanuméricos). */
 export function generateProtocolId(): string {
@@ -170,7 +173,26 @@ export async function getWhistleblowerReports(tenantId?: string): Promise<Whistl
     console.error('Supabase getWhistleblowerReports:', error)
     return []
   }
-  return (data ?? []) as unknown as WhistleblowerReport[]
+  return ((data ?? []) as unknown as WhistleblowerRow[]).map((row) => ({
+    id: row.id,
+    tenant_id: row.tenant_id,
+    protocol_id: row.protocol_id,
+    category: row.category,
+    body: row.body,
+    created_at: row.created_at,
+    read_at: row.read_at,
+    status: row.status as WhistleblowerStatus,
+    is_anonymous: row.is_anonymous ?? undefined,
+    reporter_name: row.reporter_name,
+    reporter_contact: row.reporter_contact,
+    subject: row.subject,
+    accused_relationship: row.accused_relationship,
+    complaint_category: row.complaint_category,
+    complainant_gender: row.complainant_gender,
+    incident_date: row.incident_date,
+    location_has_camera: row.location_has_camera,
+    evidence_paths: Array.isArray(row.evidence_paths) ? (row.evidence_paths as EvidencePathEntry[]) : [],
+  }))
 }
 
 /** Consulta pública: retorna apenas status e data pelo protocol_id (sem expor o conteúdo da denúncia). */
@@ -178,15 +200,17 @@ export async function getWhistleblowerStatusByProtocol(
   protocolId: string
 ): Promise<{ status: string; created_at: string } | null> {
   const supabase = getSupabase()
+  const normalized = protocolId.trim().toUpperCase()
+  if (!/^WB-[A-Z0-9]{8}$/.test(normalized)) return null
   const { data, error } = await supabase.rpc('get_whistleblower_status', {
-    p_protocol_id: protocolId.trim(),
+    p_protocol_id: normalized,
   })
   if (error) {
     console.error('Supabase get_whistleblower_status:', error)
     return null
   }
   if (!data || data.length === 0) return null
-  const row = data[0] as { status: string; created_at: string }
+  const row = data[0]
   return { status: row.status, created_at: row.created_at }
 }
 

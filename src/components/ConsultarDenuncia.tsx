@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { Search, FileQuestion } from 'lucide-react'
-import { getWhistleblowerStatusByProtocol } from '../types/whistleblower'
+import { getWhistleblowerStatusByProtocol } from '../services/api'
 import { PageShell, PageShellCard } from './layout/PageShell'
+import { trackEvent } from '../lib/telemetry'
+import { getTenantId } from '../lib/tenant'
+import { feedback } from '../lib/feedback'
+import { assertClientRateLimit } from '../lib/antiAbuse'
+import { createCaptchaChallenge, isCaptchaValid } from '../lib/captcha'
 
 const STATUS_LABELS: Record<string, string> = {
   recebida: 'Recebida',
@@ -17,14 +22,51 @@ type Props = {
 export function ConsultarDenuncia({ onVoltar }: Props) {
   const [protocolId, setProtocolId] = useState('')
   const [result, setResult] = useState<{ status: string; created_at: string } | null | 'loading'>(null)
+  const [captcha] = useState(() => createCaptchaChallenge())
+  const [captchaInput, setCaptchaInput] = useState('')
 
   const handleConsultar = async (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = protocolId.trim()
     if (!trimmed) return
+    if (!isCaptchaValid(captchaInput, captcha)) {
+      feedback.error('Validação humana inválida. Confira o cálculo e tente novamente.')
+      return
+    }
+    try {
+      assertClientRateLimit({
+        action: 'denuncia_consulta',
+        tenantId: getTenantId(),
+        maxAttempts: 12,
+        windowMs: 10 * 60 * 1000,
+        message: 'Muitas consultas em sequência. Aguarde um pouco antes de tentar novamente.',
+      })
+    } catch (err) {
+      feedback.error(err instanceof Error ? err.message : 'Limite temporário atingido.')
+      return
+    }
     setResult('loading')
-    const data = await getWhistleblowerStatusByProtocol(trimmed)
-    setResult(data)
+    trackEvent({ name: 'denuncia_consulta_submit', flow: 'denuncia', tenantId: getTenantId(), step: 'consulta' })
+    try {
+      const data = await getWhistleblowerStatusByProtocol(trimmed)
+      setResult(data)
+      trackEvent({
+        name: data ? 'denuncia_consulta_success' : 'denuncia_consulta_not_found',
+        flow: 'denuncia',
+        tenantId: getTenantId(),
+        step: 'consulta',
+      })
+    } catch (err) {
+      setResult(null)
+      trackEvent({
+        name: 'api_error',
+        flow: 'denuncia',
+        tenantId: getTenantId(),
+        step: 'consulta',
+        meta: { message: err instanceof Error ? err.message : 'erro_desconhecido' },
+      })
+      feedback.error('Não foi possível consultar o protocolo agora. Tente novamente.')
+    }
   }
 
   return (
@@ -59,6 +101,17 @@ export function ConsultarDenuncia({ onVoltar }: Props) {
               className="input-escritorio w-full rounded-xl border bg-white px-4 py-3 font-mono text-[var(--color-brand-900)] placeholder:text-[var(--muted-foreground)]"
               disabled={result === 'loading'}
               autoComplete="off"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-[var(--color-brand-900)]">Verificação humana</label>
+            <p className="mb-2 text-xs text-[var(--muted-foreground)]">{captcha.label}</p>
+            <input
+              type="text"
+              value={captchaInput}
+              onChange={(e) => setCaptchaInput(e.target.value)}
+              placeholder="Digite o resultado"
+              className="input-escritorio w-full rounded-xl border bg-white px-4 py-3 text-[var(--color-brand-900)] placeholder:text-[var(--muted-foreground)]"
             />
           </div>
           <button

@@ -3,7 +3,7 @@ import { motion } from 'motion/react'
 import { ArrowRight, Shield, Clock, FileCheck, ChevronRight } from 'lucide-react'
 import { Button } from './ui/button'
 import { SETORES } from '../data/opcoes'
-import { getTenantSetores } from '../types/submission'
+import { getTenantSetores } from '../services/api'
 import { getTenantId } from '../lib/tenant'
 
 const container = {

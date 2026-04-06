@@ -1,9 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { ArrowLeft, LogOut, Building2, Trash2, Loader2, Link2, Copy, RefreshCw, Mail, Ban, RotateCcw, Pencil, Shield, QrCode, Download } from 'lucide-react'
-import { getTenantRegistry, getTenantOverview, addTenantToRegistry, updateTenantRegistry, deleteTenantFromRegistry, type TenantOverviewItem, type TenantRegistryItem } from '../types/submission'
+import { getTenantRegistry, getTenantOverview, addTenantToRegistry, updateTenantRegistry, deleteTenantFromRegistry, logAdminAuditAction, type TenantOverviewItem, type TenantRegistryItem } from '../services/api'
 import { logoutAdmin } from '../lib/adminAuth'
 import { getSupabase } from '../lib/supabase'
 import { QRCodeCanvas } from 'qrcode.react'
+import { feedback } from '../lib/feedback'
+import { getTelemetrySummary } from '../lib/telemetry'
+import { buildDenunciaUrl, buildDiagnosticOrgUrl } from '../lib/routes'
 
 type Props = {
   onClose: () => void
@@ -27,6 +30,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
   const [removingTenant, setRemovingTenant] = useState<string | null>(null)
   const [qrTenantId, setQrTenantId] = useState<string | null>(null)
   const [qrMode, setQrMode] = useState<'diagnostico' | 'denuncia'>('diagnostico')
+  const [canViewTelemetry, setCanViewTelemetry] = useState(false)
 
   const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : ''
 
@@ -35,8 +39,9 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     if (!toCopy) return
     try {
       await navigator.clipboard.writeText(toCopy)
+      feedback.success('Link copiado.')
     } catch {
-      alert('Não foi possível copiar. Copie o link manualmente.')
+      feedback.error('Não foi possível copiar. Copie o link manualmente.')
     }
   }
 
@@ -61,9 +66,10 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
       })
     : registryTenantIds
   const overviewOnlyIds = overviewList.map((o) => o.tenant_id).filter((tid) => !registryByTenant[tid]).sort()
-  const linkForSlug = (slug: string) => `${baseUrl}?org=${encodeURIComponent(slug)}`
-  const denunciaLinkForSlug = (slug: string) => `${baseUrl}?org=${encodeURIComponent(slug)}&channel=denuncia`
+  const linkForSlug = (slug: string) => buildDiagnosticOrgUrl(baseUrl, slug)
+  const denunciaLinkForSlug = (slug: string) => buildDenunciaUrl(baseUrl, slug, 'hub')
   const displayNameFor = (tid: string) => registryByTenant[tid]?.display_name?.trim() || tid
+  const telemetry = useMemo(() => getTelemetrySummary(), [overviewList.length, registryList.length])
 
   const emailBody = (slug: string, isDenuncia: boolean) => {
     const link = isDenuncia ? denunciaLinkForSlug(slug) : linkForSlug(slug)
@@ -85,21 +91,30 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     try {
       await updateTenantRegistry(tid, { active: !item.active })
       loadOverview()
+      logAdminAuditAction({ action: item.active ? 'tenant_collection_closed' : 'tenant_collection_reopened', tenantId: tid })
+      feedback.success(item.active ? 'Coleta encerrada.' : 'Coleta reaberta.')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Não foi possível atualizar.')
+      feedback.error(err instanceof Error ? err.message : 'Não foi possível atualizar.')
     } finally {
       setTogglingTenant(null)
     }
   }
 
   const handleRemoveFromList = async (tid: string) => {
-    if (!window.confirm('Remover esta empresa da lista? Os dados já enviados continuarão disponíveis.')) return
+    const ok = await feedback.confirm({
+      title: 'Excluir da lista',
+      message: 'Remover esta empresa da lista? Os dados já enviados continuarão disponíveis.',
+      confirmLabel: 'Remover',
+    })
+    if (!ok) return
     setRemovingTenant(tid)
     try {
       await deleteTenantFromRegistry(tid)
       await loadOverview()
+      logAdminAuditAction({ action: 'tenant_removed_from_dashboard', tenantId: tid })
+      feedback.success('Empresa removida da lista.')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Não foi possível remover.')
+      feedback.error(err instanceof Error ? err.message : 'Não foi possível remover.')
     } finally {
       setRemovingTenant(null)
     }
@@ -107,13 +122,21 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
 
   const handleEditDisplayName = async (tid: string) => {
     const current = registryByTenant[tid]?.display_name ?? tid
-    const newName = window.prompt('Nome amigável da empresa:', current)
+    const newName = await feedback.promptText({
+      title: 'Editar nome amigável',
+      message: 'Informe como esta empresa deve aparecer no painel.',
+      defaultValue: current,
+      placeholder: 'Nome da empresa',
+      confirmLabel: 'Salvar',
+    })
     if (newName === null) return
     try {
       await updateTenantRegistry(tid, { display_name: newName.trim() || null })
       loadOverview()
+      logAdminAuditAction({ action: 'tenant_display_name_updated', tenantId: tid })
+      feedback.success('Nome atualizado.')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Não foi possível atualizar.')
+      feedback.error(err instanceof Error ? err.message : 'Não foi possível atualizar.')
     }
   }
 
@@ -136,19 +159,19 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
     const canvas = getQrCanvas(tid)
     if (!canvas) return
     if (!navigator.clipboard || typeof ClipboardItem === 'undefined') {
-      alert('Seu navegador não suporta copiar imagem. Use o botão de baixar.')
+      feedback.info('Seu navegador não suporta copiar imagem. Use o botão de baixar.')
       return
     }
     const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'))
     if (!blob) {
-      alert('Não foi possível gerar a imagem do QR Code.')
+      feedback.error('Não foi possível gerar a imagem do QR Code.')
       return
     }
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-      alert('QR Code copiado como imagem.')
+      feedback.success('QR Code copiado como imagem.')
     } catch {
-      alert('Não foi possível copiar a imagem. Use o botão de baixar.')
+      feedback.error('Não foi possível copiar a imagem. Use o botão de baixar.')
     }
   }
 
@@ -164,6 +187,16 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
       clearInterval(interval)
       window.removeEventListener('focus', onFocus)
     }
+  }, [])
+
+  useEffect(() => {
+    getSupabase()
+      .auth
+      .getSession()
+      .then(({ data }) => {
+        const email = data.session?.user.email?.toLowerCase().trim()
+        setCanViewTelemetry(email === 'leonardo.marques@bismarchipires.com.br')
+      })
   }, [])
 
   const handleLogout = async () => {
@@ -211,6 +244,33 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
       </div>
 
       {/* Visão geral: todas as empresas e links */}
+      {canViewTelemetry && (
+        <div className="rounded-2xl border border-[var(--color-brand-200)] bg-white p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-[var(--color-brand-900)]">Funil (local)</h3>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Eventos de conversão e abandono coletados no front-end para diagnóstico inicial.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-50)]/55 p-3">
+              <p className="text-xs text-[var(--muted-foreground)]">CTA landing</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--color-brand-900)]">{telemetry.byName.landing_cta_click ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-50)]/55 p-3">
+              <p className="text-xs text-[var(--muted-foreground)]">Envios concluídos</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--color-brand-900)]">
+                {(telemetry.byName.diagnostico_submit_success ?? 0) + (telemetry.byName.denuncia_submit_success ?? 0)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-50)]/55 p-3">
+              <p className="text-xs text-[var(--muted-foreground)]">Abandonos</p>
+              <p className="mt-1 text-2xl font-semibold text-[var(--color-brand-900)]">
+                {(telemetry.byName.diagnostico_abandon ?? 0) + (telemetry.byName.denuncia_abandon ?? 0)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-2xl border border-[var(--color-brand-200)] bg-white p-6 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="flex items-center gap-2 text-lg font-semibold text-slate-900">
@@ -449,8 +509,10 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                         try {
                           await addTenantToRegistry(tid)
                           await loadOverview()
+                          logAdminAuditAction({ action: 'tenant_added_to_dashboard', tenantId: tid })
+                          feedback.success('Empresa adicionada à lista.')
                         } catch (e) {
-                          alert(e instanceof Error ? e.message : 'Erro ao adicionar.')
+                          feedback.error(e instanceof Error ? e.message : 'Erro ao adicionar.')
                         }
                       }}
                       className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"

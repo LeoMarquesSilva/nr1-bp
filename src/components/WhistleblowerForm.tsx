@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Shield, ChevronDown, ChevronUp, Lock, UserCircle, Paperclip, ChevronRight, ChevronLeft } from 'lucide-react'
-import { saveWhistleblowerReport } from '../types/whistleblower'
+import { saveWhistleblowerReport } from '../services/api'
 import {
   RELACAO_DENUNCIADO,
   CATEGORIAS_DENUNCIA,
@@ -11,10 +11,30 @@ import {
   DENUNCIA_FIELD_HELP,
   WIZARD_STEPS,
 } from '../data/denunciaForm'
+import { clearDraft, loadDraft, saveDraft } from '../lib/draft'
+import { getTenantId } from '../lib/tenant'
+import { feedback } from '../lib/feedback'
+import { trackEvent } from '../lib/telemetry'
+import { assertClientRateLimit, isLikelyBotHoneyPot } from '../lib/antiAbuse'
+import { createCaptchaChallenge, isCaptchaValid } from '../lib/captcha'
 
 type Props = {
   onEnviado: (protocolId: string, meta: { isAnonymous: boolean }) => void
   onConsultar?: () => void
+}
+
+type WhistleblowerDraft = {
+  step: number
+  isAnonymous: boolean
+  subject: string
+  accusedRelationship: string
+  complaintCategory: string
+  complainantGender: string
+  incidentDate: string
+  locationHasCamera: 'sim' | 'nao' | ''
+  body: string
+  reporterName: string
+  reporterContact: string
 }
 
 const inputCls =
@@ -49,6 +69,10 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
 
   const [submitting, setSubmitting] = useState(false)
   const [compromissoAberto, setCompromissoAberto] = useState(false)
+  const [tenantId] = useState(() => getTenantId())
+  const [websiteField, setWebsiteField] = useState('')
+  const [captcha] = useState(() => createCaptchaChallenge())
+  const [captchaInput, setCaptchaInput] = useState('')
 
   const totalSteps = WIZARD_STEPS.length
   const progressPct = ((step + 1) / totalSteps) * 100
@@ -56,6 +80,75 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
   useEffect(() => {
     setStepError(null)
   }, [step])
+
+  useEffect(() => {
+    trackEvent({
+      name: 'denuncia_step_view',
+      flow: 'denuncia',
+      tenantId,
+      step: `etapa_${step + 1}`,
+    })
+  }, [step, tenantId])
+
+  useEffect(() => {
+    const draft = loadDraft<WhistleblowerDraft>('denuncia', tenantId)
+    if (!draft) return
+    setStep(Math.min(Math.max(draft.step ?? 0, 0), WIZARD_STEPS.length - 1))
+    setIsAnonymous(draft.isAnonymous ?? true)
+    setSubject(draft.subject ?? '')
+    setAccusedRelationship(draft.accusedRelationship ?? '')
+    setComplaintCategory(draft.complaintCategory ?? '')
+    setComplainantGender(draft.complainantGender ?? '')
+    setIncidentDate(draft.incidentDate ?? '')
+    setLocationHasCamera(draft.locationHasCamera ?? '')
+    setBody(draft.body ?? '')
+    setReporterName(draft.reporterName ?? '')
+    setReporterContact(draft.reporterContact ?? '')
+  }, [tenantId])
+
+  useEffect(() => {
+    if (submitting) return
+    const hasAnyData =
+      subject.trim().length > 0 ||
+      accusedRelationship.length > 0 ||
+      complaintCategory.length > 0 ||
+      complainantGender.length > 0 ||
+      incidentDate.length > 0 ||
+      locationHasCamera.length > 0 ||
+      body.trim().length > 0 ||
+      reporterName.trim().length > 0 ||
+      reporterContact.trim().length > 0
+
+    if (!hasAnyData) return
+
+    saveDraft<WhistleblowerDraft>('denuncia', tenantId, {
+      step,
+      isAnonymous,
+      subject,
+      accusedRelationship,
+      complaintCategory,
+      complainantGender,
+      incidentDate,
+      locationHasCamera,
+      body,
+      reporterName,
+      reporterContact,
+    })
+  }, [
+    accusedRelationship,
+    body,
+    complaintCategory,
+    complainantGender,
+    incidentDate,
+    isAnonymous,
+    locationHasCamera,
+    reporterContact,
+    reporterName,
+    step,
+    subject,
+    submitting,
+    tenantId,
+  ])
 
   const validateStep = (s: number): boolean => {
     switch (s) {
@@ -143,6 +236,26 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
     e.preventDefault()
     if (step !== totalSteps - 1) return
     if (!canSubmit || !locationHasCamera) return
+    if (!isCaptchaValid(captchaInput, captcha)) {
+      feedback.error('Validação humana inválida. Confira o cálculo e tente novamente.')
+      return
+    }
+    if (isLikelyBotHoneyPot(websiteField)) {
+      feedback.error('Não foi possível enviar no momento.')
+      return
+    }
+    try {
+      assertClientRateLimit({
+        action: 'denuncia_submit',
+        tenantId,
+        maxAttempts: 6,
+        windowMs: 15 * 60 * 1000,
+        message: 'Muitas tentativas de envio em pouco tempo. Aguarde alguns minutos e tente novamente.',
+      })
+    } catch (err) {
+      feedback.error(err instanceof Error ? err.message : 'Muitas tentativas. Tente novamente mais tarde.')
+      return
+    }
     setSubmitting(true)
 
     try {
@@ -159,13 +272,51 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
         reporterContact: isAnonymous ? undefined : reporterContact,
         evidenceFiles: evidenceFiles.length > 0 ? evidenceFiles : undefined,
       })
+      clearDraft('denuncia', tenantId)
       onEnviado(protocolId, { isAnonymous })
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Não foi possível enviar.')
+      trackEvent({
+        name: 'api_error',
+        flow: 'denuncia',
+        tenantId,
+        step: 'submit',
+        meta: { message: err instanceof Error ? err.message : 'erro_desconhecido' },
+      })
+      feedback.error(err instanceof Error ? err.message : 'Não foi possível enviar.')
     } finally {
       setSubmitting(false)
     }
   }
+
+  const isDirty =
+    !submitting &&
+    (subject.trim().length > 0 ||
+      accusedRelationship.length > 0 ||
+      complaintCategory.length > 0 ||
+      complainantGender.length > 0 ||
+      incidentDate.length > 0 ||
+      locationHasCamera.length > 0 ||
+      body.trim().length > 0 ||
+      reporterName.trim().length > 0 ||
+      reporterContact.trim().length > 0 ||
+      evidenceFiles.length > 0)
+
+  useEffect(() => {
+    if (!isDirty) return
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    const onPageHide = () => {
+      trackEvent({ name: 'denuncia_abandon', flow: 'denuncia', tenantId, step: `etapa_${step + 1}` })
+    }
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [isDirty, step, tenantId])
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 font-reading text-base leading-relaxed">
@@ -247,6 +398,27 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
         </p>
 
         <form noValidate onSubmit={handleSubmit} className="space-y-5">
+          <input
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={websiteField}
+            onChange={(e) => setWebsiteField(e.target.value)}
+            className="hidden"
+            aria-hidden
+          />
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/50 p-3">
+            <label className="block text-sm font-semibold text-[var(--color-brand-900)]">Verificação humana</label>
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">{captcha.label}</p>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={captchaInput}
+              onChange={(e) => setCaptchaInput(e.target.value)}
+              className={`${inputCls} mt-2`}
+              placeholder="Digite o resultado"
+            />
+          </div>
           {step === 0 && (
             <>
               <Helper>{DENUNCIA_FIELD_HELP.identification}</Helper>

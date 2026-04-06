@@ -1,6 +1,7 @@
 import type { OptionKey } from '../data/hseIt'
 import { getSupabase } from '../lib/supabase'
 import { getTenantId } from '../lib/tenant'
+import type { Database } from './database'
 
 export interface Submission {
   id: string
@@ -10,20 +11,15 @@ export interface Submission {
   submittedAt: string // ISO
 }
 
-interface SubmissionRow {
-  id: string
-  setor: string
-  funcao: string
-  answers: Record<number, OptionKey>
-  submitted_at: string
-}
+type SubmissionRow = Database['public']['Tables']['submissions']['Row']
+type SubmissionSelectedRow = Omit<SubmissionRow, 'tenant_id'>
 
-function rowToSubmission(row: SubmissionRow): Submission {
+function rowToSubmission(row: SubmissionSelectedRow): Submission {
   return {
     id: row.id,
     setor: row.setor,
     funcao: row.funcao ?? '',
-    answers: row.answers,
+    answers: row.answers as Record<number, OptionKey>,
     submittedAt: row.submitted_at,
   }
 }
@@ -36,7 +32,7 @@ export async function getTenantList(): Promise<string[]> {
     console.error('Supabase getTenantList:', error)
     return []
   }
-  return (data ?? []).map((r: { tenant_id: string }) => r.tenant_id)
+  return (data ?? []).map((r) => r.tenant_id)
 }
 
 export interface TenantOverviewItem {
@@ -58,7 +54,11 @@ export async function getTenantOverview(): Promise<TenantOverviewItem[]> {
     console.error('Supabase getTenantOverview:', error)
     return []
   }
-  return (data ?? []) as TenantOverviewItem[]
+  return (data ?? []).map((row) => ({
+    tenant_id: row.tenant_id,
+    submission_count: row.submission_count,
+    last_submitted_at: row.last_submitted_at,
+  }))
 }
 
 export interface TenantRegistryItem {
@@ -74,7 +74,9 @@ export interface TenantRegistryItem {
 /** Busca pública de organizações por nome ou slug (para página "Fazer relato" → selecionar empresa). */
 export async function searchOrganizations(query: string): Promise<{ tenant_id: string; display_name: string | null }[]> {
   const supabase = getSupabase()
-  const { data, error } = await supabase.rpc('search_organizations', { p_query: query.trim() })
+  const normalized = query.trim().slice(0, 80)
+  if (normalized.length < 2) return []
+  const { data, error } = await supabase.rpc('search_organizations', { p_query: normalized })
   if (error) {
     console.error('Supabase search_organizations:', error)
     return []
@@ -228,7 +230,7 @@ export async function getSubmissions(tenantId?: string): Promise<Submission[]> {
     console.error('Supabase getSubmissions:', error)
     return []
   }
-  return (data ?? []).map(rowToSubmission)
+  return ((data ?? []) as SubmissionSelectedRow[]).map(rowToSubmission)
 }
 
 export async function saveSubmission(

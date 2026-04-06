@@ -2,14 +2,16 @@ import { useState, useEffect } from 'react'
 import { Building2, Plus, Pencil, Loader2, Trash2 } from 'lucide-react'
 import {
   getTenantRegistry,
+  logAdminAuditAction,
   upsertTenantRegistry,
   deleteTenantFromRegistry,
   type TenantRegistryItem,
   type TenantGroupCnpj,
-} from '@/types/submission'
+} from '@/services/api'
 import { slugify, maskCnpj, formatCnpjDisplay } from '@/lib/masks'
 import { SETORES } from '@/data/opcoes'
 import { cn } from '@/lib/utils'
+import { feedback } from '@/lib/feedback'
 
 const NICHOS = [
   'Indústria',
@@ -201,6 +203,7 @@ export function AdminEmpresas() {
       })
       startNew()
       await load()
+      logAdminAuditAction({ action: editing ? 'tenant_registry_updated' : 'tenant_registry_created', tenantId: slug })
       setFormSuccess('Empresa salva com sucesso. Ela já aparece na lista ao lado e no dashboard.')
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Erro ao salvar.')
@@ -210,13 +213,20 @@ export function AdminEmpresas() {
   }
 
   const handleDelete = async (tid: string) => {
-    if (!window.confirm('Remover esta empresa do registro? Os envios já feitos continuam no sistema.')) return
+    const ok = await feedback.confirm({
+      title: 'Excluir do registro',
+      message: 'Remover esta empresa do registro? Os envios já feitos continuam no sistema.',
+      confirmLabel: 'Excluir',
+    })
+    if (!ok) return
     try {
       await deleteTenantFromRegistry(tid)
       if (editing?.tenant_id === tid) startNew()
       load()
+      logAdminAuditAction({ action: 'tenant_registry_deleted', tenantId: tid })
+      feedback.success('Empresa removida do registro.')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erro ao remover.')
+      feedback.error(err instanceof Error ? err.message : 'Erro ao remover.')
     }
   }
 

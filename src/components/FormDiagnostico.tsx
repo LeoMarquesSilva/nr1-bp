@@ -1,21 +1,23 @@
-import { useState, useRef, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, ClipboardList, Send, Shuffle } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { ChevronLeft, ChevronRight, ClipboardList, Send } from 'lucide-react'
 import { QUESTIONS, OPTIONS, DIMENSION_DESCRIPTIONS, type OptionKey, type Question } from '../data/hseIt'
-
-const OPTION_KEYS: OptionKey[] = ['nunca', 'raramente', 'as_vezes', 'frequentemente', 'sempre']
-
-function preencherAleatorio(): { answers: Record<number, OptionKey> } {
-  const answers: Record<number, OptionKey> = {}
-  for (const q of QUESTIONS) {
-    answers[q.id] = OPTION_KEYS[Math.floor(Math.random() * OPTION_KEYS.length)]
-  }
-  return { answers }
-}
+import { getTenantId } from '../lib/tenant'
+import { clearDraft, loadDraft, saveDraft } from '../lib/draft'
+import { trackEvent } from '../lib/telemetry'
+import { assertClientRateLimit } from '../lib/antiAbuse'
+import { feedback } from '../lib/feedback'
+import { createCaptchaChallenge, isCaptchaValid } from '../lib/captcha'
 
 type Props = {
   setor: string
   onSubmit: (answers: Record<number, OptionKey>, setor: string) => void | Promise<void>
   initialAnswers?: Record<number, OptionKey>
+}
+
+type DiagnosticoDraft = {
+  setor: string
+  answers: Record<number, OptionKey>
+  currentGroup: number
 }
 
 /** Card de superfície alinhado ao PageShell (faixa accent + gradiente claro). */
@@ -26,7 +28,11 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
   const [answers, setAnswers] = useState<Record<number, OptionKey>>(initialAnswers)
   const [currentGroup, setCurrentGroup] = useState(0)
   const [submitting, setSubmitting] = useState(false)
+  const [captcha] = useState(() => createCaptchaChallenge())
+  const [captchaInput, setCaptchaInput] = useState('')
   const sectionRef = useRef<HTMLDivElement>(null)
+  const tenantId = useMemo(() => getTenantId(), [])
+  const hasInitialAnswers = Object.keys(initialAnswers).length > 0
 
   const groups = QUESTIONS.reduce<Question[][]>((acc, q) => {
     const last = acc[acc.length - 1]
@@ -50,9 +56,26 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!allAnswered || submitting) return
+    if (!isCaptchaValid(captchaInput, captcha)) {
+      feedback.error('Validação humana inválida. Confira o cálculo e tente novamente.')
+      return
+    }
+    try {
+      assertClientRateLimit({
+        action: 'diagnostico_submit',
+        tenantId,
+        maxAttempts: 4,
+        windowMs: 10 * 60 * 1000,
+        message: 'Muitas tentativas de envio em pouco tempo. Aguarde alguns minutos.',
+      })
+    } catch (err) {
+      feedback.error(err instanceof Error ? err.message : 'Muitas tentativas. Aguarde e tente novamente.')
+      return
+    }
     setSubmitting(true)
     try {
       await onSubmit(answers, setor)
+      clearDraft('diagnostico', tenantId)
     } finally {
       setSubmitting(false)
     }
@@ -70,11 +93,57 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [currentGroup])
 
-  const handlePreencherAleatorio = () => {
-    const { answers: randomAnswers } = preencherAleatorio()
-    setAnswers(randomAnswers)
-    setCurrentGroup(groups.length - 1)
-  }
+  useEffect(() => {
+    trackEvent({
+      name: 'diagnostico_step_view',
+      flow: 'diagnostico',
+      tenantId,
+      step: `dimensao_${currentGroup + 1}`,
+      meta: { answered: totalAnswered, total: QUESTIONS.length },
+    })
+  }, [currentGroup, tenantId, totalAnswered])
+
+  useEffect(() => {
+    if (hasInitialAnswers) return
+    const draft = loadDraft<DiagnosticoDraft>('diagnostico', tenantId)
+    if (!draft || draft.setor !== setor) return
+    setAnswers(draft.answers ?? {})
+    setCurrentGroup(Math.min(Math.max(draft.currentGroup ?? 0, 0), groups.length - 1))
+  }, [groups.length, hasInitialAnswers, setor, tenantId])
+
+  useEffect(() => {
+    if (submitting) return
+    if (Object.keys(answers).length === 0) return
+    saveDraft<DiagnosticoDraft>('diagnostico', tenantId, {
+      setor,
+      answers,
+      currentGroup,
+    })
+  }, [answers, currentGroup, setor, submitting, tenantId])
+
+  const isDirty = Object.keys(answers).length > 0 && !submitting
+  useEffect(() => {
+    if (!isDirty) return
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    const onPageHide = () => {
+      trackEvent({
+        name: 'diagnostico_abandon',
+        flow: 'diagnostico',
+        tenantId,
+        step: `dimensao_${currentGroup + 1}`,
+        meta: { answered: totalAnswered },
+      })
+    }
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      window.removeEventListener('pagehide', onPageHide)
+    }
+  }, [currentGroup, isDirty, tenantId, totalAnswered])
 
   const questionsInGroup = groups[currentGroup]
   const dimensionLabel = questionsInGroup[0].dimensionLabel
@@ -88,14 +157,6 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
               <p className="text-sm font-semibold text-[var(--color-brand-900)]">
                 Setor: <span className="text-[var(--color-brand-700)]">{setor}</span>
               </p>
-              <button
-                type="button"
-                onClick={handlePreencherAleatorio}
-                className="inline-flex items-center gap-2 rounded-xl border-2 border-[var(--color-brand-300)] bg-[color-mix(in_srgb,var(--color-brand-cream)_35%,white)] px-3 py-2 text-sm font-semibold text-[var(--color-brand-800)] transition hover:border-[var(--color-brand-400)] hover:bg-[color-mix(in_srgb,var(--color-brand-cream)_50%,white)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-              >
-                <Shuffle className="h-4 w-4 shrink-0" aria-hidden />
-                Preencher aleatório (teste)
-              </button>
             </div>
           </div>
         )}
@@ -195,14 +256,28 @@ export function FormDiagnostico({ setor, onSubmit, initialAnswers = {} }: Props)
               <ChevronRight className="h-5 w-5 shrink-0" aria-hidden />
             </button>
           ) : (
-            <button
-              type="submit"
-              disabled={!allAnswered || submitting}
-              className="btn-escritorio inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold shadow-[var(--shadow-sm)] transition disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-            >
-              {submitting ? 'Enviando...' : 'Enviar diagnóstico'}
-              <Send className="h-5 w-5 shrink-0" aria-hidden />
-            </button>
+            <div className="ml-auto w-full max-w-md space-y-2">
+              <label className="block text-sm font-semibold text-[var(--color-brand-900)]">
+                Verificação humana
+              </label>
+              <p className="text-sm text-[var(--muted-foreground)]">{captcha.label}</p>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={captchaInput}
+                onChange={(e) => setCaptchaInput(e.target.value)}
+                className="w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--color-brand-900)]"
+                placeholder="Digite o resultado"
+              />
+              <button
+                type="submit"
+                disabled={!allAnswered || submitting}
+                className="btn-escritorio inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold shadow-[var(--shadow-sm)] transition disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
+              >
+                {submitting ? 'Enviando...' : 'Enviar diagnóstico'}
+                <Send className="h-5 w-5 shrink-0" aria-hidden />
+              </button>
+            </div>
           )}
         </div>
       </form>

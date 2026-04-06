@@ -1,13 +1,16 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { HealthqoeHeader } from './components/layout/header'
 import type { OptionKey } from './data/hseIt'
-import { saveSubmission, getTenantStatus } from './types/submission'
+import { saveSubmission, getTenantStatus, getTenantDisplayName } from './services/api'
 import { isAdminLoggedIn } from './lib/adminAuth'
 import { getAppName, getTenantId, isDiagnosticParticipantFlow, setTenantFromUrl } from './lib/tenant'
-import { getTenantDisplayName } from './types/submission'
 import { Footer } from './components/layout/Footer'
 import { getSeoDescriptionForView, getSeoTitleForView } from './lib/seo'
-import { getPathForView, getViewFromPath, isRoutableView, normalizePath } from './lib/routes'
+import { buildDenunciaUrl, getPathForView, getViewFromPath, isRoutableView, normalizePath } from './lib/routes'
+import { FeedbackHost } from './components/ui/FeedbackHost'
+import { feedback } from './lib/feedback'
+import { trackEvent } from './lib/telemetry'
+import { initGlobalErrorMonitoring } from './lib/observability'
 
 const Identificacao = lazy(() => import('./components/Identificacao').then((m) => ({ default: m.Identificacao })))
 const FormDiagnostico = lazy(() => import('./components/FormDiagnostico').then((m) => ({ default: m.FormDiagnostico })))
@@ -68,6 +71,7 @@ function App() {
   const [hubOrgDisplayName, setHubOrgDisplayName] = useState<string | null>(null)
 
   const handleIdentificacao = (setor: string) => {
+    trackEvent({ name: 'diagnostico_identificacao_start', flow: 'diagnostico', tenantId: getTenantId(), step: 'identificacao' })
     setIdentificacao({ setor })
     setView('form')
   }
@@ -75,11 +79,13 @@ function App() {
   const handleFormSubmit = async (answers: Record<number, OptionKey>, setor: string) => {
     try {
       await saveSubmission(setor, answers)
+      trackEvent({ name: 'diagnostico_submit_success', flow: 'diagnostico', tenantId: getTenantId(), step: 'submit' })
       setIdentificacao(null)
       setView('obrigado')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Não foi possível enviar. Tente novamente.'
-      alert(message)
+      trackEvent({ name: 'api_error', flow: 'diagnostico', tenantId: getTenantId(), step: 'submit', meta: { message } })
+      feedback.error(message)
     }
   }
 
@@ -97,6 +103,8 @@ function App() {
       setView((v) => (['identificacao', 'form', 'obrigado'].includes(v) ? v : 'identificacao'))
     }
   }, [])
+
+  useEffect(() => initGlobalErrorMonitoring(), [])
 
   useEffect(() => {
     const onPopState = () => {
@@ -125,6 +133,24 @@ function App() {
   }, [view])
 
   useEffect(() => {
+    trackEvent({
+      name: 'view_open',
+      flow:
+        view === 'landing'
+          ? 'landing'
+          : view.startsWith('denuncia')
+            ? 'denuncia'
+            : ['identificacao', 'form', 'obrigado'].includes(view)
+              ? 'diagnostico'
+              : view.startsWith('admin')
+                ? 'admin'
+                : undefined,
+      tenantId: getTenantId(),
+      step: view,
+    })
+  }, [view])
+
+  useEffect(() => {
     document.title = getSeoTitleForView(view)
     const metaDesc = document.querySelector('meta[name="description"]')
     if (metaDesc) metaDesc.setAttribute('content', getSeoDescriptionForView(view))
@@ -146,8 +172,9 @@ function App() {
   }, [view])
 
   const showNavAndAdmin = ['landing', 'relatos-buscar', 'identificacao', 'form', 'obrigado', 'sobre', 'privacidade', 'coleta-encerrada', 'denuncia-hub', 'denuncia', 'denuncia-obrigado', 'login', 'contato'].includes(view)
+  const showFooter = view !== 'obrigado'
 
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : ''
+  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://confiara.local/'
   const renderFallback = (
     <div className="flex min-h-[200px] items-center justify-center">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--color-brand-400)] border-t-transparent" />
@@ -175,13 +202,20 @@ function App() {
             <CanalRelatosHub
               orgSlug={getTenantId()}
               orgDisplayName={hubOrgDisplayName}
-              onEnviarDenuncia={() => { window.location.href = `${baseUrl}?org=${encodeURIComponent(getTenantId())}&channel=denuncia&form=1` }}
-              onAcompanharCodigo={() => { window.location.href = `${baseUrl}?org=${encodeURIComponent(getTenantId())}&channel=denuncia&consultar=1` }}
+              onEnviarDenuncia={() => {
+                trackEvent({ name: 'denuncia_flow_open', flow: 'denuncia', tenantId: getTenantId(), step: 'hub' })
+                window.location.href = buildDenunciaUrl(baseUrl, getTenantId(), 'form')
+              }}
+              onAcompanharCodigo={() => {
+                trackEvent({ name: 'denuncia_consulta_open', flow: 'denuncia', tenantId: getTenantId(), step: 'hub' })
+                window.location.href = buildDenunciaUrl(baseUrl, getTenantId(), 'consultar')
+              }}
             />
           )}
           {view === 'denuncia' && (
             <WhistleblowerForm
               onEnviado={(protocolId, meta) => {
+                trackEvent({ name: 'denuncia_submit_success', flow: 'denuncia', tenantId: getTenantId(), step: 'submit' })
                 setDenunciaProtocolId(protocolId)
                 setDenunciaFoiAnonima(meta.isAnonymous)
                 setView('denuncia-obrigado')
@@ -222,6 +256,7 @@ function App() {
 
   return (
     <div className="flow-brand-surface flex min-h-screen flex-col font-sans antialiased">
+      <FeedbackHost />
       {/*
         Header appearance: landing uses dark (aligns with full-bleed hero / landing-premium-bg).
         All other public views use light header on flow-brand-surface for readability and parity
@@ -245,7 +280,10 @@ function App() {
       >
         <Suspense fallback={renderFallback}>
         {view === 'landing' && (
-          <LandingPage onFazerRelato={() => setView('relatos-buscar')} />
+          <LandingPage onFazerRelato={() => {
+            trackEvent({ name: 'landing_cta_click', flow: 'landing', step: 'hero' })
+            setView('relatos-buscar')
+          }} />
         )}
 
         {view === 'relatos-buscar' && (
@@ -297,10 +335,12 @@ function App() {
         </Suspense>
       </main>
 
-      <Footer
-        onNavigate={(v) => setView(v as View)}
-        hideCanalDenunciaNav={isDiagnosticParticipantFlow()}
-      />
+      {showFooter && (
+        <Footer
+          onNavigate={(v) => setView(v as View)}
+          hideCanalDenunciaNav={isDiagnosticParticipantFlow()}
+        />
+      )}
     </div>
   )
 }

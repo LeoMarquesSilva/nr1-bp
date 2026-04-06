@@ -1,7 +1,10 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Search, Building2, ArrowRight, Loader2 } from 'lucide-react'
-import { searchOrganizations } from '../types/submission'
+import { searchOrganizations } from '../services/api'
 import { PageShell, PageShellCard } from './layout/PageShell'
+import { assertClientRateLimit } from '../lib/antiAbuse'
+import { getTenantId } from '../lib/tenant'
+import { feedback } from '../lib/feedback'
 
 type Props = {
   onVoltar: () => void
@@ -25,9 +28,21 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
 
   const doSearch = useCallback(async (q: string) => {
     const trimmed = q.trim()
-    if (!trimmed) {
+    if (!trimmed || trimmed.length < 2) {
       setResults([])
       setSearched(false)
+      return
+    }
+    try {
+      assertClientRateLimit({
+        action: 'search_organizations',
+        tenantId: getTenantId(),
+        maxAttempts: 30,
+        windowMs: 5 * 60 * 1000,
+        message: 'Muitas buscas em pouco tempo. Aguarde um instante e tente novamente.',
+      })
+    } catch (err) {
+      feedback.error(err instanceof Error ? err.message : 'Limite de buscas temporariamente atingido.')
       return
     }
     setLoading(true)

@@ -42,3 +42,22 @@ export function normalizePath(pathname: string): string {
   const trimmed = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
   return trimmed || '/'
 }
+
+export type DenunciaRouteMode = 'hub' | 'form' | 'consultar'
+
+export function buildDiagnosticOrgUrl(baseUrl: string, orgSlug: string): string {
+  const url = new URL(baseUrl)
+  url.search = ''
+  url.searchParams.set('org', orgSlug)
+  return url.toString()
+}
+
+export function buildDenunciaUrl(baseUrl: string, orgSlug: string, mode: DenunciaRouteMode): string {
+  const url = new URL(baseUrl)
+  url.search = ''
+  url.searchParams.set('org', orgSlug)
+  url.searchParams.set('channel', 'denuncia')
+  if (mode === 'form') url.searchParams.set('form', '1')
+  if (mode === 'consultar') url.searchParams.set('consultar', '1')
+  return url.toString()
+}
