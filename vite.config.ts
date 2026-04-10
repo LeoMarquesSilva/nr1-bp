@@ -14,7 +14,7 @@ function buildAbsoluteSeoBlock(originRaw: string): string {
     return '    <meta name="twitter:card" content="summary" />'
   }
   const abs = `${base}/`
-  const img = `${base}/logos/logo-horizontal-azul.png`
+  const img = `${base}/logos/elemento-azul.png`
   const graph = {
     '@context': 'https://schema.org',
     '@graph': [
