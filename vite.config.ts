@@ -14,7 +14,7 @@ function buildAbsoluteSeoBlock(originRaw: string): string {
     return '    <meta name="twitter:card" content="summary" />'
   }
   const abs = `${base}/`
-  const img = `${base}/android-chrome-512x512.png`
+  const img = `${base}/logos/logo-horizontal-azul.png`
   const graph = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -23,7 +23,7 @@ function buildAbsoluteSeoBlock(originRaw: string): string {
         '@id': `${abs}#organization`,
         name: 'Confiara',
         url: abs,
-        logo: `${base}/android-chrome-512x512.png`,
+        logo: img,
         email: 'contato@bismarchipires.com.br',
         telephone: '+5511900000000',
         address: {
@@ -49,8 +49,6 @@ function buildAbsoluteSeoBlock(originRaw: string): string {
     `<link rel="canonical" href="${abs}" />`,
     `<meta property="og:url" content="${abs}" />`,
     `<meta property="og:image" content="${img}" />`,
-    `<meta property="og:image:width" content="512" />`,
-    `<meta property="og:image:height" content="512" />`,
     `<meta property="og:image:alt" content="Confiara — identidade visual" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:image" content="${img}" />`,
