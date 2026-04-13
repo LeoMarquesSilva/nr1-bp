@@ -1,0 +1,8 @@
+# Gateway JWT check is incompatible with JWT Signing Keys (ES256); auth runs inside each function.
+# See: https://supabase.com/docs/guides/functions/auth
+
+[functions.create-admin-user]
+verify_jwt = false
+
+[functions.delete-admin-user]
+verify_jwt = false

@@ -43,13 +43,14 @@ serve(async (req) => {
       throw new HttpError(401, 'Cabeçalho Authorization não encontrado.')
     }
 
-    const supabaseAuthClient = createClient(
-      supabaseUrl,
-      Deno.env.get('SUPABASE_ANON_KEY') || '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
+    const jwt = authHeader.replace(/^Bearer\s+/i, '').trim()
+    if (!jwt) {
+      throw new HttpError(401, 'Token JWT ausente.')
+    }
 
-    const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser()
+    const supabaseAuthClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') || '')
+
+    const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser(jwt)
     if (authError || !user) {
       throw new HttpError(
         401,

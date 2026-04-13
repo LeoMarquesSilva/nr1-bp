@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Shield, ChevronDown, ChevronUp, Lock, UserCircle, Paperclip, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Send, Shield, Lock, UserCircle, Paperclip, ChevronRight, ChevronLeft } from 'lucide-react'
 import { saveWhistleblowerReport } from '../services/api'
 import {
   RELACAO_DENUNCIADO,
@@ -68,7 +68,6 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [submitting, setSubmitting] = useState(false)
-  const [compromissoAberto, setCompromissoAberto] = useState(false)
   const [tenantId] = useState(() => getTenantId())
   const [websiteField, setWebsiteField] = useState('')
   const [captcha] = useState(() => createCaptchaChallenge())
@@ -320,38 +319,6 @@ export function WhistleblowerForm({ onEnviado, onConsultar }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6 font-reading text-base leading-relaxed">
-      <div className="denuncia-glass-dark overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setCompromissoAberto((a) => !a)}
-          className="flex w-full items-center justify-between px-5 py-4 text-left text-white transition hover:bg-white/5"
-          aria-expanded={compromissoAberto}
-        >
-          <span className="text-sm font-semibold">Nosso compromisso</span>
-          {compromissoAberto ? (
-            <ChevronUp className="h-4 w-4 text-white/70" aria-hidden />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-white/70" aria-hidden />
-          )}
-        </button>
-        {compromissoAberto && (
-          <div className="space-y-3 border-t border-white/15 px-5 pb-5 pt-3 text-sm leading-relaxed text-[var(--color-brand-100)]">
-            <p>
-              <strong className="text-white">Código de ética e conduta</strong> já aplicável na organização.
-            </p>
-            <p>
-              <strong className="text-white">Política de não retaliação:</strong> denunciantes de boa-fé estão protegidos; não há represálias por uso deste canal.
-            </p>
-            <p>
-              <strong className="text-white">Treinamentos periódicos</strong> sobre assédio, bullying e comunicação não violenta, em conformidade com as melhores práticas.
-            </p>
-            <p>
-              As denúncias são tratadas por <strong className="text-white">comitê de ética</strong> (preferencialmente membros de setores distintos e não líderes), de forma auditável.
-            </p>
-          </div>
-        )}
-      </div>
-
       <div className="denuncia-glass-dark px-5 py-6 sm:px-6 sm:py-7">
         <div className="mb-5 flex items-center gap-3">
           <div className="brand-icon-tile h-11 w-11 rounded-xl">
