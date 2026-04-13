@@ -49,14 +49,14 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    // Pegar o token JWT diretamente em vez de getUser()
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser(token)
+    const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser()
     if (authError || !user) {
-      throw new HttpError(401, `Usuário não autenticado: ${authError?.message || 'Nenhum usuário encontrado'}`)
+      throw new HttpError(
+        401,
+        'Usuário não autenticado: ' + (authError?.message || 'Nenhum usuário encontrado')
+      )
     }
 
-    // Verificar se quem chama a função é um admin ativo
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
     const { data: callerProfile, error: callerError } = await supabaseAdmin
       .from('users')
@@ -68,7 +68,6 @@ serve(async (req) => {
       throw new HttpError(403, 'Acesso negado: Apenas administradores ativos podem excluir usuários.')
     }
 
-    // Extrair os dados da requisição
     const body = await req.json().catch(() => null)
     const { userId } = body ?? {}
     if (!userId) {
@@ -79,8 +78,6 @@ serve(async (req) => {
       throw new HttpError(400, 'Você não pode excluir a si mesmo.')
     }
 
-    // Deletar o usuário no Supabase Auth
-    // Isso também excluirá da tabela public.users devido à configuração ON DELETE CASCADE
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
     if (deleteError) {

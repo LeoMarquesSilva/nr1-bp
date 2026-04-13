@@ -1,7 +1,26 @@
 import { useState, useEffect } from 'react'
 import { Users, Plus, Loader2, Power, PowerOff, Trash2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { getSupabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
+
+async function messageFromFunctionError(error: unknown): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const body = await error.context.json()
+      if (body && typeof body === 'object' && 'error' in body && typeof (body as { error: unknown }).error === 'string') {
+        return (body as { error: string }).error
+      }
+      if (body && typeof body === 'object' && 'msg' in body && typeof (body as { msg: unknown }).msg === 'string') {
+        return (body as { msg: string }).msg
+      }
+    } catch {
+      /* resposta não-JSON do gateway */
+    }
+  }
+  if (error instanceof Error) return error.message
+  return 'Erro na requisição'
+}
 
 type AdminUser = {
   id: string
@@ -80,13 +99,10 @@ export function AdminUsuarios() {
 
       const { data, error } = await supabase.functions.invoke('create-admin-user', {
         body: form,
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`
-        }
       })
 
       if (error) {
-        throw new Error(error.message || 'Erro na requisição')
+        throw new Error(await messageFromFunctionError(error))
       }
 
       if (data?.error) {
@@ -158,13 +174,10 @@ export function AdminUsuarios() {
 
           const { data, error } = await supabase.functions.invoke('delete-admin-user', {
             body: { userId: user.auth_id },
-            headers: {
-              Authorization: `Bearer ${sessionData.session.access_token}`
-            }
           })
 
           if (error) {
-            throw new Error(error.message || 'Erro na requisição')
+            throw new Error(await messageFromFunctionError(error))
           }
 
           if (data?.error) {

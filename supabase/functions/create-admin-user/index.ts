@@ -49,11 +49,12 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     )
 
-    // Pegar o token JWT diretamente em vez de getUser()
-    const token = authHeader.replace('Bearer ', '')
-    const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser(token)
+    const { data: { user }, error: authError } = await supabaseAuthClient.auth.getUser()
     if (authError || !user) {
-      throw new HttpError(401, `Usuário não autenticado: ${authError?.message || 'Nenhum usuário encontrado'}`)
+      throw new HttpError(
+        401,
+        'Usuário não autenticado: ' + (authError?.message || 'Nenhum usuário encontrado')
+      )
     }
 
     // Verificar se quem chama a função é um admin ativo
