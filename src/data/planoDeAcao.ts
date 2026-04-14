@@ -71,16 +71,23 @@ function parseRiskBlocks(block: string): Partial<Record<RiskLevelKey, string>> {
 export function parsePlanoDeAcaoMd(md: string): PlanoDeAcaoMap {
   const map = {} as PlanoDeAcaoMap
   const dimensionBlockRegex = /PLANO DE AÇÃO – DIMENSÃO:\s*([^\n(]+)/gi
-  const blocks: { name: string; start: number }[] = []
+  /** `headerIndex` = início do cabeçalho; `contentStart` = após o cabeçalho da dimensão (fim do match). */
+  const blocks: { name: string; headerIndex: number; contentStart: number }[] = []
   let match: RegExpExecArray | null
   while ((match = dimensionBlockRegex.exec(md)) !== null) {
-    blocks.push({ name: match[1].trim(), start: match.index + match[0].length })
+    blocks.push({
+      name: match[1].trim(),
+      headerIndex: match.index,
+      contentStart: match.index + match[0].length,
+    })
   }
 
   for (let i = 0; i < blocks.length; i++) {
     const dimName = blocks[i].name
-    const start = blocks[i].start
-    const end = blocks[i + 1]?.start ?? md.length
+    const start = blocks[i].contentStart
+    // Cortar no início do próximo cabeçalho de dimensão — não no fim da linha do próximo cabeçalho,
+    // senão a linha "PLANO DE AÇÃO – DIMENSÃO: …" seguinte entra no último bloco de risco.
+    const end = blocks[i + 1]?.headerIndex ?? md.length
     const blockContent = md.slice(start, end)
     const dimensionId = normalizeDimensionName(dimName)
     if (!dimensionId) continue
