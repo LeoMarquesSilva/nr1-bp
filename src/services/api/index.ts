@@ -10,6 +10,7 @@ export {
   getTenantRegistry,
   getTenantSetores,
   getTenantStatus,
+  getTenantWhistleblowerStatus,
   saveSubmission,
   searchOrganizations,
   updateTenantRegistry,

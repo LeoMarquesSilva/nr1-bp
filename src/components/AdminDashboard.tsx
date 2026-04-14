@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { ArrowLeft, LogOut, Building2, Trash2, Loader2, Link2, Copy, RefreshCw, Mail, Ban, RotateCcw, Pencil, Shield, QrCode, Download } from 'lucide-react'
+import { ArrowLeft, LogOut, Building2, Trash2, Loader2, Link2, Copy, RefreshCw, Mail, Ban, RotateCcw, Pencil, QrCode, Download, ToggleLeft, ToggleRight } from 'lucide-react'
 import { getTenantRegistry, getTenantOverview, addTenantToRegistry, updateTenantRegistry, deleteTenantFromRegistry, logAdminAuditAction, type TenantOverviewItem, type TenantRegistryItem } from '../services/api'
 import { logoutAdmin } from '../lib/adminAuth'
 import { getSupabase } from '../lib/supabase'
@@ -27,6 +27,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
   const [registryList, setRegistryList] = useState<TenantRegistryItem[]>([])
   const [overviewLoading, setOverviewLoading] = useState(true)
   const [togglingTenant, setTogglingTenant] = useState<string | null>(null)
+  const [togglingWhistleblowerTenant, setTogglingWhistleblowerTenant] = useState<string | null>(null)
   const [removingTenant, setRemovingTenant] = useState<string | null>(null)
   const [qrTenantId, setQrTenantId] = useState<string | null>(null)
   const [qrMode, setQrMode] = useState<'diagnostico' | 'denuncia'>('diagnostico')
@@ -97,6 +98,21 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
       feedback.error(err instanceof Error ? err.message : 'Não foi possível atualizar.')
     } finally {
       setTogglingTenant(null)
+    }
+  }
+
+  const handleToggleWhistleblower = async (tid: string) => {
+    const item = registryByTenant[tid]
+    if (!item) return
+    setTogglingWhistleblowerTenant(tid)
+    try {
+      await updateTenantRegistry(tid, { whistleblower_enabled: !item.whistleblower_enabled })
+      loadOverview()
+      feedback.success(item.whistleblower_enabled ? 'Canal de denúncias desativado.' : 'Canal de denúncias ativado.')
+    } catch (err) {
+      feedback.error(err instanceof Error ? err.message : 'Não foi possível atualizar.')
+    } finally {
+      setTogglingWhistleblowerTenant(null)
     }
   }
 
@@ -309,6 +325,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
               const registry = registryByTenant[tid]
               const link = linkForSlug(tid)
               const isActive = registry?.active ?? true
+              const isWhistleblowerEnabled = registry?.whistleblower_enabled ?? true
               return (
                 <li
                   key={tid}
@@ -327,11 +344,26 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                           >
                             <Pencil className="h-3.5 w-3.5" />
                           </button>
-                          {!isActive && (
-                            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-                              Encerrada
-                            </span>
-                          )}
+                          <span
+                            className={
+                              isActive
+                                ? 'rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800'
+                                : 'rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800'
+                            }
+                            title="Coleta de diagnóstico (HSE)"
+                          >
+                            Coleta {isActive ? 'aberta' : 'encerrada'}
+                          </span>
+                          <span
+                            className={
+                              isWhistleblowerEnabled
+                                ? 'rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800'
+                                : 'rounded-full bg-slate-200 px-2.5 py-0.5 text-xs font-medium text-slate-700'
+                            }
+                            title="Canal de denúncias"
+                          >
+                            Denúncias {isWhistleblowerEnabled ? 'ativas' : 'off'}
+                          </span>
                         </>
                       )}
                     </div>
@@ -368,7 +400,7 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                       className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-slate-900"
                       title="Copiar link do canal de denúncias"
                     >
-                      <Shield className="h-4 w-4" />
+                      <Copy className="h-4 w-4" />
                     </button>
                     <button
                       type="button"
@@ -387,10 +419,41 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                           type="button"
                           onClick={() => handleToggleActive(tid)}
                           disabled={togglingTenant === tid}
-                          className="rounded-lg p-2 text-slate-500 transition hover:bg-white hover:text-slate-900 disabled:opacity-50"
-                          title={isActive ? 'Encerrar coleta' : 'Reabrir coleta'}
+                          className={`rounded-lg p-2 transition hover:bg-white disabled:opacity-50 ${
+                            isActive
+                              ? 'text-emerald-600 hover:text-emerald-800'
+                              : 'text-amber-600 hover:text-amber-800'
+                          }`}
+                          title={
+                            isActive
+                              ? 'Coleta de diagnóstico aberta — clique para encerrar'
+                              : 'Coleta de diagnóstico encerrada — clique para reabrir'
+                          }
                         >
                           {togglingTenant === tid ? <Loader2 className="h-4 w-4 animate-spin" /> : isActive ? <Ban className="h-4 w-4" /> : <RotateCcw className="h-4 w-4" />}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleWhistleblower(tid)}
+                          disabled={togglingWhistleblowerTenant === tid}
+                          className={`rounded-lg p-2 transition hover:bg-white disabled:opacity-50 ${
+                            isWhistleblowerEnabled
+                              ? 'text-emerald-600 hover:text-emerald-800'
+                              : 'text-slate-500 hover:text-slate-900'
+                          }`}
+                          title={
+                            isWhistleblowerEnabled
+                              ? 'Canal de denúncias ativo — clique para desativar'
+                              : 'Canal de denúncias desativado — clique para ativar'
+                          }
+                        >
+                          {togglingWhistleblowerTenant === tid ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : isWhistleblowerEnabled ? (
+                            <ToggleRight className="h-4 w-4" aria-hidden />
+                          ) : (
+                            <ToggleLeft className="h-4 w-4" aria-hidden />
+                          )}
                         </button>
                         <button
                           type="button"

@@ -65,6 +65,7 @@ export interface TenantRegistryItem {
   tenant_id: string
   display_name: string | null
   active: boolean
+  whistleblower_enabled: boolean
   cnpj?: string | null
   cnpjs?: Array<string | TenantGroupCnpj>
   nicho?: string | null
@@ -92,16 +93,17 @@ export async function getTenantRegistry(): Promise<TenantRegistryItem[]> {
   const supabase = getSupabase()
   const { data, error } = await supabase
     .from('tenant_registry')
-    .select('tenant_id, display_name, active, cnpj, cnpjs, nicho, setores')
+    .select('tenant_id, display_name, active, whistleblower_enabled, cnpj, cnpjs, nicho, setores')
     .order('created_at', { ascending: false })
   if (error) {
     console.error('Supabase getTenantRegistry:', error)
     return []
   }
-  return (data ?? []).map((r: { tenant_id: string; display_name: string | null; active: boolean; cnpj?: string | null; cnpjs?: unknown; nicho?: string | null; setores?: unknown }) => ({
+  return (data ?? []).map((r: { tenant_id: string; display_name: string | null; active: boolean; whistleblower_enabled?: boolean; cnpj?: string | null; cnpjs?: unknown; nicho?: string | null; setores?: unknown }) => ({
     tenant_id: r.tenant_id,
     display_name: r.display_name ?? null,
     active: r.active ?? true,
+    whistleblower_enabled: r.whistleblower_enabled ?? true,
     cnpj: r.cnpj ?? null,
     cnpjs: Array.isArray(r.cnpjs)
       ? (r.cnpjs as unknown[]).filter((entry) => {
@@ -114,6 +116,17 @@ export async function getTenantRegistry(): Promise<TenantRegistryItem[]> {
     nicho: r.nicho ?? null,
     setores: Array.isArray(r.setores) ? (r.setores as string[]) : [],
   }))
+}
+
+/** Verifica se o canal de denúncias está habilitado para o tenant. */
+export async function getTenantWhistleblowerStatus(tenantId: string): Promise<{ enabled: boolean }> {
+  const supabase = getSupabase()
+  const { data } = await supabase
+    .from('tenant_registry')
+    .select('whistleblower_enabled')
+    .eq('tenant_id', tenantId.trim().toLowerCase())
+    .maybeSingle()
+  return { enabled: data?.whistleblower_enabled ?? true }
 }
 
 /** Retorna o display_name do tenant (para exibir no hub do canal de relatos). */
@@ -141,7 +154,7 @@ export async function getTenantStatus(tenantId: string): Promise<{ active: boole
 /** Atualiza registro (nome e/ou ativo). */
 export async function updateTenantRegistry(
   tenantId: string,
-  updates: { display_name?: string | null; active?: boolean }
+  updates: { display_name?: string | null; active?: boolean; whistleblower_enabled?: boolean }
 ): Promise<void> {
   const supabase = getSupabase()
   const { error } = await supabase
@@ -193,6 +206,7 @@ export async function upsertTenantRegistry(payload: {
   tenant_id: string
   display_name?: string | null
   active?: boolean
+  whistleblower_enabled?: boolean
   cnpj?: string | null
   cnpjs?: Array<string | TenantGroupCnpj>
   nicho?: string | null
@@ -209,6 +223,7 @@ export async function upsertTenantRegistry(payload: {
     p_cnpjs: Array.isArray(payload.cnpjs) ? payload.cnpjs : [],
     p_nicho: payload.nicho?.trim() || null,
     p_setores: Array.isArray(payload.setores) ? payload.setores : [],
+    p_whistleblower_enabled: payload.whistleblower_enabled ?? true,
   })
   if (error) {
     console.error('Supabase upsertTenantRegistry:', error)

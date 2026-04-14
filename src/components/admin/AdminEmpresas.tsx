@@ -34,6 +34,7 @@ const NICHOS = [
 type FormState = {
   tenant_id: string
   display_name: string
+  whistleblower_enabled: boolean
   cnpj: string
   cnpjs: TenantGroupCnpj[]
   nicho: string
@@ -43,6 +44,7 @@ type FormState = {
 const emptyForm: FormState = {
   tenant_id: '',
   display_name: '',
+  whistleblower_enabled: true,
   cnpj: '',
   cnpjs: [],
   nicho: '',
@@ -108,6 +110,7 @@ export function AdminEmpresas() {
     setForm({
       tenant_id: item.tenant_id,
       display_name: item.display_name ?? '',
+      whistleblower_enabled: item.whistleblower_enabled ?? true,
       cnpj: cnpjDisplay,
       cnpjs: normalizeGroupCnpjs(item.cnpjs),
       nicho: item.nicho ?? '',
@@ -196,6 +199,7 @@ export function AdminEmpresas() {
       await upsertTenantRegistry({
         tenant_id: slug,
         display_name: form.display_name || null,
+        whistleblower_enabled: form.whistleblower_enabled,
         cnpj: cnpjRaw.length === 14 ? form.cnpj : null,
         cnpjs: filteredCnpjs,
         nicho: form.nicho || null,
@@ -340,6 +344,22 @@ export function AdminEmpresas() {
               <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                 Gerado automaticamente pelo sistema a partir do nome de exibição.
               </p>
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
+              <label className="flex items-start gap-3 text-sm text-[var(--color-brand-700)]">
+                <input
+                  type="checkbox"
+                  checked={form.whistleblower_enabled}
+                  onChange={(e) => setForm((f) => ({ ...f, whistleblower_enabled: e.target.checked }))}
+                  className="mt-0.5 h-4 w-4 rounded border-[var(--color-brand-300)] text-[var(--color-brand-700)] focus:ring-[var(--color-brand-300)]"
+                />
+                <span>
+                  <span className="block font-medium text-slate-800">Disponibilizar canal de denúncias</span>
+                  <span className="block text-xs text-slate-500">
+                    Quando desmarcado, a empresa não aparece na busca pública e o link do canal fica indisponível.
+                  </span>
+                </span>
+              </label>
             </div>
             <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label htmlFor="emp-cnpj" className="mb-1 block text-sm font-medium text-slate-700">

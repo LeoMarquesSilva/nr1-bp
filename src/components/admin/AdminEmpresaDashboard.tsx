@@ -121,6 +121,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
   const [linkCopied, setLinkCopied] = useState<'diagnostico' | 'denuncia' | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [toggling, setToggling] = useState(false)
+  const [togglingWhistleblower, setTogglingWhistleblower] = useState(false)
 
   const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : ''
   const linkDiagnostico = `${baseUrl}?org=${encodeURIComponent(tenantId)}`
@@ -180,6 +181,19 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
     }
   }
 
+  const handleToggleWhistleblower = async () => {
+    if (!registry) return
+    setTogglingWhistleblower(true)
+    try {
+      await updateTenantRegistry(tenantId, { whistleblower_enabled: !registry.whistleblower_enabled })
+      await loadBaseData()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Não foi possível atualizar.')
+    } finally {
+      setTogglingWhistleblower(false)
+    }
+  }
+
   const handleExcluir = async () => {
     if (!registry) return
     if (!window.confirm(`Excluir "${displayName}" do registro? Os envios já feitos continuam no sistema.`)) return
@@ -228,6 +242,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
   const displayName = registry?.display_name?.trim() || tenantId
   const hasRegistry = registry != null
   const isActive = registry?.active ?? true
+  const isWhistleblowerEnabled = registry?.whistleblower_enabled ?? true
 
   if (selectedGroup && selectedGroup.length > 0) {
     const first = selectedGroup[0]
@@ -683,6 +698,11 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                     <p className="mb-2 text-sm font-semibold text-slate-900">Canal de Denúncias</p>
                     <div className="flex flex-col gap-2">
                       <code className="text-xs text-slate-600 break-all bg-white p-2 rounded border border-slate-200">{linkDenuncia}</code>
+                      {!isWhistleblowerEnabled && (
+                        <p className="text-xs text-amber-700">
+                          Canal desativado para esta empresa. Ative nas ações abaixo para liberar o acesso.
+                        </p>
+                      )}
                       <button
                         type="button"
                         onClick={() => copyLink(linkDenuncia, 'denuncia')}
@@ -718,6 +738,21 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
 
                   <button
                     type="button"
+                    onClick={handleToggleWhistleblower}
+                    disabled={togglingWhistleblower}
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50",
+                      isWhistleblowerEnabled
+                        ? "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                        : "border-green-200 bg-green-50 text-green-700 hover:bg-green-100"
+                    )}
+                  >
+                    {togglingWhistleblower ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                    {isWhistleblowerEnabled ? 'Desativar canal de denúncias' : 'Ativar canal de denúncias'}
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={handleExcluir}
                     disabled={deleting}
                     className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:opacity-50"
@@ -727,7 +762,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                   </button>
                 </div>
                 <p className="mt-3 text-sm text-slate-500 max-w-2xl">
-                  Ao excluir do registro, a empresa não aparecerá mais nas listas do painel. Os diagnósticos e denúncias já enviados <strong>permanecem no banco de dados</strong>.
+                  Encerrar coleta afeta apenas o diagnóstico. O botão do canal controla somente denúncias. Ao excluir do registro, a empresa não aparecerá mais nas listas do painel; os dados já enviados <strong>permanecem no banco de dados</strong>.
                 </p>
               </div>
             )}

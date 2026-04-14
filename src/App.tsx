@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { HealthqoeHeader } from './components/layout/header'
 import type { OptionKey } from './data/hseIt'
-import { saveSubmission, getTenantStatus, getTenantDisplayName } from './services/api'
+import { saveSubmission, getTenantStatus, getTenantDisplayName, getTenantWhistleblowerStatus } from './services/api'
 import { isAdminLoggedIn } from './lib/adminAuth'
 import { getAppName, getTenantId, isDiagnosticParticipantFlow, setTenantFromUrl } from './lib/tenant'
 import { Footer } from './components/layout/Footer'
@@ -69,6 +69,7 @@ function App() {
   const [denunciaProtocolId, setDenunciaProtocolId] = useState<string | null>(null)
   const [denunciaFoiAnonima, setDenunciaFoiAnonima] = useState(true)
   const [hubOrgDisplayName, setHubOrgDisplayName] = useState<string | null>(null)
+  const [whistleblowerEnabled, setWhistleblowerEnabled] = useState<boolean | null>(null)
 
   const handleIdentificacao = (setor: string) => {
     trackEvent({ name: 'diagnostico_identificacao_start', flow: 'diagnostico', tenantId: getTenantId(), step: 'identificacao' })
@@ -130,6 +131,12 @@ function App() {
   useEffect(() => {
     if (view !== 'denuncia-hub') return
     getTenantDisplayName(getTenantId()).then(setHubOrgDisplayName)
+  }, [view])
+
+  useEffect(() => {
+    if (!['denuncia-hub', 'denuncia'].includes(view)) return
+    setWhistleblowerEnabled(null)
+    getTenantWhistleblowerStatus(getTenantId()).then((status) => setWhistleblowerEnabled(status.enabled))
   }, [view])
 
   useEffect(() => {
@@ -198,7 +205,23 @@ function App() {
         <div className="denuncia-flow-canvas px-4 py-10 sm:px-6 sm:py-14">
           <main className="mx-auto w-full max-w-2xl">
           <Suspense fallback={renderFallback}>
-          {view === 'denuncia-hub' && (
+          {['denuncia-hub', 'denuncia'].includes(view) && whistleblowerEnabled === null && renderFallback}
+          {['denuncia-hub', 'denuncia'].includes(view) && whistleblowerEnabled === false && (
+            <div className="rounded-2xl border border-white/20 bg-white/10 p-8 text-center text-white backdrop-blur-md sm:p-10">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Canal indisponível</h1>
+              <p className="mx-auto mt-4 max-w-lg text-sm text-[var(--color-brand-100)] sm:text-base">
+                O canal de denúncias desta organização está desativado no momento. Se você recebeu este link por engano, solicite atualização ao responsável da empresa.
+              </p>
+              <button
+                type="button"
+                onClick={() => { window.location.href = window.location.origin + (window.location.pathname || '/') }}
+                className="mt-7 inline-flex rounded-full border border-white/30 bg-white/15 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/25"
+              >
+                Voltar ao site
+              </button>
+            </div>
+          )}
+          {view === 'denuncia-hub' && whistleblowerEnabled === true && (
             <CanalRelatosHub
               orgSlug={getTenantId()}
               orgDisplayName={hubOrgDisplayName}
@@ -212,7 +235,7 @@ function App() {
               }}
             />
           )}
-          {view === 'denuncia' && (
+          {view === 'denuncia' && whistleblowerEnabled === true && (
             <WhistleblowerForm
               onEnviado={(protocolId, meta) => {
                 trackEvent({ name: 'denuncia_submit_success', flow: 'denuncia', tenantId: getTenantId(), step: 'submit' })

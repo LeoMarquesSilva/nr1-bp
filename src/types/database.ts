@@ -63,6 +63,7 @@ export type Database = {
           tenant_id: string
           display_name: string | null
           active: boolean
+          whistleblower_enabled: boolean
           cnpj: string | null
           cnpjs: Json
           nicho: string | null
@@ -73,6 +74,7 @@ export type Database = {
           tenant_id: string
           display_name?: string | null
           active?: boolean
+          whistleblower_enabled?: boolean
           cnpj?: string | null
           cnpjs?: Json
           nicho?: string | null
@@ -83,6 +85,7 @@ export type Database = {
           tenant_id?: string
           display_name?: string | null
           active?: boolean
+          whistleblower_enabled?: boolean
           cnpj?: string | null
           cnpjs?: Json
           nicho?: string | null
@@ -210,6 +213,7 @@ export type Database = {
           p_cnpjs?: Json
           p_nicho?: string
           p_setores?: Json
+          p_whistleblower_enabled?: boolean
         }
         Returns: undefined
       }
