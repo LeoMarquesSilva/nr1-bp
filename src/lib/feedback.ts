@@ -56,10 +56,24 @@ export const feedback = {
     emit('toast', { kind: 'info', message })
   },
   confirm(payload: ConfirmPayload): Promise<boolean> {
-    return new Promise((resolve) => emit('confirm', payload, resolve))
+    return new Promise((resolve) => {
+      if (listeners.confirm.size === 0) {
+        const ok = window.confirm(`${payload.title}\n\n${payload.message}`)
+        resolve(ok)
+        return
+      }
+      emit('confirm', payload, resolve)
+    })
   },
   promptText(payload: PromptPayload): Promise<string | null> {
-    return new Promise((resolve) => emit('prompt', payload, resolve))
+    return new Promise((resolve) => {
+      if (listeners.prompt.size === 0) {
+        const value = window.prompt(`${payload.title}\n${payload.message}`, payload.defaultValue ?? '')
+        resolve(value === null ? null : value)
+        return
+      }
+      emit('prompt', payload, resolve)
+    })
   },
 }
 

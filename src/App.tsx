@@ -1,7 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
 import { HealthqoeHeader } from './components/layout/header'
 import type { OptionKey } from './data/hseIt'
-import { saveSubmission, getTenantStatus, getTenantDisplayName, getTenantWhistleblowerStatus } from './services/api'
+import { saveSubmission, getTenantStatus, getTenantPublicBranding, getTenantWhistleblowerStatus } from './services/api'
 import { isAdminLoggedIn } from './lib/adminAuth'
 import { getAppName, getTenantId, isDiagnosticParticipantFlow, setTenantFromUrl } from './lib/tenant'
 import { Footer } from './components/layout/Footer'
@@ -69,6 +69,7 @@ function App() {
   const [denunciaProtocolId, setDenunciaProtocolId] = useState<string | null>(null)
   const [denunciaFoiAnonima, setDenunciaFoiAnonima] = useState(true)
   const [hubOrgDisplayName, setHubOrgDisplayName] = useState<string | null>(null)
+  const [hubOrgLogoUrl, setHubOrgLogoUrl] = useState<string | null>(null)
   const [whistleblowerEnabled, setWhistleblowerEnabled] = useState<boolean | null>(null)
 
   const handleIdentificacao = (setor: string) => {
@@ -130,7 +131,10 @@ function App() {
 
   useEffect(() => {
     if (view !== 'denuncia-hub') return
-    getTenantDisplayName(getTenantId()).then(setHubOrgDisplayName)
+    getTenantPublicBranding(getTenantId()).then((b) => {
+      setHubOrgDisplayName(b.display_name)
+      setHubOrgLogoUrl(b.logo_url)
+    })
   }, [view])
 
   useEffect(() => {
@@ -191,6 +195,7 @@ function App() {
   if (view === 'admin') {
     return (
       <div className="app-bg min-h-screen font-sans antialiased">
+        <FeedbackHost />
         <Suspense fallback={renderFallback}>
           <AdminLayout onClose={closeAdmin} onLogout={handleAdminLogout} />
         </Suspense>
@@ -225,6 +230,7 @@ function App() {
             <CanalRelatosHub
               orgSlug={getTenantId()}
               orgDisplayName={hubOrgDisplayName}
+              orgLogoUrl={hubOrgLogoUrl}
               onEnviarDenuncia={() => {
                 trackEvent({ name: 'denuncia_flow_open', flow: 'denuncia', tenantId: getTenantId(), step: 'hub' })
                 window.location.href = buildDenunciaUrl(baseUrl, getTenantId(), 'form')

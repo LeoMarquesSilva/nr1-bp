@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { Search, Building2, ArrowRight, Loader2 } from 'lucide-react'
-import { searchOrganizations } from '../services/api'
+import { searchOrganizations, type OrganizationSearchHit } from '../services/api'
+import { TenantLogoAvatar } from './TenantLogoAvatar'
 import { PageShell, PageShellCard } from './layout/PageShell'
 import { assertClientRateLimit } from '../lib/antiAbuse'
 import { getTenantId } from '../lib/tenant'
@@ -22,7 +23,7 @@ function buildCanalUrl(tenantId: string, form?: boolean, consultar?: boolean): s
 
 export function RelatosBuscarEmpresa({ onVoltar }: Props) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<{ tenant_id: string; display_name: string | null }[]>([])
+  const [results, setResults] = useState<OrganizationSearchHit[]>([])
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
 
@@ -125,7 +126,11 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
                       className="flex w-full items-center gap-3 rounded-xl border border-[var(--border)] bg-white px-4 py-3.5 text-left transition hover:border-[var(--color-brand-300)] hover:bg-[var(--color-brand-50)]/60 focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:ring-offset-2"
                       role="option"
                     >
-                      <Building2 className="h-5 w-5 shrink-0 text-[var(--color-brand-500)]" aria-hidden />
+                      <TenantLogoAvatar
+                        logoUrl={org.logo_url}
+                        label={org.display_name || org.tenant_id}
+                        size="md"
+                      />
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-[var(--color-brand-900)]">
                           {org.display_name || org.tenant_id}

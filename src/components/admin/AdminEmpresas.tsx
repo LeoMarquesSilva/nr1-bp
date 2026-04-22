@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Building2, Plus, Pencil, Loader2, Trash2 } from 'lucide-react'
+import { Building2, Plus, Pencil, Loader2, Trash2, ImageUp } from 'lucide-react'
 import {
   getTenantRegistry,
   logAdminAuditAction,
@@ -12,6 +12,8 @@ import { slugify, maskCnpj, formatCnpjDisplay } from '@/lib/masks'
 import { SETORES } from '@/data/opcoes'
 import { cn } from '@/lib/utils'
 import { feedback } from '@/lib/feedback'
+import { uploadTenantLogoFile, normalizeTenantLogoUrl } from '@/lib/tenantLogoStorage'
+import { TenantLogoAvatar } from '@/components/TenantLogoAvatar'
 
 const NICHOS = [
   'Indústria',
@@ -35,6 +37,7 @@ type FormState = {
   tenant_id: string
   display_name: string
   whistleblower_enabled: boolean
+  logo_url: string
   cnpj: string
   cnpjs: TenantGroupCnpj[]
   nicho: string
@@ -45,6 +48,7 @@ const emptyForm: FormState = {
   tenant_id: '',
   display_name: '',
   whistleblower_enabled: true,
+  logo_url: '',
   cnpj: '',
   cnpjs: [],
   nicho: '',
@@ -82,6 +86,7 @@ export function AdminEmpresas() {
   const [newRazaoSocial, setNewRazaoSocial] = useState('')
   const [formError, setFormError] = useState('')
   const [formSuccess, setFormSuccess] = useState('')
+  const [logoUploading, setLogoUploading] = useState(false)
   const canAddGroupCnpj = maskCnpj(newCnpj).raw.length === 14 && newRazaoSocial.trim().length > 0
 
   const load = () => {
@@ -111,6 +116,7 @@ export function AdminEmpresas() {
       tenant_id: item.tenant_id,
       display_name: item.display_name ?? '',
       whistleblower_enabled: item.whistleblower_enabled ?? true,
+      logo_url: item.logo_url ?? '',
       cnpj: cnpjDisplay,
       cnpjs: normalizeGroupCnpjs(item.cnpjs),
       nicho: item.nicho ?? '',
@@ -169,11 +175,34 @@ export function AdminEmpresas() {
     setForm((f) => ({ ...f, setores: f.setores.filter((_, i) => i !== index) }))
   }
 
+  const computedSlug = editing ? form.tenant_id : slugify(form.display_name)
+
+  const handleLogoFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    const slug = computedSlug.trim().toLowerCase()
+    if (!slug) {
+      feedback.error('Informe o nome de exibição para gerar o identificador antes de enviar a imagem.')
+      return
+    }
+    setLogoUploading(true)
+    try {
+      const url = await uploadTenantLogoFile(slug, file)
+      setForm((f) => ({ ...f, logo_url: url }))
+      feedback.success('Imagem enviada. Clique em Salvar para gravar no cadastro.')
+    } catch (err) {
+      feedback.error(err instanceof Error ? err.message : 'Falha ao enviar a imagem.')
+    } finally {
+      setLogoUploading(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
     setFormSuccess('')
-    const slug = (editing ? form.tenant_id : slugify(form.display_name)).trim().toLowerCase()
+    const slug = computedSlug.trim().toLowerCase()
     if (!slug) {
       setFormError('Informe um nome de exibição válido para gerar o identificador.')
       return
@@ -183,11 +212,21 @@ export function AdminEmpresas() {
       const cnpjRaw = form.cnpj.replace(/\D/g, '')
       if (form.cnpj && cnpjRaw.length !== 14) {
         setFormError('CNPJ principal inválido. Use o formato 00.000.000/0000-00.')
+        setSaving(false)
         return
       }
       const hasMissingRazao = form.cnpjs.some((c) => c.cnpj.replace(/\D/g, '').length === 14 && !c.razao_social.trim())
       if (hasMissingRazao) {
         setFormError('Preencha a razão social de todos os CNPJs adicionais.')
+        setSaving(false)
+        return
+      }
+      let logoUrl: string | null
+      try {
+        logoUrl = normalizeTenantLogoUrl(form.logo_url)
+      } catch (err) {
+        setFormError(err instanceof Error ? err.message : 'URL da logo inválida.')
+        setSaving(false)
         return
       }
       const filteredCnpjs = form.cnpjs
@@ -200,6 +239,7 @@ export function AdminEmpresas() {
         tenant_id: slug,
         display_name: form.display_name || null,
         whistleblower_enabled: form.whistleblower_enabled,
+        logo_url: logoUrl,
         cnpj: cnpjRaw.length === 14 ? form.cnpj : null,
         cnpjs: filteredCnpjs,
         nicho: form.nicho || null,
@@ -233,8 +273,6 @@ export function AdminEmpresas() {
       feedback.error(err instanceof Error ? err.message : 'Erro ao remover.')
     }
   }
-
-  const computedSlug = editing ? form.tenant_id : slugify(form.display_name)
 
   return (
     <div className="space-y-8">
@@ -276,9 +314,16 @@ export function AdminEmpresas() {
                       : 'hover:border-[var(--color-brand-200)]'
                   )}
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-[var(--color-brand-900)] truncate">{item.display_name || item.tenant_id}</p>
-                    <p className="text-xs text-[var(--muted-foreground)] truncate">{item.tenant_id}</p>
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <TenantLogoAvatar
+                      logoUrl={item.logo_url}
+                      label={item.display_name || item.tenant_id}
+                      size="sm"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-[var(--color-brand-900)] truncate">{item.display_name || item.tenant_id}</p>
+                      <p className="text-xs text-[var(--muted-foreground)] truncate">{item.tenant_id}</p>
+                    </div>
                   </div>
                   <div className="flex shrink-0 gap-1">
                     <button
@@ -360,6 +405,55 @@ export function AdminEmpresas() {
                   </span>
                 </span>
               </label>
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
+              <label htmlFor="emp-logo-url" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
+                Logomarca (opcional)
+              </label>
+              <p className="mb-3 text-xs text-[var(--muted-foreground)]">
+                Cole uma URL <code className="rounded bg-white px-1">https://…</code> ou envie uma imagem (máx. 2 MB). Aparece na lista do painel, na busca de denúncias e no hub da empresa.
+              </p>
+              <div className="flex flex-wrap items-start gap-4">
+                <TenantLogoAvatar
+                  logoUrl={form.logo_url || null}
+                  label={form.display_name || computedSlug || 'Empresa'}
+                  size="lg"
+                  rounded="xl"
+                />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <input
+                    id="emp-logo-url"
+                    type="url"
+                    inputMode="url"
+                    value={form.logo_url}
+                    onChange={(e) => setForm((f) => ({ ...f, logo_url: e.target.value }))}
+                    placeholder="https://exemplo.com/logo.png"
+                    className="input-escritorio w-full rounded-xl border border-[var(--color-brand-200)] bg-white px-4 py-2.5 text-sm focus:border-[var(--color-brand-400)] focus:ring-[var(--color-brand-200)]"
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[var(--color-brand-200)] bg-white px-3 py-2 text-sm font-medium text-[var(--color-brand-700)] transition hover:bg-[var(--color-brand-50)]">
+                      <ImageUp className="h-4 w-4" aria-hidden />
+                      {logoUploading ? 'Enviando…' : 'Enviar imagem'}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+                        className="sr-only"
+                        disabled={logoUploading || saving}
+                        onChange={handleLogoFile}
+                      />
+                    </label>
+                    {form.logo_url.trim() !== '' && (
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, logo_url: '' }))}
+                        className="text-sm font-medium text-slate-600 underline decoration-slate-300 hover:text-slate-900"
+                      >
+                        Limpar logo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="rounded-xl border border-[var(--border)] bg-[var(--color-brand-50)]/40 p-4">
               <label htmlFor="emp-cnpj" className="mb-1 block text-sm font-medium text-slate-700">

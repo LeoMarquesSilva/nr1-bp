@@ -1,23 +1,29 @@
 import { MessageSquarePlus, FileQuestion, ArrowRight, Shield } from 'lucide-react'
+import { TenantLogoAvatar } from './TenantLogoAvatar'
 import { PageShell, PageShellCard } from './layout/PageShell'
 
 type Props = {
   orgSlug: string
   orgDisplayName?: string | null
+  orgLogoUrl?: string | null
   onEnviarDenuncia: () => void
   onAcompanharCodigo: () => void
 }
 
-export function CanalRelatosHub({ orgSlug, orgDisplayName, onEnviarDenuncia, onAcompanharCodigo }: Props) {
+export function CanalRelatosHub({ orgSlug, orgDisplayName, orgLogoUrl, onEnviarDenuncia, onAcompanharCodigo }: Props) {
   const orgName = orgDisplayName || orgSlug
 
   return (
     <PageShell maxWidth="narrow" className="space-y-8" surface="onGradient">
       <PageShellCard padding="lg" surface="onGradient">
         <div className="flex items-center gap-3">
-          <div className="brand-icon-tile h-12 w-12 rounded-xl">
-            <Shield className="h-6 w-6" aria-hidden />
-          </div>
+          {orgLogoUrl?.trim() ? (
+            <TenantLogoAvatar logoUrl={orgLogoUrl} label={orgName} size="lg" rounded="xl" />
+          ) : (
+            <div className="brand-icon-tile h-12 w-12 rounded-xl">
+              <Shield className="h-6 w-6" aria-hidden />
+            </div>
+          )}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-brand-600)]">
               Canal de denúncia

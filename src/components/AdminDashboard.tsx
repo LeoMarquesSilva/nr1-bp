@@ -7,6 +7,7 @@ import { QRCodeCanvas } from 'qrcode.react'
 import { feedback } from '../lib/feedback'
 import { getTelemetrySummary } from '../lib/telemetry'
 import { buildDenunciaUrl, buildDiagnosticOrgUrl } from '../lib/routes'
+import { TenantLogoAvatar } from './TenantLogoAvatar'
 
 type Props = {
   onClose: () => void
@@ -331,6 +332,12 @@ export function AdminDashboard({ onClose, onLogout, hideHeaderActions, searchQue
                   key={tid}
                   className={`flex flex-wrap items-center gap-4 rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-50)]/50 p-4 transition-colors hover:border-[var(--color-brand-300)] hover:bg-[var(--color-brand-50)] ${!isActive ? 'opacity-85' : ''}`}
                 >
+                  <TenantLogoAvatar
+                    logoUrl={registry?.logo_url}
+                    label={displayNameFor(tid)}
+                    size="md"
+                    className="shrink-0 self-center"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold text-slate-900 text-lg">{displayNameFor(tid)}</p>

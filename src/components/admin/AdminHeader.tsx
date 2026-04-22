@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { Search } from 'lucide-react'
+import { TenantLogoAvatar } from '@/components/TenantLogoAvatar'
 import type { AdminPage } from './AdminSidebar'
 
 const PAGE_TITLES: Record<AdminPage, string> = {
@@ -10,7 +11,7 @@ const PAGE_TITLES: Record<AdminPage, string> = {
   usuarios: 'Usuários',
 }
 
-type SearchResult = { tenant_id: string; display_name: string }
+type SearchResult = { tenant_id: string; display_name: string; logo_url?: string | null }
 
 type AdminHeaderProps = {
   page: AdminPage
@@ -97,10 +98,13 @@ export function AdminHeader({
                     type="button"
                     role="option"
                     onClick={() => onSelectSearchResult?.(c.tenant_id)}
-                    className="flex w-full flex-col items-start gap-0.5 px-3 py-2.5 text-left text-sm transition hover:bg-[var(--color-brand-50)] focus:bg-[var(--color-brand-50)] focus:outline-none"
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition hover:bg-[var(--color-brand-50)] focus:bg-[var(--color-brand-50)] focus:outline-none"
                   >
-                    <span className="font-medium text-[var(--color-brand-900)]">{c.display_name}</span>
-                    <span className="text-xs text-[var(--muted-foreground)] font-mono">{c.tenant_id}</span>
+                    <TenantLogoAvatar logoUrl={c.logo_url} label={c.display_name} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <span className="block font-medium text-[var(--color-brand-900)]">{c.display_name}</span>
+                      <span className="block text-xs text-[var(--muted-foreground)] font-mono">{c.tenant_id}</span>
+                    </div>
                   </button>
                 ))
               )}

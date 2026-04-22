@@ -14,8 +14,8 @@ import {
   Cell,
   ReferenceLine,
 } from 'recharts'
-import { useRef, useState, useCallback, type RefObject } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { useRef, useState, useCallback, type ReactNode, type RefObject } from 'react'
+import { Download, Loader2 } from 'lucide-react'
 import type { DimensionSummary } from '../data/hseIt'
 import { getRiskLevel, RISK_LEVELS } from '../data/riskLevels'
 
@@ -41,10 +41,13 @@ const NOMES_CURTOS: Record<string, string> = {
   comunicacao_mudancas: 'Comunicação',
 }
 
+const CHART_SHELL_CLASS =
+  'relative mt-4 h-[320px] w-full min-h-[320px] min-w-0 sm:h-[360px] sm:min-h-[360px]'
+
 type Props = {
   scores: DimensionSummary[]
-  /** Se true, mostra botão para copiar gráfico como imagem */
-  showCopyChart?: boolean
+  /** Se true, mostra botão para baixar o gráfico como PNG */
+  showDownloadChart?: boolean
 }
 
 function ordenarScores(scores: DimensionSummary[]): DimensionSummary[] {
@@ -58,101 +61,64 @@ function corPorMedia(media: number): string {
   return getRiskLevel(media).hex
 }
 
-export function GraficosResultados({ scores, showCopyChart = false }: Props) {
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
+export function GraficosResultados({ scores, showDownloadChart = false }: Props) {
   const ordenados = ordenarScores(scores)
   const radarRef = useRef<HTMLDivElement>(null)
   const barrasRef = useRef<HTMLDivElement>(null)
-  const [copying, setCopying] = useState<'radar' | 'barras' | null>(null)
+  const [exporting, setExporting] = useState<'radar' | 'barras' | null>(null)
 
-  const copyChartAsImage = useCallback(async (ref: RefObject<HTMLDivElement | null>) => {
+  const downloadChartAsPng = useCallback(async (ref: RefObject<HTMLDivElement | null>, filename: string) => {
     const el = ref.current
     if (!el) return
-
-    const downloadBlob = (blob: Blob) => {
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'grafico-diagnostico.png'
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
-    }
 
     try {
       await new Promise<void>((resolve) => {
         requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
       })
-      await new Promise((r) => setTimeout(r, 200))
+      await new Promise((r) => setTimeout(r, 250))
 
-      const { default: html2canvas } = await import('html2canvas')
-      const baseOpts = {
-        useCORS: true,
-        scale: 2,
-        backgroundColor: '#f7f9fc',
-        logging: false,
-        allowTaint: false,
-        imageTimeout: 15000,
-      }
-
-      let canvas: HTMLCanvasElement
-      try {
-        canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: true })
-      } catch {
-        canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: false })
-      }
-
-      const blob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), 'image/png', 1)
+      // html2canvas não rasteriza bem SVG (Recharts); html-to-image usa caminho via SVG/canvas adequado.
+      const { toBlob } = await import('html-to-image')
+      const blob = await toBlob(el, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#f8fafc',
       })
 
       if (!blob) {
         throw new Error('Falha ao gerar PNG do gráfico.')
       }
 
-      const canWriteImage =
-        typeof navigator !== 'undefined' &&
-        typeof ClipboardItem !== 'undefined' &&
-        !!navigator.clipboard?.write
-
-      if (canWriteImage) {
-        try {
-          // ClipboardItem aceita Promise<Blob> (ex.: Safari); Promise.resolve mantém o mesmo contrato.
-          await navigator.clipboard.write([
-            new ClipboardItem({
-              'image/png': Promise.resolve(blob),
-            }),
-          ])
-          setTimeout(() => setCopying(null), 2500)
-          return
-        } catch (e) {
-          console.warn('clipboard.write (imagem) falhou, usando download', e)
-        }
-      }
-
-      downloadBlob(blob)
-      setCopying(null)
-      alert(
-        canWriteImage
-          ? 'A cópia para a área de transferência não está disponível. O gráfico foi baixado como imagem.'
-          : 'Seu navegador não suporta copiar imagem. O gráfico foi baixado como arquivo PNG.'
-      )
+      downloadBlob(blob, filename)
     } catch (err) {
-      setCopying(null)
       console.error(err)
       alert(
         'Não foi possível gerar a imagem do gráfico. Tente outro navegador, use HTTPS (ou localhost) ou use captura de tela.'
       )
+    } finally {
+      setExporting(null)
     }
   }, [])
 
-  const handleCopyRadar = () => {
-    setCopying('radar')
-    copyChartAsImage(radarRef)
+  const handleDownloadRadar = () => {
+    setExporting('radar')
+    void downloadChartAsPng(radarRef, 'grafico-radar-diagnostico.png')
   }
-  const handleCopyBarras = () => {
-    setCopying('barras')
-    copyChartAsImage(barrasRef)
+
+  const handleDownloadBarras = () => {
+    setExporting('barras')
+    void downloadChartAsPng(barrasRef, 'grafico-barras-diagnostico.png')
   }
 
   const dadosRadar = ordenados.map((d) => ({
@@ -167,81 +133,87 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
     cor: corPorMedia(d.average),
   }))
 
+  const responsiveWrap = (chart: ReactNode) => (
+    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280} debounce={50}>
+      {chart}
+    </ResponsiveContainer>
+  )
+
   return (
-    <div className="space-y-8">
+    <div className="w-full min-w-0 space-y-8">
       {/* Radar: perfil das 7 dimensões (padrão HSE) */}
-      <div className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div ref={radarRef} className="min-w-0 flex-1">
+      <div className="bg-card-escritorio w-full min-w-0 rounded-2xl p-6 shadow-sm">
+        <div className="flex w-full min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div ref={radarRef} className="min-w-0 w-full sm:flex-1 sm:basis-0">
             <h3 className="text-lg font-semibold text-escritorio">
               Perfil por dimensão (radar)
             </h3>
             <p className="mt-1 text-sm text-escritorio opacity-80">
               Quanto mais próximo de 5, melhor a dimensão. Escala 1–5.
             </p>
-            <div className="mt-4 h-[320px] w-full sm:h-[360px]">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className={CHART_SHELL_CLASS}>
+              {responsiveWrap(
                 <RadarChart data={dadosRadar} margin={{ top: 20, right: 30, bottom: 20, left: 20 }}>
-              <PolarGrid stroke="rgba(4,12,30,0.14)" />
-              <PolarAngleAxis
-                dataKey="subject"
-                tick={{ fill: '#040c1e', fontSize: 11 }}
-                tickLine={false}
-              />
-              <PolarRadiusAxis
-                angle={90}
-                domain={[0, 5]}
-                tick={{ fill: '#040c1e', fontSize: 10 }}
-              />
-              <Radar
-                name="Média"
-                dataKey="media"
-                stroke="#5b88b2"
-                fill="#5b88b2"
-                fillOpacity={0.4}
-                strokeWidth={2}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: '10px',
-                  border: '1px solid rgba(4,12,30,0.1)',
-                  background: '#f7f9fc',
-                  color: '#040c1e',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
-                }}
-                formatter={(value: number | undefined) => [value != null ? value.toFixed(1) : '–', 'Média']}
-                labelFormatter={(label) => label}
-              />
-            </RadarChart>
-              </ResponsiveContainer>
+                  <PolarGrid stroke="rgba(4,12,30,0.14)" />
+                  <PolarAngleAxis
+                    dataKey="subject"
+                    tick={{ fill: '#040c1e', fontSize: 11 }}
+                    tickLine={false}
+                  />
+                  <PolarRadiusAxis angle={90} domain={[0, 5]} tick={{ fill: '#040c1e', fontSize: 10 }} />
+                  <Radar
+                    name="Média"
+                    dataKey="media"
+                    stroke="#5b88b2"
+                    fill="#5b88b2"
+                    fillOpacity={0.4}
+                    strokeWidth={2}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: '10px',
+                      border: '1px solid rgba(4,12,30,0.1)',
+                      background: '#f7f9fc',
+                      color: '#040c1e',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.08)',
+                    }}
+                    formatter={(value: number | undefined) => [value != null ? value.toFixed(1) : '–', 'Média']}
+                    labelFormatter={(label) => label}
+                  />
+                </RadarChart>
+              )}
             </div>
           </div>
-          {showCopyChart && (
+          {showDownloadChart && (
             <button
               type="button"
-              onClick={handleCopyRadar}
-              disabled={copying === 'radar'}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              onClick={handleDownloadRadar}
+              disabled={exporting === 'radar'}
+              className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
             >
-              {copying === 'radar' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copying === 'radar' ? 'Copiado!' : 'Copiar gráfico'}
+              {exporting === 'radar' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {exporting === 'radar' ? 'Gerando…' : 'Baixar imagem'}
             </button>
           )}
         </div>
       </div>
 
       {/* Barras horizontais: priorização (menor média = mais atenção) */}
-      <div className="bg-card-escritorio rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div ref={barrasRef} className="min-w-0 flex-1">
+      <div className="bg-card-escritorio w-full min-w-0 rounded-2xl p-6 shadow-sm">
+        <div className="flex w-full min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div ref={barrasRef} className="min-w-0 w-full sm:flex-1 sm:basis-0">
             <h3 className="text-lg font-semibold text-escritorio">
               Médias por dimensão (priorização)
             </h3>
             <p className="mt-1 text-sm text-escritorio opacity-80">
               Dimensões com média menor exigem mais atenção. Linha de referência: 3.
             </p>
-            <div className="mt-4 h-[320px] w-full sm:h-[360px]">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className={CHART_SHELL_CLASS}>
+              {responsiveWrap(
                 <BarChart
                   data={dadosBarras}
                   layout="vertical"
@@ -273,7 +245,7 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
                     ))}
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
+              )}
             </div>
             <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-700">
               {RISK_LEVELS.map((level) => (
@@ -287,15 +259,19 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
               ))}
             </div>
           </div>
-          {showCopyChart && (
+          {showDownloadChart && (
             <button
               type="button"
-              onClick={handleCopyBarras}
-              disabled={copying === 'barras'}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+              onClick={handleDownloadBarras}
+              disabled={exporting === 'barras'}
+              className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
             >
-              {copying === 'barras' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copying === 'barras' ? 'Copiado!' : 'Copiar gráfico'}
+              {exporting === 'barras' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              {exporting === 'barras' ? 'Gerando…' : 'Baixar imagem'}
             </button>
           )}
         </div>

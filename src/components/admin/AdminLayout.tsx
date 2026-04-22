@@ -25,7 +25,9 @@ export function AdminLayout({ onClose, onLogout }: AdminLayoutProps) {
   const [authChecked, setAuthChecked] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null)
-  const [searchableCompanies, setSearchableCompanies] = useState<{ tenant_id: string; display_name: string }[]>([])
+  const [searchableCompanies, setSearchableCompanies] = useState<
+    { tenant_id: string; display_name: string; logo_url: string | null }[]
+  >([])
 
   const refetchProfile = () => {
     const supabase = getSupabase()
@@ -78,12 +80,16 @@ export function AdminLayout({ onClose, onLogout }: AdminLayoutProps) {
         ...registry.map((r) => r.tenant_id),
         ...overview.map((o) => o.tenant_id),
       ])
-      const byId = Object.fromEntries(registry.map((r) => [r.tenant_id, r.display_name?.trim() ?? r.tenant_id]))
+      const regById = Object.fromEntries(registry.map((r) => [r.tenant_id, r]))
       setSearchableCompanies(
-        Array.from(ids).sort().map((tid) => ({
-          tenant_id: tid,
-          display_name: byId[tid] ?? tid,
-        }))
+        Array.from(ids).sort().map((tid) => {
+          const r = regById[tid]
+          return {
+            tenant_id: tid,
+            display_name: r?.display_name?.trim() ?? tid,
+            logo_url: r?.logo_url?.trim() || null,
+          }
+        })
       )
     })
   }, [])

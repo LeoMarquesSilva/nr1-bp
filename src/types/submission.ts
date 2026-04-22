@@ -66,6 +66,8 @@ export interface TenantRegistryItem {
   display_name: string | null
   active: boolean
   whistleblower_enabled: boolean
+  /** URL pública da logomarca (externa ou Storage). */
+  logo_url?: string | null
   cnpj?: string | null
   cnpjs?: Array<string | TenantGroupCnpj>
   nicho?: string | null
@@ -73,7 +75,13 @@ export interface TenantRegistryItem {
 }
 
 /** Busca pública de organizações por nome ou slug (para página "Fazer relato" → selecionar empresa). */
-export async function searchOrganizations(query: string): Promise<{ tenant_id: string; display_name: string | null }[]> {
+export type OrganizationSearchHit = {
+  tenant_id: string
+  display_name: string | null
+  logo_url: string | null
+}
+
+export async function searchOrganizations(query: string): Promise<OrganizationSearchHit[]> {
   const supabase = getSupabase()
   const normalized = query.trim().slice(0, 80)
   if (normalized.length < 2) return []
@@ -82,28 +90,30 @@ export async function searchOrganizations(query: string): Promise<{ tenant_id: s
     console.error('Supabase search_organizations:', error)
     return []
   }
-  return (data ?? []).map((r: { tenant_id: string; display_name: string | null }) => ({
+  return (data ?? []).map((r: { tenant_id: string; display_name: string | null; logo_url?: string | null }) => ({
     tenant_id: r.tenant_id,
     display_name: r.display_name ?? null,
+    logo_url: r.logo_url?.trim() || null,
   }))
 }
 
-/** Lista as empresas do registro (com nome, status e dados estendidos). */
-export async function getTenantRegistry(): Promise<TenantRegistryItem[]> {
-  const supabase = getSupabase()
-  const { data, error } = await supabase
-    .from('tenant_registry')
-    .select('tenant_id, display_name, active, whistleblower_enabled, cnpj, cnpjs, nicho, setores')
-    .order('created_at', { ascending: false })
-  if (error) {
-    console.error('Supabase getTenantRegistry:', error)
-    return []
-  }
-  return (data ?? []).map((r: { tenant_id: string; display_name: string | null; active: boolean; whistleblower_enabled?: boolean; cnpj?: string | null; cnpjs?: unknown; nicho?: string | null; setores?: unknown }) => ({
+function mapTenantRegistryRow(r: {
+  tenant_id: string
+  display_name: string | null
+  active: boolean
+  whistleblower_enabled?: boolean
+  logo_url?: string | null
+  cnpj?: string | null
+  cnpjs?: unknown
+  nicho?: string | null
+  setores?: unknown
+}): TenantRegistryItem {
+  return {
     tenant_id: r.tenant_id,
     display_name: r.display_name ?? null,
     active: r.active ?? true,
     whistleblower_enabled: r.whistleblower_enabled ?? true,
+    logo_url: r.logo_url?.trim() || null,
     cnpj: r.cnpj ?? null,
     cnpjs: Array.isArray(r.cnpjs)
       ? (r.cnpjs as unknown[]).filter((entry) => {
@@ -115,7 +125,56 @@ export async function getTenantRegistry(): Promise<TenantRegistryItem[]> {
       : [],
     nicho: r.nicho ?? null,
     setores: Array.isArray(r.setores) ? (r.setores as string[]) : [],
-  }))
+  }
+}
+
+/** Lista as empresas do registro (com nome, status e dados estendidos). */
+export async function getTenantRegistry(): Promise<TenantRegistryItem[]> {
+  const supabase = getSupabase()
+  const selectWithLogo =
+    'tenant_id, display_name, active, whistleblower_enabled, logo_url, cnpj, cnpjs, nicho, setores'
+  const selectBase =
+    'tenant_id, display_name, active, whistleblower_enabled, cnpj, cnpjs, nicho, setores'
+
+  const first = await supabase
+    .from('tenant_registry')
+    .select(selectWithLogo)
+    .order('created_at', { ascending: false })
+
+  const toItems = (raw: unknown): TenantRegistryItem[] =>
+    (Array.isArray(raw) ? raw : []).map((r) =>
+      mapTenantRegistryRow(r as Parameters<typeof mapTenantRegistryRow>[0])
+    )
+
+  if (!first.error) {
+    return toItems(first.data)
+  }
+
+  const hint = `${first.error.message ?? ''} ${(first.error as { details?: string }).details ?? ''}`.toLowerCase()
+  const missingLogoColumn =
+    hint.includes('logo_url') ||
+    (hint.includes('column') && hint.includes('does not exist')) ||
+    first.error.code === '42703'
+
+  if (missingLogoColumn) {
+    const fallback = await supabase
+      .from('tenant_registry')
+      .select(selectBase)
+      .order('created_at', { ascending: false })
+    if (!fallback.error && fallback.data?.length) {
+      console.warn(
+        'getTenantRegistry: coluna logo_url indisponível no banco; aplicar migração 024_tenant_logo.sql para logomarcas.'
+      )
+    }
+    if (fallback.error) {
+      console.error('Supabase getTenantRegistry:', fallback.error)
+      return []
+    }
+    return toItems(fallback.data)
+  }
+
+  console.error('Supabase getTenantRegistry:', first.error)
+  return []
 }
 
 /** Verifica se o canal de denúncias está habilitado para o tenant. */
@@ -138,6 +197,27 @@ export async function getTenantDisplayName(tenantId: string): Promise<string | n
     .eq('tenant_id', tenantId.trim().toLowerCase())
     .maybeSingle()
   return data?.display_name?.trim() ?? null
+}
+
+/** Nome e logo para exibição pública (hub, etc.), via RPC security definer. */
+export async function getTenantPublicBranding(
+  tenantId: string
+): Promise<{ display_name: string | null; logo_url: string | null }> {
+  const supabase = getSupabase()
+  const { data, error } = await supabase.rpc('get_tenant_public_branding', {
+    p_tenant_id: tenantId.trim().toLowerCase(),
+  })
+  if (error) {
+    console.error('Supabase get_tenant_public_branding:', error)
+    return { display_name: null, logo_url: null }
+  }
+  const rows = data as { display_name: string | null; logo_url: string | null }[] | null
+  const r = rows?.[0]
+  if (!r) return { display_name: null, logo_url: null }
+  return {
+    display_name: r.display_name?.trim() ?? null,
+    logo_url: r.logo_url?.trim() || null,
+  }
 }
 
 /** Verifica se a coleta do tenant está ativa (para bloquear formulário). Se não estiver no registro, considera ativo. */
@@ -207,6 +287,7 @@ export async function upsertTenantRegistry(payload: {
   display_name?: string | null
   active?: boolean
   whistleblower_enabled?: boolean
+  logo_url?: string | null
   cnpj?: string | null
   cnpjs?: Array<string | TenantGroupCnpj>
   nicho?: string | null
@@ -224,6 +305,7 @@ export async function upsertTenantRegistry(payload: {
     p_nicho: payload.nicho?.trim() || null,
     p_setores: Array.isArray(payload.setores) ? payload.setores : [],
     p_whistleblower_enabled: payload.whistleblower_enabled ?? true,
+    p_logo_url: payload.logo_url?.trim() || null,
   })
   if (error) {
     console.error('Supabase upsertTenantRegistry:', error)

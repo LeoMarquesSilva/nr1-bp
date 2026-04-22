@@ -64,6 +64,7 @@ export type Database = {
           display_name: string | null
           active: boolean
           whistleblower_enabled: boolean
+          logo_url: string | null
           cnpj: string | null
           cnpjs: Json
           nicho: string | null
@@ -75,6 +76,7 @@ export type Database = {
           display_name?: string | null
           active?: boolean
           whistleblower_enabled?: boolean
+          logo_url?: string | null
           cnpj?: string | null
           cnpjs?: Json
           nicho?: string | null
@@ -86,6 +88,7 @@ export type Database = {
           display_name?: string | null
           active?: boolean
           whistleblower_enabled?: boolean
+          logo_url?: string | null
           cnpj?: string | null
           cnpjs?: Json
           nicho?: string | null
@@ -198,7 +201,11 @@ export type Database = {
     Functions: {
       search_organizations: {
         Args: { p_query: string }
-        Returns: { tenant_id: string; display_name: string | null }[]
+        Returns: { tenant_id: string; display_name: string | null; logo_url: string | null }[]
+      }
+      get_tenant_public_branding: {
+        Args: { p_tenant_id: string }
+        Returns: { display_name: string | null; logo_url: string | null }[]
       }
       delete_tenant_registry: {
         Args: { p_tenant_id: string }
@@ -214,6 +221,7 @@ export type Database = {
           p_nicho?: string
           p_setores?: Json
           p_whistleblower_enabled?: boolean
+          p_logo_url?: string
         }
         Returns: undefined
       }

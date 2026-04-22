@@ -24,7 +24,9 @@ import { Resultados } from '../Resultados'
 import { RelatorioConclusao } from '../RelatorioConclusao'
 import { formatCnpjDisplay } from '@/lib/masks'
 import { cn } from '@/lib/utils'
+import { feedback } from '@/lib/feedback'
 import { Badge } from '@/components/ui/badge'
+import { TenantLogoAvatar } from '@/components/TenantLogoAvatar'
 
 function getGroupCnpjLabel(entry: unknown): { cnpj: string; razao: string | null } {
   if (typeof entry === 'string') return { cnpj: entry, razao: null }
@@ -196,13 +198,21 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
 
   const handleExcluir = async () => {
     if (!registry) return
-    if (!window.confirm(`Excluir "${displayName}" do registro? Os envios já feitos continuam no sistema.`)) return
+    const name = registry.display_name?.trim() || tenantId
+    const ok = await feedback.confirm({
+      title: 'Excluir empresa do registro',
+      message: `Remover "${name}" do registro? Os envios já feitos continuam no sistema; apenas a empresa some das listas do painel.`,
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+    })
+    if (!ok) return
     setDeleting(true)
     try {
       await deleteTenantFromRegistry(tenantId)
+      feedback.success('Empresa removida do registro.')
       onBack()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Não foi possível excluir.')
+      feedback.error(err instanceof Error ? err.message : 'Não foi possível excluir.')
     } finally {
       setDeleting(false)
     }
@@ -214,11 +224,17 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
     const label = group[0].funcao?.trim()
       ? `${group[0].setor} · ${group[0].funcao.trim()}`
       : group[0].setor
-    const msg =
+    const message =
       group.length === 1
         ? `Excluir esta resposta de "${label}"? Esta ação não pode ser desfeita.`
         : `Excluir as ${group.length} respostas agrupadas em "${label}"? Esta ação não pode ser desfeita.`
-    if (!window.confirm(msg)) return
+    const ok = await feedback.confirm({
+      title: 'Excluir respostas',
+      message,
+      confirmLabel: 'Excluir',
+      cancelLabel: 'Cancelar',
+    })
+    if (!ok) return
     try {
       for (const s of group) {
         await deleteSubmission(s.id, tenantId)
@@ -226,8 +242,9 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
       const ids = new Set(group.map((s) => s.id))
       setSubmissions((prev) => prev.filter((x) => !ids.has(x.id)))
       setSelectedGroup((g) => (g?.some((s) => ids.has(s.id)) ? null : g))
+      feedback.success(group.length === 1 ? 'Resposta excluída.' : `${group.length} respostas excluídas.`)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Não foi possível excluir.')
+      feedback.error(err instanceof Error ? err.message : 'Não foi possível excluir.')
     }
   }
 
@@ -268,7 +285,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
             Voltar ao dashboard da empresa
           </button>
         </div>
-        <GraficosResultados scores={scoresSetor} showCopyChart />
+        <GraficosResultados scores={scoresSetor} showDownloadChart />
         <Resultados
           answers={{}}
           setor={setorLabel}
@@ -319,9 +336,13 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
       <div className="flex flex-col sm:flex-row gap-6">
         {/* Header Info */}
         <div className="flex items-center gap-4 flex-1">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand-700)] text-white shadow-[var(--shadow-sm)]">
-            <Building2 className="h-7 w-7" />
-          </div>
+          <TenantLogoAvatar
+            logoUrl={registry?.logo_url}
+            label={displayName}
+            size="xl"
+            rounded="xl"
+            className="shadow-[var(--shadow-sm)]"
+          />
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-[var(--color-brand-900)]">{displayName}</h2>
             <p className="text-sm font-mono text-[var(--muted-foreground)]">{tenantId}</p>
@@ -389,7 +410,7 @@ export function AdminEmpresaDashboard({ tenantId, onBack }: Props) {
                   </div>
                 </div>
 
-                <GraficosResultados scores={scoresEmpresa} showCopyChart />
+                <GraficosResultados scores={scoresEmpresa} showDownloadChart />
 
                 <Resultados
                   answers={{}}

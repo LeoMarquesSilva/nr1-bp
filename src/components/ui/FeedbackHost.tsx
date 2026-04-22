@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react'
 import { subscribeFeedback } from '@/lib/feedback'
 
@@ -26,13 +27,18 @@ type PromptState = {
   resolve: (value: string | null) => void
 }
 
+/** z-index acima de ForcePasswordChangeModal (100) e demais overlays do admin. */
+const MODAL_Z = 'z-[10050]'
+
 export function FeedbackHost() {
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
   const [promptState, setPromptState] = useState<PromptState | null>(null)
   const [promptValue, setPromptValue] = useState('')
+  const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    setMounted(true)
     const offToast = subscribeFeedback('toast', ({ kind, message }) => {
       const id = `${Date.now()}-${Math.random().toString(36).slice(2)}`
       setToasts((curr) => [...curr, { id, kind, message }])
@@ -68,9 +74,11 @@ export function FeedbackHost() {
     }
   }, [])
 
+  const portalEl = typeof document !== 'undefined' ? document.body : null
+
   return (
     <>
-      <div className="pointer-events-none fixed right-4 top-4 z-[70] space-y-2">
+      <div className={`pointer-events-none fixed right-4 top-4 ${MODAL_Z} space-y-2`}>
         {toasts.map((toast) => (
           <div
             key={toast.id}
@@ -102,74 +110,108 @@ export function FeedbackHost() {
         ))}
       </div>
 
-      {confirmState && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-            <h3 className="text-lg font-semibold text-[var(--color-brand-900)]">{confirmState.title}</h3>
-            <p className="mt-2 text-sm text-[var(--muted-foreground)]">{confirmState.message}</p>
-            <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  confirmState.resolve(false)
-                  setConfirmState(null)
-                }}
-                className="flex-1 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)]"
-              >
-                {confirmState.cancelLabel}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  confirmState.resolve(true)
-                  setConfirmState(null)
-                }}
-                className="flex-1 rounded-xl bg-[var(--color-brand-700)] px-3 py-2 text-sm font-semibold text-white"
-              >
-                {confirmState.confirmLabel}
-              </button>
+      {mounted &&
+        portalEl &&
+        confirmState &&
+        createPortal(
+          <div
+            className={`fixed inset-0 ${MODAL_Z} flex items-center justify-center bg-slate-900/50 p-4`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feedback-confirm-title"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) {
+                confirmState.resolve(false)
+                setConfirmState(null)
+              }
+            }}
+          >
+            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+              <h3 id="feedback-confirm-title" className="text-lg font-semibold text-[var(--color-brand-900)]">
+                {confirmState.title}
+              </h3>
+              <p className="mt-2 text-sm text-[var(--muted-foreground)]">{confirmState.message}</p>
+              <div className="mt-5 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    confirmState.resolve(false)
+                    setConfirmState(null)
+                  }}
+                  className="flex-1 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)]"
+                >
+                  {confirmState.cancelLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    confirmState.resolve(true)
+                    setConfirmState(null)
+                  }}
+                  className="flex-1 rounded-xl bg-[var(--color-brand-700)] px-3 py-2 text-sm font-semibold text-white"
+                >
+                  {confirmState.confirmLabel}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          portalEl
+        )}
 
-      {promptState && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-            <h3 className="text-lg font-semibold text-[var(--color-brand-900)]">{promptState.title}</h3>
-            <p className="mt-2 text-sm text-[var(--muted-foreground)]">{promptState.message}</p>
-            <input
-              type="text"
-              value={promptValue}
-              onChange={(e) => setPromptValue(e.target.value)}
-              placeholder={promptState.placeholder}
-              className="mt-4 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm text-[var(--color-brand-900)]"
-            />
-            <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  promptState.resolve(null)
-                  setPromptState(null)
-                }}
-                className="flex-1 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)]"
-              >
-                {promptState.cancelLabel}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  promptState.resolve(promptValue)
-                  setPromptState(null)
-                }}
-                className="flex-1 rounded-xl bg-[var(--color-brand-700)] px-3 py-2 text-sm font-semibold text-white"
-              >
-                {promptState.confirmLabel}
-              </button>
+      {mounted &&
+        portalEl &&
+        promptState &&
+        createPortal(
+          <div
+            className={`fixed inset-0 ${MODAL_Z} flex items-center justify-center bg-slate-900/50 p-4`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feedback-prompt-title"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) {
+                promptState.resolve(null)
+                setPromptState(null)
+              }
+            }}
+          >
+            <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+              <h3 id="feedback-prompt-title" className="text-lg font-semibold text-[var(--color-brand-900)]">
+                {promptState.title}
+              </h3>
+              <p className="mt-2 text-sm text-[var(--muted-foreground)]">{promptState.message}</p>
+              <input
+                type="text"
+                value={promptValue}
+                onChange={(e) => setPromptValue(e.target.value)}
+                placeholder={promptState.placeholder}
+                className="mt-4 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm text-[var(--color-brand-900)]"
+              />
+              <div className="mt-5 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    promptState.resolve(null)
+                    setPromptState(null)
+                  }}
+                  className="flex-1 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--color-brand-700)]"
+                >
+                  {promptState.cancelLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    promptState.resolve(promptValue)
+                    setPromptState(null)
+                  }}
+                  className="flex-1 rounded-xl bg-[var(--color-brand-700)] px-3 py-2 text-sm font-semibold text-white"
+                >
+                  {promptState.confirmLabel}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          portalEl
+        )}
     </>
   )
 }
