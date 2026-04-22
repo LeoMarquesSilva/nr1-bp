@@ -14,7 +14,7 @@ import {
   Cell,
   ReferenceLine,
 } from 'recharts'
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, type RefObject } from 'react'
 import { Copy, Check } from 'lucide-react'
 import type { DimensionSummary } from '../data/hseIt'
 import { getRiskLevel, RISK_LEVELS } from '../data/riskLevels'
@@ -64,52 +64,85 @@ export function GraficosResultados({ scores, showCopyChart = false }: Props) {
   const barrasRef = useRef<HTMLDivElement>(null)
   const [copying, setCopying] = useState<'radar' | 'barras' | null>(null)
 
-  const copyChartAsImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>) => {
-    if (!ref.current) return
+  const copyChartAsImage = useCallback(async (ref: RefObject<HTMLDivElement | null>) => {
+    const el = ref.current
+    if (!el) return
+
+    const downloadBlob = (blob: Blob) => {
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'grafico-diagnostico.png'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    }
+
     try {
-      // Pequena pausa para o gráfico SVG estar totalmente renderizado
-      await new Promise((r) => setTimeout(r, 300))
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+      await new Promise((r) => setTimeout(r, 200))
+
       const { default: html2canvas } = await import('html2canvas')
-      const canvas = await html2canvas(ref.current, {
+      const baseOpts = {
         useCORS: true,
         scale: 2,
         backgroundColor: '#f7f9fc',
         logging: false,
-        allowTaint: true,
-        // Melhora captura de SVG (Recharts)
-        foreignObjectRendering: false,
-        imageTimeout: 0,
+        allowTaint: false,
+        imageTimeout: 15000,
+      }
+
+      let canvas: HTMLCanvasElement
+      try {
+        canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: true })
+      } catch {
+        canvas = await html2canvas(el, { ...baseOpts, foreignObjectRendering: false })
+      }
+
+      const blob = await new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((b) => resolve(b), 'image/png', 1)
       })
-      canvas.toBlob(
-        async (blob) => {
-          if (!blob) {
-            setCopying(null)
-            return
-          }
-          try {
-            await navigator.clipboard.write([
-              new ClipboardItem({ 'image/png': blob }),
-            ])
-            setTimeout(() => setCopying(null), 2500)
-          } catch {
-            // Fallback: download da imagem se a área de transferência falhar (ex.: HTTP, permissão)
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = 'grafico-diagnostico.png'
-            a.click()
-            URL.revokeObjectURL(url)
-            setCopying(null)
-            alert('A cópia para a área de transferência não está disponível. O gráfico foi baixado como imagem.')
-          }
-        },
-        'image/png',
-        1
+
+      if (!blob) {
+        throw new Error('Falha ao gerar PNG do gráfico.')
+      }
+
+      const canWriteImage =
+        typeof navigator !== 'undefined' &&
+        typeof ClipboardItem !== 'undefined' &&
+        !!navigator.clipboard?.write
+
+      if (canWriteImage) {
+        try {
+          // ClipboardItem aceita Promise<Blob> (ex.: Safari); Promise.resolve mantém o mesmo contrato.
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'image/png': Promise.resolve(blob),
+            }),
+          ])
+          setTimeout(() => setCopying(null), 2500)
+          return
+        } catch (e) {
+          console.warn('clipboard.write (imagem) falhou, usando download', e)
+        }
+      }
+
+      downloadBlob(blob)
+      setCopying(null)
+      alert(
+        canWriteImage
+          ? 'A cópia para a área de transferência não está disponível. O gráfico foi baixado como imagem.'
+          : 'Seu navegador não suporta copiar imagem. O gráfico foi baixado como arquivo PNG.'
       )
     } catch (err) {
       setCopying(null)
       console.error(err)
-      alert('Não foi possível gerar a imagem do gráfico. Tente em outro navegador ou use HTTPS.')
+      alert(
+        'Não foi possível gerar a imagem do gráfico. Tente outro navegador, use HTTPS (ou localhost) ou use captura de tela.'
+      )
     }
   }, [])
 

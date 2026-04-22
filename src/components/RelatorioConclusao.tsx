@@ -91,7 +91,7 @@ function buildTextoParaCopiar(
     linhas.push(`Média: ${d.average} (1–5) | Classificação: ${risk.label}`)
     if (planoText) {
       linhas.push('')
-      linhas.push(planoText.slice(0, 500) + (planoText.length > 500 ? '...' : ''))
+      linhas.push(planoText)
     }
     linhas.push('')
   }

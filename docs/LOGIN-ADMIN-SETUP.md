@@ -8,18 +8,14 @@ Rode no Supabase (SQL Editor) ou via CLI a migração que cria a tabela de perfi
 
 ## 2. Criar contas dos administradores
 
-Use o script com a **service role key** (nunca no front-end):
+1. Copie o modelo [`scripts/admin-seed.example.json`](../scripts/admin-seed.example.json) para a raiz do repositório como `admin-seed.local.json` (ficheiro ignorado pelo Git) e preencha `name`, `email`, `password` e, se quiser, `avatar_url`.
+2. Com a **service role key** (nunca no front-end), na raiz do projeto:
 
 ```bash
-SUPABASE_URL=https://SEU_PROJETO.supabase.co SUPABASE_SERVICE_ROLE_KEY=eyJ... node scripts/create-admin-users.js
+node scripts/create-admin-users.js
 ```
 
-Isso cria no Auth e em `public.users`:
-
-| Nome                 | E-mail                            | Senha  | Avatar (URL) |
-|----------------------|-----------------------------------|--------|--------------|
-| Leonardo Marques Silva | leonardo.marques@bismarchipires.com.br | 123456 | (ver script) |
-| Renato Vallim        | renato@bismarchipires.com.br      | 123466 | (ver script) |
+Pode apontar outro ficheiro com `ADMIN_SEED_FILE=caminho/relativo/ao/repô.json` (a partir da raiz do projeto)
 
 A **service role key** está em: Supabase → Settings → API → `service_role` (secret).
 

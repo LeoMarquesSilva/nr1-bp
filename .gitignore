@@ -12,6 +12,20 @@ dist
 dist-ssr
 *.local
 .env
+.cache/
+
+# Seed local de admins (nunca comitar senhas reais)
+admin-seed.local.json
+
+# Artefatos temporários de migração / chamadas MCP (não versionar)
+.mcp-*
+.mcp-per-row/
+.mcp-per-row-rest/
+.tmp-*
+.verify-*
+
+# Supabase CLI
+supabase/.temp/
 
 # Editor directories and files
 .vscode/*

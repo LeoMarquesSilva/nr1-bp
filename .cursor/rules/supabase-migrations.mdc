@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Migrações Supabase via MCP
 
-- **Sempre que for aplicar ou verificar migrações**, use o MCP do projeto Supabase (`project-0-nr1-form-supabase`).
+- **Sempre que for aplicar ou verificar migrações**, use o MCP do Supabase vinculado ao projeto ativo (ref em `.cursor/mcp.json`; hoje: CONFIARA, `mrbhmdnpskjqrbgdzcyh`).
 - **Listar migrações já aplicadas**: use a ferramenta `list_migrations` (sem argumentos).
 - **Aplicar uma nova migração**: use a ferramenta `apply_migration` com:
   - `name`: nome da migração em snake_case (ex.: `admin_users`, `whistleblower_protocol_status`).

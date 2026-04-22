@@ -1,0 +1,8 @@
+[
+  {
+    "name": "Nome do administrador",
+    "email": "admin@exemplo.com",
+    "password": "defina-uma-senha-forte",
+    "avatar_url": null
+  }
+]

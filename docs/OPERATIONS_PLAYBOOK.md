@@ -31,6 +31,13 @@ Padronizar resposta a incidentes, backup/restore e melhoria contínua de perform
 - Falha de autenticação admin: revisar sessão JWT, disponibilidade Supabase Auth e funções edge.
 - Degradação de API: checar taxas de erro, limites de rate e gargalos em consultas públicas.
 
+## Segredos e superfície de ataque (checklist)
+
+- **Repositório:** `rg` por `SERVICE_ROLE`, `eyJ` em `src/` deve ser vazio; após `npm run build`, `dist/assets/*.js` não deve conter `service_role`.
+- **Vercel:** só variáveis `VITE_*` expostas ao browser; nunca prefixo `VITE_` em chave `service_role`. Alinhar URL do Supabase entre Preview e Production quando forem o mesmo projeto.
+- **Supabase (projeto ativo):** Auth → URL Configuration (site e redirects); opcional MFA e proteção contra senhas vazadas; rever RLS nas tabelas críticas após mudanças de schema.
+- **Contas admin:** criar só com `scripts/create-admin-users.js` e ficheiro local de seed (`admin-seed.local.json`), nunca senhas no Git.
+
 ## Performance e custo (contínuo)
 - Revisar bundle trimestralmente e isolar módulos pesados.
 - Priorizar carregamento sob demanda para dashboards secundários.
