@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
-import { MessageSquarePlus, FileQuestion, ArrowRight, Shield, PlayCircle, Volume2 } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { MessageSquarePlus, FileQuestion, ArrowRight, Shield, PlayCircle, Volume2, Maximize2, Minimize2 } from 'lucide-react'
+import { toggleElementFullscreen, useVideoContainerIsFullscreen } from '../lib/videoEmbedFullscreen'
 import { TenantLogoAvatar } from './TenantLogoAvatar'
 import { PageShell, PageShellCard } from './layout/PageShell'
 import { Button } from './ui/button'
@@ -16,6 +17,8 @@ const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/d2jD7JPVQsc'
 
 export function CanalRelatosHub({ orgSlug, orgDisplayName, orgLogoUrl, onEnviarDenuncia, onAcompanharCodigo }: Props) {
   const orgName = orgDisplayName || orgSlug
+  const videoWrapRef = useRef<HTMLDivElement>(null)
+  const isVideoFullscreen = useVideoContainerIsFullscreen(videoWrapRef)
   const [audioLigado, setAudioLigado] = useState(false)
   const canalHelpVideoUrl = useMemo(
     () =>
@@ -54,15 +57,39 @@ export function CanalRelatosHub({ orgSlug, orgDisplayName, orgLogoUrl, onEnviarD
             <PlayCircle className="h-5 w-5 shrink-0 text-[var(--color-brand-700)]" aria-hidden />
             Como usar este canal (vídeo)
           </div>
-          <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-black">
+          <div
+            ref={videoWrapRef}
+            className="overflow-hidden rounded-xl border border-[var(--border)] bg-black [&:fullscreen]:rounded-none [&:fullscreen]:border-0 [&:fullscreen]:flex [&:fullscreen]:min-h-screen [&:fullscreen]:w-screen [&:fullscreen]:items-stretch [&:fullscreen]:bg-black [&:fullscreen]:[&_iframe]:aspect-auto [&:fullscreen]:[&_iframe]:min-h-[100dvh] [&:fullscreen]:[&_iframe]:w-full [&:fullscreen]:[&_iframe]:flex-1"
+          >
             <iframe
               title="Como enviar uma denúncia ou acompanhar pelo código no canal"
               src={canalHelpVideoUrl}
-              className="aspect-video w-full min-h-0"
+              className="aspect-video w-full min-h-[12rem]"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
               allowFullScreen
             />
+          </div>
+          <div className="mt-3 flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              onClick={() => void toggleElementFullscreen(videoWrapRef.current)}
+              className="h-11 w-full shrink-0 rounded-full px-6 sm:w-auto"
+            >
+              {isVideoFullscreen ? (
+                <>
+                  <Minimize2 className="h-4 w-4" aria-hidden />
+                  Sair da tela cheia
+                </>
+              ) : (
+                <>
+                  <Maximize2 className="h-4 w-4" aria-hidden />
+                  Ampliar vídeo
+                </>
+              )}
+            </Button>
           </div>
           {!audioLigado && (
             <div className="mt-4 rounded-xl border border-[var(--color-brand-200)] bg-[var(--color-brand-50)] p-3 sm:p-4">

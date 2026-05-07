@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
-import { ArrowRight, PlayCircle, Volume2 } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { ArrowRight, PlayCircle, Volume2, Maximize2, Minimize2 } from 'lucide-react'
+import { toggleElementFullscreen, useVideoContainerIsFullscreen } from '../lib/videoEmbedFullscreen'
 import { Button } from './ui/button'
 
 type Props = {
@@ -9,6 +10,8 @@ type Props = {
 const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/e4N4p_ZhHIE'
 
 export function DenunciaIntroVideo({ onContinuar }: Props) {
+  const videoWrapRef = useRef<HTMLDivElement>(null)
+  const isVideoFullscreen = useVideoContainerIsFullscreen(videoWrapRef)
   const [audioLigado, setAudioLigado] = useState(false)
   const videoUrl = useMemo(
     () =>
@@ -41,15 +44,39 @@ export function DenunciaIntroVideo({ onContinuar }: Props) {
           <PlayCircle className="h-5 w-5 text-[var(--color-brand-200)]" />
           Vídeo: como fazer uma denúncia
         </div>
-        <div className="overflow-hidden rounded-xl border border-white/20 bg-black">
+        <div
+          ref={videoWrapRef}
+          className="overflow-hidden rounded-xl border border-white/20 bg-black [&:fullscreen]:rounded-none [&:fullscreen]:border-0 [&:fullscreen]:flex [&:fullscreen]:min-h-screen [&:fullscreen]:w-screen [&:fullscreen]:items-stretch [&:fullscreen]:bg-black [&:fullscreen]:[&_iframe]:aspect-auto [&:fullscreen]:[&_iframe]:min-h-[100dvh] [&:fullscreen]:[&_iframe]:w-full [&:fullscreen]:[&_iframe]:flex-1"
+        >
           <iframe
             title="Vídeo de orientação para denúncias"
             src={videoUrl}
-            className="aspect-video w-full"
+            className="aspect-video w-full min-h-[12rem]"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             referrerPolicy="strict-origin-when-cross-origin"
             allowFullScreen
           />
+        </div>
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            size="default"
+            onClick={() => void toggleElementFullscreen(videoWrapRef.current)}
+            className="h-11 w-full rounded-full border-white/35 bg-white/10 px-6 text-white hover:bg-white/15 sm:w-auto"
+          >
+            {isVideoFullscreen ? (
+              <>
+                <Minimize2 className="h-4 w-4" aria-hidden />
+                Sair da tela cheia
+              </>
+            ) : (
+              <>
+                <Maximize2 className="h-4 w-4" aria-hidden />
+                Ampliar vídeo
+              </>
+            )}
+          </Button>
         </div>
         {!audioLigado && (
           <div className="mt-4 rounded-xl border border-white/25 bg-white/10 p-3 sm:p-4">
