@@ -18,11 +18,13 @@ const VIEW_TITLES: Partial<Record<View, string>> = {
   privacidade: `Privacidade e uso dos dados${suffix}`,
   login: `Entrar${suffix}`,
   contato: `Fale conosco${suffix}`,
+  'intro-video': `Como funciona o diagnóstico${suffix}`,
   identificacao: `Diagnóstico de riscos psicossociais${suffix}`,
   form: `Questionário de riscos psicossociais${suffix}`,
   obrigado: `Resposta registrada${suffix}`,
   'coleta-encerrada': `Coleta encerrada${suffix}`,
   'admin-gate': `Área administrativa${suffix}`,
+  'denuncia-intro-video': `Como fazer uma denúncia${suffix}`,
   denuncia: `Enviar denúncia${suffix}`,
   'denuncia-hub': `Canal de denúncias${suffix}`,
   'denuncia-obrigado': `Denúncia registrada${suffix}`,
@@ -40,12 +42,16 @@ const VIEW_DESCRIPTIONS: Partial<Record<View, string>> = {
     'Transparência sobre coleta e uso de dados no diagnóstico de riscos psicossociais e no canal de denúncias, em linha com a LGPD.',
   login: 'Acesso seguro à área administrativa da Confiara para gestão de diagnósticos e denúncias.',
   contato: 'Entre em contato com a equipe Confiara para demonstrações e informações comerciais.',
+  'intro-video':
+    'Assista à introdução do diagnóstico de riscos psicossociais e entenda finalidade, confidencialidade e impacto das respostas.',
   identificacao:
     'Inicie o questionário de riscos psicossociais: escolha o setor e responda com confidencialidade.',
   form: 'Questionário de riscos psicossociais com 35 perguntas em 7 dimensões para mapeamento preventivo.',
   obrigado: 'Sua participação no diagnóstico foi registrada. Obrigado por contribuir com o clima organizacional.',
   'coleta-encerrada': 'O período de coleta deste diagnóstico foi encerrado pela organização.',
   'admin-gate': 'Área restrita para administradores da plataforma Confiara.',
+  'denuncia-intro-video':
+    'Assista ao vídeo com orientações para registrar uma denúncia com clareza, segurança e melhor qualidade de apuração.',
   denuncia: 'Envie uma denúncia com opção de anonimato. Seus dados são tratados com segurança e sigilo.',
   'denuncia-hub': 'Canal de denúncias da organização: enviar relato ou acompanhar protocolo.',
   'denuncia-obrigado':

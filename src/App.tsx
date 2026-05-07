@@ -13,6 +13,8 @@ import { trackEvent } from './lib/telemetry'
 import { initGlobalErrorMonitoring } from './lib/observability'
 
 const Identificacao = lazy(() => import('./components/Identificacao').then((m) => ({ default: m.Identificacao })))
+const DiagnosticoIntroVideo = lazy(() => import('./components/DiagnosticoIntroVideo').then((m) => ({ default: m.DiagnosticoIntroVideo })))
+const DenunciaIntroVideo = lazy(() => import('./components/DenunciaIntroVideo').then((m) => ({ default: m.DenunciaIntroVideo })))
 const FormDiagnostico = lazy(() => import('./components/FormDiagnostico').then((m) => ({ default: m.FormDiagnostico })))
 const Obrigado = lazy(() => import('./components/Obrigado').then((m) => ({ default: m.Obrigado })))
 const ColetaEncerrada = lazy(() => import('./components/ColetaEncerrada').then((m) => ({ default: m.ColetaEncerrada })))
@@ -28,7 +30,30 @@ const AdminLayout = lazy(() => import('./components/admin').then((m) => ({ defau
 const Login = lazy(() => import('./components/Login').then((m) => ({ default: m.Login })))
 const Contato = lazy(() => import('./components/Contato').then((m) => ({ default: m.Contato })))
 
-export type View = 'landing' | 'relatos-buscar' | 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin-gate' | 'admin' | 'coleta-encerrada' | 'denuncia-hub' | 'denuncia' | 'denuncia-obrigado' | 'denuncia-consultar' | 'login' | 'contato'
+export type View = 'landing' | 'relatos-buscar' | 'intro-video' | 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin-gate' | 'admin' | 'coleta-encerrada' | 'denuncia-hub' | 'denuncia-intro-video' | 'denuncia' | 'denuncia-obrigado' | 'denuncia-consultar' | 'login' | 'contato'
+
+/** Só após "Continuar para denúncia"; por aba — nova sessão do navegador mostra o vídeo de novo ao abrir `form=1`. */
+function denunciaFormIntroSessionKey(orgSlug: string): string {
+  return `denuncia_form_intro_done_${orgSlug.trim().toLowerCase()}`
+}
+
+function hasCompletedDenunciaFormIntroThisSession(orgSlug: string): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return window.sessionStorage.getItem(denunciaFormIntroSessionKey(orgSlug)) === '1'
+  } catch {
+    return false
+  }
+}
+
+function markDenunciaFormIntroDoneThisSession(orgSlug: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.sessionStorage.setItem(denunciaFormIntroSessionKey(orgSlug), '1')
+  } catch {
+    // private mode / quota
+  }
+}
 
 function isDenunciaChannel(): boolean {
   if (typeof window === 'undefined') return false
@@ -41,7 +66,7 @@ function getDenunciaViewFromUrl(): View {
   const org = params.get('org')?.trim()
   const form = params.get('form') === '1'
   const consultar = params.get('consultar') === '1'
-  if (org && form) return 'denuncia'
+  if (org && form) return hasCompletedDenunciaFormIntroThisSession(org) ? 'denuncia' : 'denuncia-intro-video'
   if (org && consultar) return 'denuncia-consultar'
   if (org) return 'denuncia-hub'
   return 'relatos-buscar'
@@ -58,7 +83,7 @@ function hasDiagnosticOrgInUrl(): boolean {
 
 function App() {
   const [view, setView] = useState<View>(() => {
-    if (hasDiagnosticOrgInUrl()) return 'identificacao'
+    if (hasDiagnosticOrgInUrl()) return 'intro-video'
     if (isDenunciaChannel()) return getDenunciaViewFromUrl()
     if (isAdminLoggedIn()) return 'admin'
     if (typeof window !== 'undefined') return getViewFromPath(window.location.pathname) ?? 'landing'
@@ -102,7 +127,7 @@ function App() {
   useEffect(() => {
     if (hasDiagnosticOrgInUrl()) {
       setTenantFromUrl()
-      setView((v) => (['identificacao', 'form', 'obrigado'].includes(v) ? v : 'identificacao'))
+      setView((v) => (['intro-video', 'identificacao', 'form', 'obrigado'].includes(v) ? v : 'intro-video'))
     }
   }, [])
 
@@ -111,7 +136,7 @@ function App() {
   useEffect(() => {
     const onPopState = () => {
       if (hasDiagnosticOrgInUrl()) {
-        setView('identificacao')
+        setView('intro-video')
         return
       }
       if (isDenunciaChannel()) {
@@ -138,7 +163,7 @@ function App() {
   }, [view])
 
   useEffect(() => {
-    if (!['denuncia-hub', 'denuncia'].includes(view)) return
+    if (!['denuncia-hub', 'denuncia-intro-video', 'denuncia'].includes(view)) return
     setWhistleblowerEnabled(null)
     getTenantWhistleblowerStatus(getTenantId()).then((status) => setWhistleblowerEnabled(status.enabled))
   }, [view])
@@ -151,7 +176,7 @@ function App() {
           ? 'landing'
           : view.startsWith('denuncia')
             ? 'denuncia'
-            : ['identificacao', 'form', 'obrigado'].includes(view)
+            : ['intro-video', 'identificacao', 'form', 'obrigado'].includes(view)
               ? 'diagnostico'
               : view.startsWith('admin')
                 ? 'admin'
@@ -182,7 +207,7 @@ function App() {
     window.history.pushState({}, '', targetPath)
   }, [view])
 
-  const showNavAndAdmin = ['landing', 'relatos-buscar', 'identificacao', 'form', 'obrigado', 'sobre', 'privacidade', 'coleta-encerrada', 'denuncia-hub', 'denuncia', 'denuncia-obrigado', 'login', 'contato'].includes(view)
+  const showNavAndAdmin = ['landing', 'relatos-buscar', 'intro-video', 'identificacao', 'form', 'obrigado', 'sobre', 'privacidade', 'coleta-encerrada', 'denuncia-hub', 'denuncia', 'denuncia-obrigado', 'login', 'contato'].includes(view)
   const showFooter = view !== 'obrigado'
 
   const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/` : 'https://confiara.local/'
@@ -203,15 +228,15 @@ function App() {
     )
   }
 
-  if (view === 'denuncia-hub' || view === 'denuncia' || view === 'denuncia-obrigado' || view === 'denuncia-consultar') {
+  if (view === 'denuncia-hub' || view === 'denuncia-intro-video' || view === 'denuncia' || view === 'denuncia-obrigado' || view === 'denuncia-consultar') {
     return (
       <div className="flex min-h-screen flex-col bg-[var(--color-brand-900)] font-sans antialiased">
         <HealthqoeHeader view="identificacao" onNavigate={() => {}} showNavAndAdmin={false} appearance="dark" />
         <div className="denuncia-flow-canvas px-4 py-10 sm:px-6 sm:py-14">
           <main className="mx-auto w-full max-w-2xl">
           <Suspense fallback={renderFallback}>
-          {['denuncia-hub', 'denuncia'].includes(view) && whistleblowerEnabled === null && renderFallback}
-          {['denuncia-hub', 'denuncia'].includes(view) && whistleblowerEnabled === false && (
+          {['denuncia-hub', 'denuncia-intro-video', 'denuncia'].includes(view) && whistleblowerEnabled === null && renderFallback}
+          {['denuncia-hub', 'denuncia-intro-video', 'denuncia'].includes(view) && whistleblowerEnabled === false && (
             <div className="rounded-2xl border border-white/20 bg-white/10 p-8 text-center text-white backdrop-blur-md sm:p-10">
               <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Canal indisponível</h1>
               <p className="mx-auto mt-4 max-w-lg text-sm text-[var(--color-brand-100)] sm:text-base">
@@ -238,6 +263,14 @@ function App() {
               onAcompanharCodigo={() => {
                 trackEvent({ name: 'denuncia_consulta_open', flow: 'denuncia', tenantId: getTenantId(), step: 'hub' })
                 window.location.href = buildDenunciaUrl(baseUrl, getTenantId(), 'consultar')
+              }}
+            />
+          )}
+          {view === 'denuncia-intro-video' && whistleblowerEnabled === true && (
+            <DenunciaIntroVideo
+              onContinuar={() => {
+                markDenunciaFormIntroDoneThisSession(getTenantId())
+                setView('denuncia')
               }}
             />
           )}
@@ -317,6 +350,10 @@ function App() {
 
         {view === 'relatos-buscar' && (
           <RelatosBuscarEmpresa onVoltar={() => setView('landing')} />
+        )}
+
+        {view === 'intro-video' && (
+          <DiagnosticoIntroVideo onPular={() => setView('identificacao')} />
         )}
 
         {view === 'identificacao' && tenantBlocked === true && (

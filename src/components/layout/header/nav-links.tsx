@@ -6,6 +6,7 @@ import { getHrefForView, type AppRouteView } from "@/lib/routes"
 export type View =
   | "landing"
   | "relatos-buscar"
+  | "intro-video"
   | "identificacao"
   | "form"
   | "obrigado"
