@@ -14,7 +14,9 @@ export function Contato({ onVoltar }: ContatoProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Placeholder: send to API or mailto
+    const subject = encodeURIComponent(`Contato via site: ${name}`)
+    const body = encodeURIComponent(`Nome: ${name}\nE-mail: ${email}\n\nMensagem:\n${message}`)
+    window.open(`mailto:contato@confiara.com.br?subject=${subject}&body=${body}`)
     setSent(true)
   }
 

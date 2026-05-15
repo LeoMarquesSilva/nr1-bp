@@ -79,7 +79,7 @@ export function Footer({ onNavigate, hideCanalDenunciaNav = false }: Props) {
               </p>
               <p className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-[var(--color-brand-400)]" />
-                <a href="mailto:contato@bismarchipires.com.br" className="hover:text-[var(--color-brand-700)] transition-colors" itemProp="email">contato@bismarchipires.com.br</a>
+                <a href="mailto:contato@confiara.com.br" className="hover:text-[var(--color-brand-700)] transition-colors" itemProp="email">contato@confiara.com.br</a>
               </p>
               <p className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-[var(--color-brand-400)]" />

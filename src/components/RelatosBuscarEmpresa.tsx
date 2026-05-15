@@ -97,7 +97,7 @@ export function RelatosBuscarEmpresa({ onVoltar }: Props) {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ex.: Bismarchi Pires"
+              placeholder="Ex.: Nome da empresa"
               className="input-escritorio w-full rounded-xl border bg-white py-3.5 pl-12 pr-12 text-[var(--color-brand-900)] placeholder:text-[var(--muted-foreground)]"
               autoComplete="off"
               autoFocus

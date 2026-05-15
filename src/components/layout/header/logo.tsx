@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 
-const LOGO_LIGHT = "/logos/confiara powered by bp.png"
+const LOGO_LIGHT = "/logos/logo-horizontal-azul.png"
 const LOGO_DARK = "/logos/logo-horizontal-branca.png"
 const LOGO_ALT = "CONFIARA"
 
