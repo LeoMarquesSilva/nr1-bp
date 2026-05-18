@@ -7,7 +7,7 @@ type Props = {
   onContinuar: () => void
 }
 
-const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/e4N4p_ZhHIE'
+const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/yksh6VrSroI'
 
 export function DenunciaIntroVideo({ onContinuar }: Props) {
   const videoWrapRef = useRef<HTMLDivElement>(null)

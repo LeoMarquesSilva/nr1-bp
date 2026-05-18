@@ -7,7 +7,7 @@ type Props = {
   onPular: () => void
 }
 
-const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/cE9zzXquHFY'
+const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/uwHdlguchJI'
 
 export function DiagnosticoIntroVideo({ onPular }: Props) {
   const videoWrapRef = useRef<HTMLDivElement>(null)

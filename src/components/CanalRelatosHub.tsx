@@ -13,7 +13,7 @@ type Props = {
   onAcompanharCodigo: () => void
 }
 
-const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/d2jD7JPVQsc'
+const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/ea1r3Gb2vpg'
 
 export function CanalRelatosHub({ orgSlug, orgDisplayName, orgLogoUrl, onEnviarDenuncia, onAcompanharCodigo }: Props) {
   const orgName = orgDisplayName || orgSlug
@@ -22,7 +22,7 @@ export function CanalRelatosHub({ orgSlug, orgDisplayName, orgLogoUrl, onEnviarD
   const [audioLigado, setAudioLigado] = useState(false)
   const canalHelpVideoUrl = useMemo(
     () =>
-      `${VIDEO_BASE_URL}?si=R31qBmeIxkQtUi2V&autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&fs=0&mute=${
+      `${VIDEO_BASE_URL}?autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&fs=0&mute=${
         audioLigado ? '0' : '1'
       }`,
     [audioLigado]
