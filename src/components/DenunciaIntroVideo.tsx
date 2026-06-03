@@ -7,7 +7,7 @@ type Props = {
   onContinuar: () => void
 }
 
-const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/e4N4p_ZhHIE'
+const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/ea1r3Gb2vpg'
 
 export function DenunciaIntroVideo({ onContinuar }: Props) {
   const videoWrapRef = useRef<HTMLDivElement>(null)
@@ -15,7 +15,7 @@ export function DenunciaIntroVideo({ onContinuar }: Props) {
   const [audioLigado, setAudioLigado] = useState(false)
   const videoUrl = useMemo(
     () =>
-      `${VIDEO_BASE_URL}?autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&fs=0&mute=${
+      `${VIDEO_BASE_URL}?si=pjm6qEiw2tPFxDq6&autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&fs=0&mute=${
         audioLigado ? '0' : '1'
       }`,
     [audioLigado]

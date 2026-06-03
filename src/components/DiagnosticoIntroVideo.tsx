@@ -7,7 +7,7 @@ type Props = {
   onPular: () => void
 }
 
-const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/cE9zzXquHFY'
+const VIDEO_BASE_URL = 'https://www.youtube-nocookie.com/embed/uwHdlguchJI'
 
 export function DiagnosticoIntroVideo({ onPular }: Props) {
   const videoWrapRef = useRef<HTMLDivElement>(null)
@@ -15,7 +15,7 @@ export function DiagnosticoIntroVideo({ onPular }: Props) {
   const [audioLigado, setAudioLigado] = useState(false)
   const videoUrl = useMemo(
     () =>
-      `${VIDEO_BASE_URL}?autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&fs=0&mute=${
+      `${VIDEO_BASE_URL}?si=siXQsF6UH8Dvs93D&autoplay=1&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&fs=0&mute=${
         audioLigado ? '0' : '1'
       }`,
     [audioLigado]
