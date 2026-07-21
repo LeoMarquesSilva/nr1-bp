@@ -83,7 +83,7 @@ export function Footer({ onNavigate, hideCanalDenunciaNav = false }: Props) {
               </p>
               <p className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-[var(--color-brand-400)]" />
-                <a href="tel:+5511900000000" className="hover:text-[var(--color-brand-700)] transition-colors" itemProp="telephone">+55 (11) 90000-0000</a>
+                <a href="tel:+5519993596791" className="hover:text-[var(--color-brand-700)] transition-colors" itemProp="telephone">+55 (19) 99359-6791</a>
               </p>
             </address>
           </div>

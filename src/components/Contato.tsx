@@ -1,6 +1,9 @@
 import { useState } from "react"
 import { motion } from "motion/react"
-import { Mail, MessageSquare, Send } from "lucide-react"
+import { Mail, MessageSquare, Send, Loader2 } from "lucide-react"
+import { feedback } from "../lib/feedback"
+
+const CONTACT_WEBHOOK_URL = "https://n8n.crmbp.site/webhook/confiara-contato"
 
 interface ContatoProps {
   onVoltar: () => void
@@ -10,14 +13,30 @@ export function Contato({ onVoltar }: ContatoProps) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
+  const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const subject = encodeURIComponent(`Contato via site: ${name}`)
-    const body = encodeURIComponent(`Nome: ${name}\nE-mail: ${email}\n\nMensagem:\n${message}`)
-    window.open(`mailto:contato@confiara.com.br?subject=${subject}&body=${body}`)
-    setSent(true)
+    if (sending) return
+    setSending(true)
+    try {
+      const res = await fetch(CONTACT_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, message }),
+      })
+      const data = await res.json().catch(() => null)
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.message || "Não foi possível enviar sua mensagem. Tente novamente.")
+      }
+      setSent(true)
+    } catch (err) {
+      const messageText = err instanceof Error ? err.message : "Não foi possível enviar sua mensagem. Tente novamente."
+      feedback.error(messageText)
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -28,9 +47,9 @@ export function Contato({ onVoltar }: ContatoProps) {
       className="mx-auto max-w-xl"
     >
       <div className="text-center mb-10">
-        <h2 className="text-2xl font-bold tracking-tight text-[var(--color-brand-900)] sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--color-brand-900)] sm:text-3xl">
           Entre em contato
-        </h2>
+        </h1>
         <p className="mt-3 text-[var(--muted-foreground)]">
           Envie uma mensagem e retornaremos o mais breve possível.
         </p>
@@ -110,16 +129,18 @@ export function Contato({ onVoltar }: ContatoProps) {
               <button
                 type="button"
                 onClick={onVoltar}
-                className="flex-1 rounded-full border-2 border-[var(--color-brand-300)] bg-white py-3 font-semibold text-[var(--color-brand-700)] transition hover:border-[var(--color-brand-400)] hover:bg-[var(--color-brand-50)]"
+                disabled={sending}
+                className="flex-1 rounded-full border-2 border-[var(--color-brand-300)] bg-white py-3 font-semibold text-[var(--color-brand-700)] transition hover:border-[var(--color-brand-400)] hover:bg-[var(--color-brand-50)] disabled:opacity-60"
               >
                 Voltar
               </button>
               <button
                 type="submit"
-                className="btn-escritorio flex flex-1 items-center justify-center gap-2 rounded-full py-3 font-semibold transition"
+                disabled={sending}
+                className="btn-escritorio flex flex-1 items-center justify-center gap-2 rounded-full py-3 font-semibold transition disabled:opacity-60"
               >
-                <Send className="h-4 w-4" />
-                Enviar
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {sending ? "Enviando..." : "Enviar"}
               </button>
             </div>
           </form>

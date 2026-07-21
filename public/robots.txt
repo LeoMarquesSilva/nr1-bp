@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /*.md$
+Disallow: /*.pdf$
 
 Sitemap: https://www.confiara.com.br/sitemap.xml
