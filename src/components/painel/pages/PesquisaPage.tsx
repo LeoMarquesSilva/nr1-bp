@@ -419,7 +419,16 @@ function SurveyView({
         ) : responses === null ? (
           <PageSkeleton />
         ) : (
-          <SurveyResults questions={view.questions} responses={responses} minResponses={view.minResponses} onDeleteAll={responses.length > 0 ? apagarRespostas : undefined} />
+          <SurveyResults
+            questions={view.questions}
+            responses={responses}
+            minResponses={view.minResponses}
+            status={survey.status}
+            title={view.title}
+            companyName={companyLabel}
+            onDeleteAll={responses.length > 0 ? apagarRespostas : undefined}
+            onExported={() => logAdminAuditAction({ action: 'survey_results_exported', tenantId: slug, details: { survey: survey.id, total: responses.length } })}
+          />
         ))}
 
       <Sheet open={previewOpen} onOpenChange={setPreviewOpen}>

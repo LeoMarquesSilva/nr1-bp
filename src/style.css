@@ -380,3 +380,23 @@
     transform: none;
   }
 }
+
+/* Impressão do resumo da reunião (painel de pesquisas): só a área marcada vai para o papel/PDF, com as cores. */
+@media print {
+  body.imprimindo-resumo * {
+    visibility: hidden;
+  }
+  body.imprimindo-resumo .area-impressao,
+  body.imprimindo-resumo .area-impressao * {
+    visibility: visible;
+  }
+  body.imprimindo-resumo .area-impressao {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

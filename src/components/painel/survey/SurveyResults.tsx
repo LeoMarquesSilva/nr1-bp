@@ -1,45 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Lock, MessageSquareText, Table2, Trash2, Users } from 'lucide-react'
-import {
-  ESCALA_OPTIONS,
-  NR_OPTION,
-  countReached,
-  describeGate,
-  getAnswerOptions,
-  summarizeResponses,
-  type QuestionSummary,
-  type SurveyQuestion,
-} from '@/data/pesquisas'
-import type { SurveyResponse } from '@/types/pesquisas'
+import { Clock, FileSpreadsheet, Loader2, Lock, Table2, Trash2, Users } from 'lucide-react'
+import { feedback } from '@/lib/feedback'
+import { ESCALA_OPTIONS, NR_OPTION, type SurveyQuestion } from '@/data/pesquisas'
+import { buildMeetingSummary, computeStats, noiseFor, resultsGate, type ChoiceStat, type OpenStat, type QuestionStat } from '@/data/resultados'
+import type { SurveyResponse, SurveyStatus } from '@/types/pesquisas'
 import { cn } from '@/lib/utils'
-import { Button, EmptyState, Panel, formatDayBR, pluralize } from '../ui'
+import { Button, EmptyState, Notice, Panel, formatDayBR, pluralize } from '../ui'
+import { MeetingSummary } from './MeetingSummary'
+import { FavorableRow, FrequencyBlock, HiddenNote, Legend, MultiBlock, TextList, YesNoBlock, formatMean, pctOf, segmentsOf } from './resultCharts'
 
-type EscalaSummary = Extract<QuestionSummary, { kind: 'escala' }>
-
-/** Escala divergente (discordo ↔ concordo) com neutro cinza; validada para daltonismo no fundo branco. */
-const LIKERT_COLORS: Record<string, string> = {
-  '1': '#c63c3b',
-  '2': '#ee8f8d',
-  '3': '#dcdad2',
-  '4': '#86b6ef',
-  '5': '#256abf',
-}
-
-const LIKERT_LABELS: Record<string, string> = {
-  '1': '1 · Discordo totalmente',
-  '2': '2',
-  '3': '3',
-  '4': '4',
-  '5': '5 · Concordo totalmente',
-}
-
-function pct(part: number, total: number): string {
-  return total === 0 ? '0%' : `${Math.round((part / total) * 100)}%`
-}
-
-function formatMean(mean: number | null): string {
-  return mean == null ? '—' : mean.toFixed(1).replace('.', ',')
-}
+type View = 'resumo' | 'perguntas'
 
 function shuffle<T>(items: T[]): T[] {
   const out = [...items]
@@ -54,26 +24,55 @@ export function SurveyResults({
   questions,
   responses,
   minResponses,
+  status,
+  title,
+  companyName,
   onDeleteAll,
+  onExported,
 }: {
   questions: SurveyQuestion[]
   responses: SurveyResponse[]
   minResponses: number
+  status: SurveyStatus
+  title: string
+  companyName: string
   onDeleteAll?: () => void
+  onExported?: () => void
 }) {
-  const [showTable, setShowTable] = useState(false)
-  const answersList = useMemo(() => responses.map((r) => r.answers), [responses])
-  const summary = useMemo(() => summarizeResponses(questions, answersList), [questions, answersList])
-  // Textos em ordem aleatória: a ordem de chegada poderia ajudar a identificar quem escreveu.
-  const shuffled = useMemo(
-    () => Object.fromEntries(summary.filter((s) => s.kind === 'aberta' || s.kind === 'multipla').map((s) => [s.question.id, shuffle(s.kind === 'aberta' ? s.texts : s.kind === 'multipla' ? s.outros : [])])),
-    [summary]
-  )
+  const [view, setView] = useState<View>('resumo')
+  const [exporting, setExporting] = useState(false)
+  const answers = useMemo(() => responses.map((r) => r.answers), [responses])
+  const stats = useMemo(() => computeStats(questions, answers, minResponses), [questions, answers, minResponses])
+  const summary = useMemo(() => buildMeetingSummary(stats, answers.length), [stats, answers.length])
 
   const total = responses.length
   const days = responses.map((r) => r.submittedOn).sort()
-  const likert = summary.filter((s): s is EscalaSummary => s.kind === 'escala')
-  const others = summary.filter((s) => s.kind !== 'escala')
+  const period = days.length > 0 ? (days[0] === days[days.length - 1] ? formatDayBR(days[0]) : `de ${formatDayBR(days[0])} a ${formatDayBR(days[days.length - 1])}`) : null
+  const gate = resultsGate(status, total, minResponses)
+
+  // A biblioteca de Excel só é carregada no clique (fica fora do pacote do painel).
+  const exportar = async () => {
+    setExporting(true)
+    try {
+      const { buildSurveyWorkbook, exportFileName } = await import('@/lib/excel/exportarPesquisa')
+      const bytes = await buildSurveyWorkbook({ title, companyName, status, period, minResponses, questions, answers })
+      const blob = new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = exportFileName(title)
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      onExported?.()
+      feedback.success('Planilha gerada. As tabelas dinâmicas são montadas ao abrir no Excel.')
+    } catch (err) {
+      feedback.error(err instanceof Error ? err.message : 'Não foi possível gerar a planilha.')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   if (total === 0) {
     return (
@@ -85,266 +84,234 @@ export function SurveyResults({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <p className="flex items-center gap-2 text-sm text-[var(--color-brand-700)]">
           <Users className="h-4 w-4" aria-hidden />
           <span>
             <strong className="text-[var(--color-brand-900)]">{pluralize(total, 'resposta', 'respostas')}</strong>
-            {days.length > 0 && ` · de ${formatDayBR(days[0])} a ${formatDayBR(days[days.length - 1])}`}
+            {period && ` · ${period}`}
           </span>
         </p>
-        {onDeleteAll && (
-          <Button type="button" variant="ghost" size="sm" onClick={onDeleteAll}>
-            <Trash2 />
-            Apagar respostas
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {gate.state === 'liberado' && (
+            <Button type="button" variant="outline" size="sm" onClick={exportar} disabled={exporting}>
+              {exporting ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}
+              Exportar para Excel
+            </Button>
+          )}
+          {onDeleteAll && (
+            <Button type="button" variant="ghost" size="sm" onClick={onDeleteAll}>
+              <Trash2 />
+              Apagar respostas
+            </Button>
+          )}
+        </div>
       </div>
 
-      {total < minResponses ? (
+      {gate.state === 'poucas' ? (
         <Panel>
           <EmptyState
             icon={<Lock className="h-6 w-6" />}
-            title={`${total} de ${minResponses} respostas necessárias`}
-            description={`Os resultados aparecem a partir de ${minResponses} respostas. Com menos que isso, seria possível deduzir quem respondeu o quê.`}
+            title={`${gate.total} de ${gate.min} respostas necessárias`}
+            description={`Os resultados aparecem a partir de ${gate.min} respostas. Com menos que isso, seria possível deduzir quem respondeu o quê.`}
+          />
+        </Panel>
+      ) : gate.state === 'lote' ? (
+        <Panel>
+          <EmptyState
+            icon={<Clock className="h-6 w-6" />}
+            title={`Aguardando completar o lote: faltam ${pluralize(gate.missing, 'resposta', 'respostas')}`}
+            description={`Com a pesquisa aberta, os resultados atualizam a cada ${gate.batch} respostas novas, para que ninguém deduza a resposta de alguém pela hora em que chegou. Ao encerrar a pesquisa, tudo aparece.`}
           />
         </Panel>
       ) : (
         <>
-          {likert.length > 0 && (
-            <Panel
-              title="Escalas de 1 a 5"
-              description="Barras centradas no 3: à esquerda quem discorda, à direita quem concorda. “Prefiro não responder” fica fora da barra e da média."
-              actions={
-                <Button type="button" variant="outline" size="sm" onClick={() => setShowTable((v) => !v)} aria-pressed={showTable}>
-                  <Table2 />
-                  {showTable ? 'Ver gráfico' : 'Ver tabela'}
-                </Button>
-              }
-            >
-              {showTable ? <LikertTable rows={likert} questions={questions} /> : <LikertChart rows={likert} questions={questions} />}
-            </Panel>
+          {gate.partial && (
+            <div className="print:hidden">
+              <Notice tone="info">
+                Pesquisa aberta: resultados parciais, atualizados a cada {minResponses} respostas novas para proteger o anonimato. Ao encerrar, aparecem todas as respostas.
+              </Notice>
+            </div>
           )}
 
-          {others.map((s) => {
-            const n = questions.findIndex((q) => q.id === s.question.id) + 1
-            // Pergunta depois de uma resposta que encerra: só parte das pessoas chegou até ela.
-            const gate = describeGate(questions, n - 1, 'apareceu')
-            const reached = gate ? countReached(questions, answersList, s.question.id) : total
-            const gateText = gate ? `${gate.replace(/\.$/, '')}: ${pluralize(reached, 'pessoa', 'pessoas')}.` : null
-            if (s.kind === 'opcoes') {
-              return (
-                <QuestionPanel key={s.question.id} n={n} text={s.question.text} note={gateText ?? undefined}>
-                  <BarList items={getAnswerOptions(s.question).map((o) => ({ label: o.label, count: s.counts[o.key] ?? 0 }))} total={s.total} />
-                </QuestionPanel>
-              )
-            }
-            if (s.kind === 'multipla') {
-              const outros = shuffled[s.question.id] ?? []
-              return (
-                <QuestionPanel
-                  key={s.question.id}
-                  n={n}
-                  text={s.question.text}
-                  note={[gateText, `Até ${s.question.maxSelections ?? 1} por pessoa · percentuais sobre ${pluralize(s.respondents, 'pessoa', 'pessoas')}.`].filter(Boolean).join(' ')}
-                >
-                  <BarList
-                    items={getAnswerOptions(s.question)
-                      .map((o) => ({ label: o.label, count: s.counts[o.key] ?? 0 }))
-                      .sort((a, b) => b.count - a.count)}
-                    total={s.respondents}
-                  />
-                  {outros.length > 0 && (
-                    <div className="mt-5">
-                      <p className="mb-2 text-sm font-medium text-[var(--color-brand-900)]">Escritos em “Outros”</p>
-                      <TextList texts={outros} />
-                    </div>
-                  )}
-                </QuestionPanel>
-              )
-            }
-            if (s.kind === 'aberta') {
-              const texts = shuffled[s.question.id] ?? []
-              return (
-                <QuestionPanel
-                  key={s.question.id}
-                  n={n}
-                  text={s.question.text}
-                  note={[gateText, `${texts.length} de ${pluralize(reached, 'pessoa escreveu', 'pessoas escreveram')}. Ordem aleatória.`].filter(Boolean).join(' ')}
-                >
-                  {texts.length === 0 ? <p className="text-sm text-[var(--color-brand-700)]">Nenhuma resposta escrita.</p> : <TextList texts={texts} />}
-                </QuestionPanel>
-              )
-            }
-            return null
-          })}
+          <div role="tablist" aria-label="Como ver os resultados" className="inline-flex rounded-lg border border-[var(--color-brand-200)] bg-white p-1 print:hidden">
+            {(
+              [
+                ['resumo', 'Resumo da reunião'],
+                ['perguntas', 'Todas as perguntas'],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={view === key}
+                onClick={() => setView(key)}
+                className={cn(
+                  'rounded-md px-3.5 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+                  view === key ? 'bg-[var(--color-brand-900)] text-white' : 'text-[var(--color-brand-700)] hover:text-[var(--color-brand-900)]'
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {view === 'resumo' ? (
+            <MeetingSummary summary={summary} title={title} period={period} partial={gate.partial} />
+          ) : (
+            <AllQuestions stats={stats} total={total} min={minResponses} />
+          )}
         </>
       )}
     </div>
   )
 }
 
-function QuestionPanel({ n, text, note, children }: { n: number; text: string; note?: string; children: React.ReactNode }) {
+function AllQuestions({ stats, total, min }: { stats: QuestionStat[]; total: number; min: number }) {
+  const [order, setOrder] = useState<'favoravel' | 'pesquisa'>('favoravel')
+  const [showTable, setShowTable] = useState(false)
+  const scales = stats.filter((s): s is ChoiceStat => s.kind === 'escolha' && s.question.type === 'escala')
+  const sortedScales = order === 'pesquisa' ? scales : [...scales].sort((a, b) => Number(a.hidden) - Number(b.hidden) || (b.favorable ?? 0) - (a.favorable ?? 0))
+  const others = stats.filter((s) => !(s.kind === 'escolha' && s.question.type === 'escala'))
+  // Textos em ordem aleatória (cada pergunta embaralhada à parte): a ordem de chegada poderia ajudar a identificar quem escreveu.
+  const shuffled = useMemo(() => Object.fromEntries(stats.filter((s): s is OpenStat => s.kind === 'aberta').map((s) => [s.question.id, shuffle(s.texts)])), [stats])
+  const noise = noiseFor(total)
+
   return (
-    <Panel>
-      <p className="flex items-start gap-3 font-medium leading-snug text-[var(--color-brand-900)]">
-        <span className="brand-icon-tile h-7 w-7 shrink-0 rounded-md text-sm font-bold">{n}</span>
-        <span className="pt-0.5">{text}</span>
+    <div className="space-y-6">
+      <p className="text-sm leading-relaxed text-[var(--color-brand-700)]">
+        Com {pluralize(total, 'resposta', 'respostas')}, cada pessoa vale cerca de {Math.round(noise.perPerson)} pontos percentuais. Diferenças de até ~{Math.round(noise.margin)} pontos entre
+        perguntas podem ser só variação.
       </p>
-      {note && <p className="mt-2 text-xs text-[var(--color-brand-600)]">{note}</p>}
-      <div className="mt-4">{children}</div>
-    </Panel>
-  )
-}
 
-/** Barras na escala do total (100% = todas as pessoas), para o comprimento bater com o percentual ao lado. */
-function BarList({ items, total }: { items: { label: string; count: number }[]; total: number }) {
-  return (
-    <ul className="space-y-3">
-      {items.map((item) => (
-        <li key={item.label}>
-          <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-            <span className="text-[var(--color-brand-800)]">{item.label}</span>
-            <span className="shrink-0 tabular-nums text-[var(--color-brand-600)]">
-              {item.count} · <span className="font-semibold text-[var(--color-brand-900)]">{pct(item.count, total)}</span>
-            </span>
-          </div>
-          <div className="h-2.5 rounded-full bg-[var(--color-brand-100)]">
-            <div className="h-full rounded-full bg-[var(--color-brand-600)]" style={{ width: `${total ? (item.count / total) * 100 : 0}%`, minWidth: item.count > 0 ? '6px' : 0 }} />
-          </div>
-        </li>
-      ))}
-    </ul>
-  )
-}
+      {scales.length > 0 && (
+        <Panel
+          title="Escalas de 1 a 5"
+          description="O número em destaque é o % que concorda (4 ou 5). A barra mostra todas as respostas; “Prefiro não responder” fica fora da conta."
+          actions={
+            <>
+              <label className="flex items-center gap-2 text-sm text-[var(--color-brand-700)]">
+                Ordem
+                <select value={order} onChange={(e) => setOrder(e.target.value as typeof order)} className="rounded-md border border-[var(--input-border)] bg-white px-2 py-1 text-sm">
+                  <option value="favoravel">Mais concordância primeiro</option>
+                  <option value="pesquisa">Ordem da pesquisa</option>
+                </select>
+              </label>
+              <Button type="button" variant="outline" size="sm" onClick={() => setShowTable((v) => !v)} aria-pressed={showTable}>
+                <Table2 />
+                {showTable ? 'Ver gráfico' : 'Ver tabela'}
+              </Button>
+            </>
+          }
+        >
+          {showTable ? (
+            <ScaleTable rows={sortedScales} min={min} />
+          ) : (
+            <>
+              <div className="mb-5">
+                <Legend segments={segmentsOf(scales[0])} />
+              </div>
+              <ul className="space-y-6">
+                {sortedScales.map((s) => (
+                  <FavorableRow key={s.question.id} stat={s} min={min} />
+                ))}
+              </ul>
+            </>
+          )}
+        </Panel>
+      )}
 
-function TextList({ texts }: { texts: string[] }) {
-  return (
-    <ul className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
-      {texts.map((t, i) => (
-        <li key={i} className="flex gap-3 rounded-lg bg-[var(--color-brand-50)] p-3 text-sm text-[var(--color-brand-900)]">
-          <MessageSquareText className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-brand-500)]" aria-hidden />
-          <span className="max-w-[75ch] whitespace-pre-wrap leading-relaxed">{t}</span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function LikertChart({ rows, questions }: { rows: EscalaSummary[]; questions: SurveyQuestion[] }) {
-  const [hover, setHover] = useState<{ id: string; key: string } | null>(null)
-  return (
-    <div>
-      <div className="mb-5 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[var(--color-brand-700)]">
-        {ESCALA_OPTIONS.map((o) => (
-          <span key={o.key} className="inline-flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-[3px]" style={{ background: LIKERT_COLORS[o.key] }} aria-hidden />
-            {LIKERT_LABELS[o.key]}
-          </span>
-        ))}
-      </div>
-      <ul className="space-y-6">
-        {rows.map((row) => {
-          const n = questions.findIndex((q) => q.id === row.question.id) + 1
-          const valid = ESCALA_OPTIONS.reduce((acc, o) => acc + (row.counts[o.key] ?? 0), 0)
-          const nr = row.counts[NR_OPTION.key] ?? 0
-          const share = (key: string) => (valid ? (row.counts[key] ?? 0) / valid : 0)
-          // Centro da barra no meio do neutro (3); cada lado do eixo vale 100% das respostas.
-          let offset = 50 - (share('1') + share('2') + share('3') / 2) * 50
-          const segments = ESCALA_OPTIONS.map((o) => {
-            const seg = { key: o.key, left: offset, width: share(o.key) * 50 }
-            offset += seg.width
-            return seg
-          })
-          const hovered = hover?.id === row.question.id ? segments.find((s) => s.key === hover.key) : null
-          return (
-            <li key={row.question.id}>
-              <p className="mb-2 text-sm leading-snug text-[var(--color-brand-800)]">
-                <span className="mr-1.5 font-semibold text-[var(--color-brand-900)]">{n}.</span>
-                {row.question.text}
+      {others.map((s) => (
+        <QuestionPanel key={s.question.id} stat={s}>
+          {s.hidden ? (
+            <HiddenNote>{hiddenText(s, min)}</HiddenNote>
+          ) : s.kind === 'multipla' ? (
+            <MultiBlock stat={s} />
+          ) : s.kind === 'aberta' ? (
+            <>
+              <p className="mb-3 text-xs leading-relaxed text-[var(--color-brand-600)]">
+                {s.texts.length} de {pluralize(s.reached, 'pessoa escreveu', 'pessoas escreveram')}. Ordem aleatória. Antes de mostrar na reunião, leia: um texto pode trazer detalhes que
+                identificam alguém.
               </p>
-              <div className="relative h-7" onMouseLeave={() => setHover(null)}>
-                <div className="absolute inset-y-0 left-1/2 w-px bg-[var(--color-brand-300)]" aria-hidden />
-                {segments.map(
-                  (s) =>
-                    s.width > 0 && (
-                      <button
-                        key={s.key}
-                        type="button"
-                        aria-label={`${LIKERT_LABELS[s.key]}: ${row.counts[s.key]} respostas (${pct(row.counts[s.key] ?? 0, valid)})`}
-                        onMouseEnter={() => setHover({ id: row.question.id, key: s.key })}
-                        onFocus={() => setHover({ id: row.question.id, key: s.key })}
-                        onBlur={() => setHover(null)}
-                        className="absolute inset-y-1 rounded-[4px] border-x border-white outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-400)]"
-                        style={{ left: `${s.left}%`, width: `${s.width}%`, background: LIKERT_COLORS[s.key] }}
-                      />
-                    )
-                )}
-                {hovered && (
-                  <div
-                    className="pointer-events-none absolute bottom-full z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md bg-[var(--color-brand-900)] px-2.5 py-1.5 text-xs text-white shadow-[var(--shadow-sm)]"
-                    style={{ left: `${hovered.left + hovered.width / 2}%` }}
-                    role="tooltip"
-                  >
-                    {LIKERT_LABELS[hovered.key]}: <strong>{row.counts[hovered.key]}</strong> ({pct(row.counts[hovered.key] ?? 0, valid)})
-                  </div>
-                )}
-              </div>
-              <div className="mt-1.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-xs text-[var(--color-brand-600)]">
-                <span>
-                  Discordam (1–2): <strong className="text-[var(--color-brand-900)]">{pct((row.counts['1'] ?? 0) + (row.counts['2'] ?? 0), valid)}</strong>
-                </span>
-                <span>
-                  Média <strong className="text-[var(--color-brand-900)]">{formatMean(row.mean)}</strong>
-                  {nr > 0 && ` · ${nr} ${nr > 1 ? 'preferiram' : 'preferiu'} não responder`}
-                </span>
-                <span>
-                  Concordam (4–5): <strong className="text-[var(--color-brand-900)]">{pct((row.counts['4'] ?? 0) + (row.counts['5'] ?? 0), valid)}</strong>
-                </span>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
+              <TextList texts={shuffled[s.question.id] ?? []} />
+            </>
+          ) : s.question.type === 'sim_nao' ? (
+            <YesNoBlock stat={s} />
+          ) : (
+            <FrequencyBlock stat={s} />
+          )}
+        </QuestionPanel>
+      ))}
     </div>
   )
 }
 
-function LikertTable({ rows, questions }: { rows: EscalaSummary[]; questions: SurveyQuestion[] }) {
+function hiddenText(s: QuestionStat, min: number): string {
+  if (s.kind === 'aberta' && s.hiddenReason === 'pesquisa') return 'Os textos aparecem a partir de 10 respostas na pesquisa, para proteger o anonimato.'
+  if (s.gate) return `Oculta: menos de ${min} pessoas chegaram a esta pergunta.`
+  return `Oculta: menos de ${min} respostas nesta pergunta.`
+}
+
+function QuestionPanel({ stat, children }: { stat: QuestionStat; children: React.ReactNode }) {
+  // Base no título: quem chegou à pergunta, quando há ramificação antes dela (sem número quando está oculta).
+  const base = stat.gate ? (stat.hidden ? stat.gate : `${stat.gate.replace(/\.$/, '')}: ${pluralize(stat.reached, 'pessoa', 'pessoas')}.`) : null
+  return (
+    <Panel>
+      <p className="flex items-start gap-3 font-medium leading-snug text-[var(--color-brand-900)]">
+        <span className="w-6 shrink-0 text-right font-semibold tabular-nums text-[var(--color-brand-500)]">{stat.n}.</span>
+        <span>{stat.question.text}</span>
+      </p>
+      {base && <p className="mt-1.5 pl-9 text-xs font-medium text-[var(--color-brand-700)]">{base}</p>}
+      <div className="mt-4 sm:pl-9">{children}</div>
+    </Panel>
+  )
+}
+
+function ScaleTable({ rows, min }: { rows: ChoiceStat[]; min: number }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-left text-sm">
+      <table className="w-full min-w-[720px] text-left text-sm">
         <thead>
           <tr className="border-b border-[var(--border)] text-xs text-[var(--color-brand-600)]">
             <th scope="col" className="py-2 pr-3 font-medium">Pergunta</th>
+            <th scope="col" className="px-2 py-2 text-right font-medium">Concordam</th>
             {ESCALA_OPTIONS.map((o) => (
               <th key={o.key} scope="col" className="px-2 py-2 text-right font-medium" title={o.hint}>
                 {o.label}
               </th>
             ))}
-            <th scope="col" className="px-2 py-2 text-right font-medium">Não resp.</th>
+            <th scope="col" className="px-2 py-2 text-right font-medium">{NR_OPTION.label}</th>
             <th scope="col" className="py-2 pl-2 text-right font-medium">Média</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row.question.id} className="border-b border-[var(--border)] align-top last:border-0">
+          {rows.map((s) => (
+            <tr key={s.question.id} className="border-b border-[var(--border)] align-top last:border-0">
               <td className="py-2.5 pr-3 text-[var(--color-brand-800)]">
-                <span className="mr-1.5 font-semibold">{questions.findIndex((q) => q.id === row.question.id) + 1}.</span>
-                {row.question.text}
+                <span className="mr-1.5 font-semibold">{s.n}.</span>
+                {s.question.text}
               </td>
-              {ESCALA_OPTIONS.map((o) => (
-                <td key={o.key} className="px-2 py-2.5 text-right tabular-nums text-[var(--color-brand-800)]">
-                  {row.counts[o.key] ?? 0}
+              {s.hidden ? (
+                <td colSpan={ESCALA_OPTIONS.length + 3} className="px-2 py-2.5 text-right text-[var(--color-brand-600)]">
+                  Oculta (menos de {min} respostas)
                 </td>
-              ))}
-              <td className="px-2 py-2.5 text-right tabular-nums text-[var(--color-brand-600)]">{row.counts[NR_OPTION.key] ?? 0}</td>
-              <td className={cn('py-2.5 pl-2 text-right font-semibold tabular-nums text-[var(--color-brand-900)]')}>{formatMean(row.mean)}</td>
+              ) : (
+                <>
+                  <td className="px-2 py-2.5 text-right font-semibold tabular-nums text-[var(--color-brand-900)]">{pctOf(s.favorable)}</td>
+                  {ESCALA_OPTIONS.map((o) => (
+                    <td key={o.key} className="px-2 py-2.5 text-right tabular-nums text-[var(--color-brand-800)]">
+                      {s.counts[o.key] ?? 0}
+                    </td>
+                  ))}
+                  <td className="px-2 py-2.5 text-right tabular-nums text-[var(--color-brand-600)]">{s.nr}</td>
+                  <td className="py-2.5 pl-2 text-right tabular-nums text-[var(--color-brand-800)]">{formatMean(s.mean)}</td>
+                </>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="mt-2 text-xs text-[var(--color-brand-600)]">1 = Discordo totalmente · 5 = Concordo totalmente. A média não considera “Prefiro não responder”.</p>
     </div>
   )
 }
