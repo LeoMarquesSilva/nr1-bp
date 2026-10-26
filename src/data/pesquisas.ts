@@ -21,6 +21,8 @@ export interface SurveyQuestion {
   options?: SurveyOption[]
   maxSelections?: number
   allowOther?: boolean
+  /** Sim ou não: a resposta que encerra a pesquisa (as perguntas seguintes não aparecem). */
+  endIf?: 'sim' | 'nao'
 }
 
 export type MultiAnswer = { selected: string[]; outro?: string }
@@ -68,6 +70,31 @@ export const QUESTIONS_PER_PAGE = 4
 
 export const DEFAULT_INTRO =
   'Esta pesquisa é anônima: não pedimos nome, e-mail, cargo nem setor, e as respostas são analisadas apenas em conjunto. Responda com sinceridade: não há respostas certas ou erradas.'
+
+export type IntroSegment = { text: string; bold: boolean }
+
+/**
+ * Texto de abertura em parágrafos (separados por linha em branco), com *trechos entre asteriscos* em negrito,
+ * como no WhatsApp. Asterisco sem par fica como está.
+ */
+export function parseIntro(text: string): IntroSegment[][] {
+  return text
+    .replace(/\r\n/g, '\n')
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => {
+      const out: IntroSegment[] = []
+      let last = 0
+      for (const m of p.matchAll(/\*([^*\n]+)\*/g)) {
+        if (m.index > last) out.push({ text: p.slice(last, m.index), bold: false })
+        out.push({ text: m[1], bold: true })
+        last = m.index + m[0].length
+      }
+      if (last < p.length) out.push({ text: p.slice(last), bold: false })
+      return out
+    })
+}
 
 export function getQuestionTypeLabel(type: QuestionType): string {
   return QUESTION_TYPES.find((t) => t.type === type)?.label ?? type
@@ -156,6 +183,56 @@ export function isQuestionAnswered(q: SurveyQuestion, value: AnswerValue | undef
   return typeof value === 'string' && getAnswerOptions(q).some((o) => o.key === value)
 }
 
+/** Resposta de sim ou não que libera as perguntas seguintes (a oposta à que encerra). */
+function continueKey(q: SurveyQuestion): string | null {
+  if (q.type !== 'sim_nao' || !q.endIf) return null
+  return q.endIf === 'nao' ? 'sim' : 'nao'
+}
+
+/**
+ * Perguntas que a pessoa vê com as respostas atuais (ramificação): depois de uma pergunta de sim ou não
+ * com regra, as seguintes só aparecem quando ela escolhe a resposta que continua. Sem resposta ou com a
+ * resposta que encerra, a lista para ali.
+ */
+export function getVisibleQuestions<T extends SurveyQuestion>(questions: readonly T[], answers: SurveyAnswers): T[] {
+  const out: T[] = []
+  for (const q of questions) {
+    out.push(q)
+    const next = continueKey(q)
+    if (next && answers[q.id] !== next) break
+  }
+  return out
+}
+
+/** Pergunta anterior que pode encerrar a pesquisa antes desta (a mais próxima), com seu número. */
+export function getGatingQuestion(questions: readonly SurveyQuestion[], index: number): { question: SurveyQuestion; n: number } | null {
+  for (let i = index - 1; i >= 0; i--) {
+    const q = questions[i]
+    if (q.type === 'sim_nao' && q.endIf) return { question: q, n: i + 1 }
+  }
+  return null
+}
+
+/** Rótulo da resposta que encerra ("Não") e da que segue ("Sim"). */
+export function endIfLabels(q: SurveyQuestion): { ends: string; continues: string } | null {
+  if (q.type !== 'sim_nao' || !q.endIf) return null
+  const ends = SIM_NAO_OPTIONS.find((o) => o.key === q.endIf)
+  const continues = SIM_NAO_OPTIONS.find((o) => o.key !== q.endIf)
+  return ends && continues ? { ends: ends.label, continues: continues.label } : null
+}
+
+/** "Só aparece para quem respondeu “Sim” na pergunta 10." (ou null se nada antes encerra a pesquisa). */
+export function describeGate(questions: readonly SurveyQuestion[], index: number, verb: 'aparece' | 'apareceu' = 'aparece'): string | null {
+  const gate = getGatingQuestion(questions, index)
+  const labels = gate && endIfLabels(gate.question)
+  return gate && labels ? `Só ${verb} para quem respondeu “${labels.continues}” na pergunta ${gate.n}.` : null
+}
+
+/** Quantas respostas chegaram até a pergunta (as que não encerraram antes). */
+export function countReached(questions: readonly SurveyQuestion[], responses: readonly SurveyAnswers[], questionId: string): number {
+  return responses.filter((r) => getVisibleQuestions(questions, r).some((q) => q.id === questionId)).length
+}
+
 export function paginateQuestions(questions: readonly SurveyQuestion[], perPage = QUESTIONS_PER_PAGE): SurveyQuestion[][] {
   const pages: SurveyQuestion[][] = []
   for (let i = 0; i < questions.length; i += perPage) pages.push(questions.slice(i, i + perPage))
@@ -166,10 +243,13 @@ export function isPageComplete(page: readonly SurveyQuestion[], answers: SurveyA
   return page.every((q) => isQuestionAnswered(q, answers[q.id]))
 }
 
-/** Mantém só respostas válidas e textos aparados/limitados (o que vai para o banco). */
+/**
+ * Mantém só respostas válidas e textos aparados/limitados (o que vai para o banco).
+ * Respostas de perguntas que não aparecem (depois de uma resposta que encerra) são descartadas.
+ */
 export function sanitizeAnswers(questions: readonly SurveyQuestion[], answers: SurveyAnswers): SurveyAnswers {
   const out: SurveyAnswers = {}
-  for (const q of questions) {
+  for (const q of getVisibleQuestions(questions, answers)) {
     const value = answers[q.id]
     if (q.type === 'aberta') {
       const text = typeof value === 'string' ? value.trim().slice(0, TEXT_MAX_LENGTH) : ''
@@ -223,6 +303,7 @@ export function normalizeQuestions(questions: readonly SurveyQuestion[]): Survey
         allowOther: Boolean(q.allowOther),
       }
     }
+    if (q.type === 'sim_nao' && (q.endIf === 'sim' || q.endIf === 'nao')) return { ...base, endIf: q.endIf }
     return base
   })
 }
@@ -244,8 +325,11 @@ export type QuestionSummary =
   | { kind: 'aberta'; question: SurveyQuestion; texts: string[] }
 
 /** Agrega as respostas por pergunta (contagens, média 1–5 sem "Prefiro não responder", textos). */
-export function summarizeResponses(questions: readonly SurveyQuestion[], responses: readonly SurveyAnswers[]): QuestionSummary[] {
+export function summarizeResponses(questions: readonly SurveyQuestion[], allResponses: readonly SurveyAnswers[]): QuestionSummary[] {
+  // Cada pergunta só conta quem chegou até ela (respostas depois de um "encerrar" são ignoradas).
+  const reachedIds = allResponses.map((r) => new Set(getVisibleQuestions(questions, r).map((q) => q.id)))
   return questions.map((q): QuestionSummary => {
+    const responses = allResponses.filter((_, i) => reachedIds[i].has(q.id))
     if (q.type === 'aberta') {
       const texts = responses
         .map((r) => r[q.id])
@@ -332,8 +416,9 @@ export const TEMPLATE_DIVERSIDADE = {
       allowNR: true,
       text: 'O escritório oferece equilíbrio e flexibilidade suficientes para lidar com a vida pessoal e familiar, incluindo maternidade e paternidade, sem prejuízo para a carreira.',
     },
-    { id: 'q9', type: 'aberta', required: false, text: 'O que você entende por diversidade e inclusão no ambiente de trabalho?' },
-    { id: 'q10', type: 'sim_nao', required: true, text: 'Você entende que o escritório deveria ter um comitê de diversidade e inclusão?' },
+    { id: 'q9', type: 'aberta', required: true, text: 'O que você entende por diversidade e inclusão no ambiente de trabalho?' },
+    // "Não" encerra a pesquisa: as perguntas sobre o comitê (11 e 12) só aparecem para quem respondeu "Sim".
+    { id: 'q10', type: 'sim_nao', required: true, endIf: 'nao', text: 'Você entende que o escritório deveria ter um comitê de diversidade e inclusão?' },
     {
       id: 'q11',
       type: 'multipla',
@@ -355,7 +440,7 @@ export const TEMPLATE_DIVERSIDADE = {
     {
       id: 'q12',
       type: 'aberta',
-      required: false,
+      required: true,
       text: 'Qual ação concreta você gostaria de ver o escritório adotar nos próximos 12 meses em relação à diversidade e à inclusão?',
     },
   ] satisfies SurveyQuestion[],

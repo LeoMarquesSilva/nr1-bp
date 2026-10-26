@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, EyeOff, Lock, Send, Users } from 'lucide-react'
+import { Check, CheckCircle2, ChevronLeft, ChevronRight, Clock, ExternalLink, EyeOff, Lock, Send } from 'lucide-react'
 import {
   NR_OPTION,
   OTHER_KEY,
   TEXT_MAX_LENGTH,
   getAnswerOptions,
+  getVisibleQuestions,
   isPageComplete,
+  parseIntro,
   isQuestionAnswered,
   paginateQuestions,
   type AnswerValue,
@@ -41,16 +43,19 @@ type Props = {
 
 type Rascunho = { answers: SurveyAnswers; page: number }
 
-/** Card de superfície alinhado ao PageShell (faixa accent + gradiente claro). */
-const surfaceCardCls =
-  'rounded-2xl border border-[var(--border)] bg-gradient-to-br from-white via-white to-[color-mix(in_srgb,var(--color-brand-50)_55%,white)] p-6 shadow-[inset_0_3px_0_0_var(--color-brand-400),var(--shadow-sm)] sm:p-8'
+// Superfícies brancas com borda, sem degradê nem fundo colorido; a cor sólida fica para o que foi escolhido.
+const cardCls = 'rounded-xl border border-[var(--color-brand-200)] bg-white'
 
 const optionBaseCls =
-  'block rounded-xl border-2 px-3 py-3 text-center text-sm font-semibold transition peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring)] peer-focus-visible:ring-offset-2'
-const optionIdleCls =
-  'border-[var(--border)] bg-white text-[var(--color-brand-800)] hover:border-[var(--color-brand-300)] hover:bg-[var(--color-brand-50)]'
-const optionSelectedCls =
-  'border-[var(--color-brand-600)] bg-[color-mix(in_srgb,var(--color-brand-cream)_40%,white)] text-[var(--color-brand-900)] shadow-[var(--shadow-sm)]'
+  'block rounded-lg border px-3 py-3 text-center text-sm font-semibold transition-colors duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring)] peer-focus-visible:ring-offset-2'
+const optionIdleCls = 'border-[var(--color-brand-200)] bg-white text-[var(--color-brand-800)] hover:border-[var(--color-brand-500)] hover:text-[var(--color-brand-900)]'
+const optionSelectedCls = 'border-[var(--color-brand-900)] bg-[var(--color-brand-900)] text-white'
+
+const primaryBtnCls =
+  'btn-escritorio inline-flex items-center justify-center gap-2 px-6 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2'
+
+/** Aviso discreto abaixo de uma pergunta (canal de denúncias, fim da pesquisa). */
+const noteCls = 'mt-4 border-l-2 border-[var(--color-brand-300)] pl-3 text-sm leading-relaxed text-[var(--color-brand-700)]'
 
 // Rascunho em sessionStorage (some ao fechar a aba): em computador compartilhado, a próxima pessoa não vê as respostas.
 const rascunhoKey = (id: string) => `confiara:pesquisa:${id}:rascunho`
@@ -77,14 +82,17 @@ function hasSent(id: string, preview?: boolean): boolean {
 
 /** Fluxo de quem responde: abertura, perguntas em partes, envio e agradecimento. */
 export function SurveyRespondent({ survey, canalHref, preview, onSubmit }: Props) {
-  const pages = useMemo(() => paginateQuestions(survey.questions), [survey.questions])
   const [stage, setStage] = useState<Stage>(() => (hasSent(survey.id, preview) ? 'ja-respondeu' : 'intro'))
   const [answers, setAnswers] = useState<SurveyAnswers>(() => readRascunho(survey.id, preview)?.answers ?? {})
-  const [page, setPage] = useState(() => Math.min(Math.max(readRascunho(survey.id, preview)?.page ?? 0, 0), Math.max(pages.length - 1, 0)))
+  // Uma resposta pode encerrar a pesquisa: as perguntas seguintes saem da lista (e das partes).
+  const visible = useMemo(() => getVisibleQuestions(survey.questions, answers), [survey.questions, answers])
+  const pages = useMemo(() => paginateQuestions(visible), [visible])
+  const [pageState, setPage] = useState(() => Math.max(readRascunho(survey.id, preview)?.page ?? 0, 0))
+  const page = Math.min(pageState, Math.max(pages.length - 1, 0))
   const [submitting, setSubmitting] = useState(false)
   const [websiteField, setWebsiteField] = useState('')
 
-  const required = survey.questions.filter((q) => q.required)
+  const required = visible.filter((q) => q.required)
   const requiredAnswered = required.filter((q) => isQuestionAnswered(q, answers[q.id])).length
   const progressPercent = required.length ? Math.round((requiredAnswered / required.length) * 100) : 100
   const pageQuestions = pages[page] ?? []
@@ -189,7 +197,7 @@ export function SurveyRespondent({ survey, canalHref, preview, onSubmit }: Props
         <button
           type="button"
           onClick={() => setStage('intro')}
-          className="mt-6 inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-brand-300)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--color-brand-800)] transition hover:border-[var(--color-brand-400)] hover:bg-[var(--color-brand-50)]"
+          className="mt-6 inline-flex items-center gap-2 rounded-full border border-[var(--color-brand-300)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--color-brand-800)] transition-colors hover:border-[var(--color-brand-600)] hover:text-[var(--color-brand-900)]"
         >
           Sou outra pessoa e quero responder
         </button>
@@ -200,40 +208,43 @@ export function SurveyRespondent({ survey, canalHref, preview, onSubmit }: Props
   if (stage === 'intro') {
     return (
       <div className="mx-auto max-w-2xl font-reading text-[var(--color-brand-900)]">
-        <div className={surfaceCardCls}>
-          {survey.orgName && <p className="text-sm font-semibold text-[var(--color-brand-600)]">{survey.orgName}</p>}
-          <h1 className="mt-1 text-2xl font-bold leading-tight tracking-tight [text-wrap:balance] sm:text-3xl">{survey.title}</h1>
-          {survey.intro && <p className="mt-4 whitespace-pre-line text-base leading-relaxed text-[var(--color-brand-800)]">{survey.intro}</p>}
-          <ul className="mt-6 space-y-3">
-            <IntroItem icon={<EyeOff className="h-4 w-4" />}>
-              <strong>Anônima:</strong> não pedimos nome, e-mail, cargo nem setor.
-            </IntroItem>
-            <IntroItem icon={<Clock className="h-4 w-4" />}>
-              <strong>{survey.questions.length} {survey.questions.length === 1 ? 'pergunta' : 'perguntas'}</strong>, cerca de {minutes} minutos.
-            </IntroItem>
-            <IntroItem icon={<Users className="h-4 w-4" />}>Os resultados só são vistos em conjunto, a partir de {survey.minResponses} respostas.</IntroItem>
-          </ul>
+        <article className={cn(cardCls, 'p-6 sm:p-10')}>
+          {survey.orgName && <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--color-brand-600)]">{survey.orgName}</p>}
+          <h1 className="mt-2 font-sans text-3xl font-bold leading-[1.15] tracking-tight [text-wrap:balance] sm:text-4xl">{survey.title}</h1>
+          {survey.intro && <IntroText text={survey.intro} className="mt-5 max-w-[62ch] text-base text-[var(--color-brand-800)] sm:text-[17px]" />}
+
+          <dl className="mt-8 grid gap-5 border-t border-[var(--color-brand-200)] pt-6 sm:grid-cols-2">
+            <IntroFact icon={<EyeOff className="h-5 w-5" />} title="Anônima">
+              Não pedimos nome, e-mail, cargo nem setor.
+            </IntroFact>
+            {/* Só o tempo: com ramificação, o número de perguntas depende das respostas; o andamento aparece nas partes. */}
+            <IntroFact icon={<Clock className="h-5 w-5" />} title={`Cerca de ${minutes} minutos`}>
+              Dá para voltar e revisar antes de enviar.
+            </IntroFact>
+          </dl>
+
           {canalHref && (
-            <p className="mt-6 rounded-xl border border-[var(--border)] bg-white/80 p-4 text-sm leading-relaxed text-[var(--color-brand-700)]">
+            <p className="mt-6 text-sm leading-relaxed text-[var(--color-brand-700)]">
               Quer relatar uma situação específica? Esta pesquisa não é lida caso a caso. Use o{' '}
-              <a href={canalHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-[var(--color-brand-700)] underline-offset-2 hover:underline">
+              <a href={canalHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-[var(--color-brand-900)] underline underline-offset-2 hover:no-underline">
                 Canal de Denúncias <ExternalLink className="h-3.5 w-3.5" aria-hidden />
               </a>
               , que também é anônimo.
             </p>
           )}
+
           <button
             type="button"
             onClick={() => {
               if (!preview) trackEvent({ name: 'pesquisa_start', flow: 'pesquisa', step: 'intro', meta: { survey: survey.id } })
               setStage('form')
             }}
-            className="btn-escritorio mt-8 inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 sm:w-auto"
+            className={cn(primaryBtnCls, 'mt-8 w-full sm:w-auto')}
           >
             {hasDraft ? 'Continuar de onde parei' : 'Começar'}
             <ChevronRight className="h-5 w-5 shrink-0" aria-hidden />
           </button>
-        </div>
+        </article>
       </div>
     )
   }
@@ -242,26 +253,27 @@ export function SurveyRespondent({ survey, canalHref, preview, onSubmit }: Props
 
   return (
     <div className="mx-auto max-w-2xl font-reading text-base leading-relaxed text-[var(--color-brand-900)]">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className={surfaceCardCls}>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <span className="text-sm font-medium">
-              Parte {page + 1} de {pages.length}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Andamento: texto e uma linha fina, sem cartão. */}
+        <div className="pb-2">
+          <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-2">
+            <span className="font-sans text-sm font-semibold text-[var(--color-brand-900)]">
+              Parte {page + 1} <span className="font-normal text-[var(--color-brand-600)]">de {pages.length}</span>
             </span>
-            <span className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)]">
+            <span className="flex items-center gap-1.5 text-sm text-[var(--color-brand-600)]">
               <Lock className="h-3.5 w-3.5" aria-hidden />
               Respostas anônimas
             </span>
           </div>
           <div
-            className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-brand-100)] ring-1 ring-[color-mix(in_srgb,var(--color-brand-300)_40%,transparent)]"
+            className="h-1 w-full overflow-hidden rounded-full bg-[var(--color-brand-200)]"
             role="progressbar"
             aria-valuenow={progressPercent}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label="Progresso da pesquisa"
           >
-            <div className="progress-fill h-full rounded-full bg-gradient-to-r from-[var(--color-brand-800)] via-[var(--color-brand-600)] to-[var(--color-brand-400)]" style={{ width: `${progressPercent}%` }} />
+            <div className="progress-fill h-full rounded-full bg-[var(--color-brand-900)]" style={{ width: `${progressPercent}%` }} />
           </div>
         </div>
 
@@ -269,60 +281,59 @@ export function SurveyRespondent({ survey, canalHref, preview, onSubmit }: Props
           const value = answers[q.id]
           const firstKey = getAnswerOptions(q)[0]?.key
           const showCanal = Boolean(canalHref && q.canalHint && typeof value === 'string' && value !== firstKey && value !== NR_OPTION.key)
+          const endsHere = Boolean(q.endIf && value === q.endIf && visible.length < survey.questions.length)
           return (
-            <fieldset key={q.id} className="rounded-2xl border border-[var(--border)] bg-white p-5 shadow-[var(--shadow-xs)] sm:p-6">
+            <fieldset key={q.id} className={cn(cardCls, 'p-5 sm:p-7')}>
               <legend className="sr-only">Pergunta {offset + i + 1}</legend>
-              <p className="mb-4 flex items-start gap-3 font-medium leading-relaxed">
-                <span className="brand-icon-tile flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold" aria-hidden>
-                  {offset + i + 1}
+              <p className="mb-5 flex items-start gap-3 text-[17px] font-semibold leading-snug text-[var(--color-brand-900)]">
+                <span className="w-6 shrink-0 pt-px text-right text-sm font-semibold tabular-nums text-[var(--color-brand-500)]" aria-hidden>
+                  {offset + i + 1}.
                 </span>
-                <span className="min-w-0 flex-1 pt-0.5">
+                <span className="min-w-0 flex-1">
                   {q.text}
                   {!q.required && <span className="ml-2 text-sm font-normal text-[var(--color-brand-600)]">(opcional)</span>}
                 </span>
               </p>
-              <QuestionInput question={q} value={value} onChange={(v) => setAnswer(q.id, v)} />
-              {showCanal && (
-                <p className="mt-4 rounded-xl bg-[var(--color-brand-50)] p-3 text-sm leading-relaxed text-[var(--color-brand-800)]">
-                  Se quiser relatar o que aconteceu, o{' '}
-                  <a href={canalHref!} target="_blank" rel="noreferrer" className="font-semibold underline-offset-2 hover:underline">
-                    Canal de Denúncias
-                  </a>{' '}
-                  é anônimo e abre em outra aba, sem perder estas respostas.
-                </p>
-              )}
+              <div className="sm:pl-9">
+                <QuestionInput question={q} value={value} onChange={(v) => setAnswer(q.id, v)} />
+                {showCanal && (
+                  <p className={noteCls}>
+                    Se quiser relatar o que aconteceu, o{' '}
+                    <a href={canalHref!} target="_blank" rel="noreferrer" className="font-semibold text-[var(--color-brand-900)] underline underline-offset-2 hover:no-underline">
+                      Canal de Denúncias
+                    </a>{' '}
+                    é anônimo e abre em outra aba, sem perder estas respostas.
+                  </p>
+                )}
+                {endsHere && (
+                  <p className={noteCls} aria-live="polite">
+                    Com essa resposta, a pesquisa termina aqui. É só enviar.
+                  </p>
+                )}
+              </div>
             </fieldset>
           )
         })}
 
         <input type="text" name="website" tabIndex={-1} autoComplete="off" value={websiteField} onChange={(e) => setWebsiteField(e.target.value)} className="hidden" aria-hidden />
 
-        <div className="space-y-3">
+        <div className="space-y-3 pt-2">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <button
               type="button"
-              onClick={() => (page === 0 ? setStage('intro') : setPage((p) => p - 1))}
-              className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-brand-300)] bg-white px-5 py-3 font-semibold text-[var(--color-brand-700)] shadow-[var(--shadow-xs)] transition hover:border-[var(--color-brand-400)] hover:bg-[var(--color-brand-50)] hover:text-[var(--color-brand-900)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
+              onClick={() => (page === 0 ? setStage('intro') : setPage(page - 1))}
+              className="-ml-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-3 font-semibold text-[var(--color-brand-700)] transition-colors hover:text-[var(--color-brand-900)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             >
               <ChevronLeft className="h-5 w-5 shrink-0" aria-hidden />
               Anterior
             </button>
             {isLastPage ? (
-              <button
-                type="submit"
-                disabled={!pageComplete || submitting}
-                className="btn-escritorio inline-flex items-center gap-2 rounded-full px-6 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2"
-              >
+              <button type="submit" disabled={!pageComplete || submitting} className={primaryBtnCls}>
                 {submitting ? 'Enviando...' : 'Enviar respostas'}
                 <Send className="h-5 w-5 shrink-0" aria-hidden />
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => setPage((p) => p + 1)}
-                disabled={!pageComplete}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--color-brand-cream)] px-6 py-3 font-semibold text-[var(--color-brand-900)] shadow-[var(--shadow-md)] transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-700)] focus-visible:ring-offset-2"
-              >
+              <button type="button" onClick={() => setPage(page + 1)} disabled={!pageComplete} className={primaryBtnCls}>
                 Próxima
                 <ChevronRight className="h-5 w-5 shrink-0" aria-hidden />
               </button>
@@ -404,11 +415,11 @@ function QuestionInput({ question: q, value, onChange }: { question: SurveyQuest
             return (
               <label key={opt.key} className={cn('relative', disabled ? 'cursor-not-allowed' : 'cursor-pointer')}>
                 <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggle(opt.key)} className="peer sr-only" />
-                <span className={cn(optionBaseCls, 'flex items-center gap-3 text-left font-medium', checked ? optionSelectedCls : optionIdleCls, disabled && 'opacity-50 hover:border-[var(--border)] hover:bg-white')}>
+                <span className={cn(optionBaseCls, 'flex items-center gap-3 text-left font-medium', checked ? optionSelectedCls : optionIdleCls, disabled && 'opacity-40 hover:border-[var(--color-brand-200)] hover:text-[var(--color-brand-800)]')}>
                   <span
                     className={cn(
-                      'flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border-2',
-                      checked ? 'border-[var(--color-brand-700)] bg-[var(--color-brand-700)] text-white' : 'border-[var(--color-brand-300)]'
+                      'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[4px] border',
+                      checked ? 'border-white bg-white text-[var(--color-brand-900)]' : 'border-[var(--color-brand-400)]'
                     )}
                     aria-hidden
                   >
@@ -450,8 +461,8 @@ function QuestionInput({ question: q, value, onChange }: { question: SurveyQuest
             className={cn(
               'rounded-full border px-4 py-1.5 text-sm font-medium transition peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--ring)] peer-focus-visible:ring-offset-2',
               value === NR_OPTION.key
-                ? 'border-[var(--color-brand-600)] bg-[var(--color-brand-100)] text-[var(--color-brand-900)]'
-                : 'border-dashed border-[var(--color-brand-300)] text-[var(--muted-foreground)] hover:border-[var(--color-brand-400)] hover:text-[var(--color-brand-800)]'
+                ? 'border-[var(--color-brand-900)] bg-[var(--color-brand-900)] text-white'
+                : 'border-dashed border-[var(--color-brand-300)] text-[var(--color-brand-600)] hover:border-[var(--color-brand-500)] hover:text-[var(--color-brand-900)]'
             )}
           >
             {NR_OPTION.label}
@@ -486,23 +497,47 @@ function RadioOption({ name, option, checked, onSelect }: { name: string; option
   )
 }
 
-function IntroItem({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+/** Texto de abertura: parágrafos separados por linha em branco e *trechos em negrito*. */
+export function IntroText({ text, className }: { text: string; className?: string }) {
   return (
-    <li className="flex items-start gap-3 text-sm leading-relaxed text-[var(--color-brand-800)] sm:text-base">
-      <span className="brand-icon-tile mt-0.5 h-7 w-7 rounded-lg" aria-hidden>
+    <div className={cn('space-y-3 leading-relaxed', className)}>
+      {parseIntro(text).map((segments, i) => (
+        <p key={i} className="whitespace-pre-line">
+          {segments.map((s, j) =>
+            s.bold ? (
+              <strong key={j} className="font-semibold text-[var(--color-brand-900)]">
+                {s.text}
+              </strong>
+            ) : (
+              s.text
+            )
+          )}
+        </p>
+      ))}
+    </div>
+  )
+}
+
+function IntroFact({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="mt-0.5 shrink-0 text-[var(--color-brand-700)]" aria-hidden>
         {icon}
       </span>
-      <span className="pt-0.5">{children}</span>
-    </li>
+      <div>
+        <dt className="font-sans text-sm font-semibold text-[var(--color-brand-900)]">{title}</dt>
+        <dd className="mt-0.5 text-sm leading-relaxed text-[var(--color-brand-700)]">{children}</dd>
+      </div>
+    </div>
   )
 }
 
 export function StatusCard({ icon, title, tone = 'neutral', children }: { icon: React.ReactNode; title: string; tone?: 'neutral' | 'success'; children: React.ReactNode }) {
   return (
-    <div className="bg-card-escritorio mx-auto max-w-2xl rounded-2xl p-8 text-center sm:p-12">
-      <div className={cn('mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full', tone === 'success' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-600')}>{icon}</div>
-      <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{title}</h1>
-      <div className="mx-auto mt-4 max-w-md text-slate-600">{children}</div>
+    <div className={cn(cardCls, 'mx-auto max-w-2xl p-8 text-center font-reading sm:p-12')}>
+      <div className={cn('mx-auto mb-5 flex justify-center [&_svg]:h-11 [&_svg]:w-11 [&_svg]:stroke-[1.5]', tone === 'success' ? 'text-[var(--color-success-500)]' : 'text-[var(--color-brand-500)]')}>{icon}</div>
+      <h1 className="font-sans text-2xl font-bold tracking-tight text-[var(--color-brand-900)] sm:text-3xl">{title}</h1>
+      <div className="mx-auto mt-3 max-w-md leading-relaxed text-[var(--color-brand-700)]">{children}</div>
     </div>
   )
 }

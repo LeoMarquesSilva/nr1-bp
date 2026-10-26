@@ -20,7 +20,7 @@ import { logAdminAuditAction } from '@/services/api/audit'
 import { buildDenunciaUrl } from '@/lib/routes'
 import { feedback } from '@/lib/feedback'
 import { Sheet, SheetClose, SheetContent, SheetTitle } from '@/components/ui/sheet'
-import { SurveyRespondent } from '@/components/pesquisa/SurveyRespondent'
+import { IntroText, SurveyRespondent } from '@/components/pesquisa/SurveyRespondent'
 import { usePainel, companyName } from '../PainelContext'
 import { navigate, paths, type PesquisaTab } from '../router'
 import { SharePanel } from '../SharePanel'
@@ -358,7 +358,7 @@ function SurveyView({
                       ))}
                     </select>
                   </Field>
-                  <Field label="Texto de abertura" htmlFor="pesquisa-intro" className="lg:col-span-2" hint="Aparece antes da primeira pergunta. Explique o objetivo e reforce que é anônima.">
+                  <Field label="Texto de abertura" htmlFor="pesquisa-intro" className="lg:col-span-2" hint="Aparece antes da primeira pergunta. Linha em branco separa parágrafos; *entre asteriscos* fica em negrito.">
                     <textarea id="pesquisa-intro" value={draft.intro} onChange={(e) => setDraft((d) => ({ ...d, intro: e.target.value.slice(0, 1500) }))} rows={3} className={cn(inputCls, 'resize-y')} />
                   </Field>
                 </div>
@@ -383,7 +383,7 @@ function SurveyView({
               </Notice>
               {view.intro && (
                 <Panel title="Texto de abertura">
-                  <p className="max-w-[75ch] whitespace-pre-line text-sm leading-relaxed text-[var(--color-brand-800)]">{view.intro}</p>
+                  <IntroText text={view.intro} className="max-w-[75ch] text-sm text-[var(--color-brand-800)]" />
                   <p className="mt-3 text-xs text-[var(--color-brand-600)]">Resultados aparecem a partir de {view.minResponses} respostas.</p>
                 </Panel>
               )}

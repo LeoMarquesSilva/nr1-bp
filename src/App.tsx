@@ -12,6 +12,7 @@ import { FeedbackHost } from './components/ui/FeedbackHost'
 import { feedback } from './lib/feedback'
 import { trackEvent } from './lib/telemetry'
 import { initGlobalErrorMonitoring } from './lib/observability'
+import { cn } from './lib/utils'
 
 const Identificacao = lazy(() => import('./components/Identificacao').then((m) => ({ default: m.Identificacao })))
 const DiagnosticoIntroVideo = lazy(() => import('./components/DiagnosticoIntroVideo').then((m) => ({ default: m.DiagnosticoIntroVideo })))
@@ -371,7 +372,8 @@ function App() {
   }
 
   return (
-    <div className="flow-brand-surface flex min-h-screen flex-col font-sans antialiased">
+    // Pesquisa interna: fundo liso, sem o degradê das outras telas públicas, para o formulário ficar em primeiro plano.
+    <div className={cn('flex min-h-screen flex-col font-sans antialiased', view === 'pesquisa' ? 'bg-[var(--color-brand-50)]' : 'flow-brand-surface')}>
       <FeedbackHost />
       {/*
         Header appearance: landing uses dark (aligns with full-bleed hero / landing-premium-bg).

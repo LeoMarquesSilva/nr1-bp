@@ -9,6 +9,8 @@ import {
   SIM_NAO_OPTIONS,
   changeQuestionType,
   createQuestion,
+  describeGate,
+  endIfLabels,
   getAnswerOptions,
   getQuestionTypeLabel,
   newOptionKey,
@@ -83,6 +85,7 @@ export function QuestionEditor({ questions, onChange }: Props) {
             index={i}
             total={questions.length}
             question={q}
+            gate={describeGate(questions, i)}
             autoFocus={focusId === q.id}
             onFocused={() => setFocusId(null)}
             onChange={(patch) => update(q.id, patch)}
@@ -149,6 +152,7 @@ function QuestionCard({
   index,
   total,
   question: q,
+  gate,
   autoFocus,
   onFocused,
   onChange,
@@ -159,6 +163,7 @@ function QuestionCard({
   index: number
   total: number
   question: SurveyQuestion
+  gate: string | null
   autoFocus: boolean
   onFocused: () => void
   onChange: (patch: Partial<SurveyQuestion> | ((q: SurveyQuestion) => SurveyQuestion)) => void
@@ -214,6 +219,7 @@ function QuestionCard({
       </div>
 
       <div className="space-y-4 px-4 py-4">
+        {gate && <p className="rounded-md bg-[var(--color-brand-50)] px-3 py-2 text-xs text-[var(--color-brand-700)]">{gate}</p>}
         <div>
           <label htmlFor={textId} className="sr-only">
             Texto da pergunta {index + 1}
@@ -254,6 +260,26 @@ function QuestionCard({
               label="Sugerir o Canal de Denúncias"
               description="Se a resposta indicar ocorrência, mostra um aviso discreto com o link do canal."
             />
+          )}
+          {q.type === 'sim_nao' && index < total - 1 && (
+            <div>
+              <label htmlFor={`${textId}-encerra`} className="text-sm font-medium text-[var(--color-brand-900)]">
+                Depois desta pergunta
+              </label>
+              <p className="mt-0.5 text-sm leading-relaxed text-[var(--color-brand-700)]">
+                Ramificação: as próximas perguntas só aparecem depois da resposta escolhida; com a outra, a pesquisa termina.
+              </p>
+              <select
+                id={`${textId}-encerra`}
+                value={q.endIf ?? ''}
+                onChange={(e) => onChange({ endIf: (e.target.value || undefined) as SurveyQuestion['endIf'] })}
+                className={cn(inputCls, 'mt-2 sm:w-auto')}
+              >
+                <option value="">Mostrar as próximas perguntas para todos</option>
+                <option value="nao">Só continuar se responder “Sim”</option>
+                <option value="sim">Só continuar se responder “Não”</option>
+              </select>
+            </div>
           )}
         </div>
       </div>
@@ -352,6 +378,8 @@ export function QuestionList({ questions }: { questions: SurveyQuestion[] }) {
     <ol className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)] bg-white">
       {questions.map((q, i) => {
         const opts = getAnswerOptions(q)
+        const ends = endIfLabels(q)
+        const gate = describeGate(questions, i)
         return (
           <li key={q.id} className="flex gap-4 px-5 py-4">
             <span className="w-6 shrink-0 text-right font-mono text-sm text-[var(--color-brand-600)]">{i + 1}</span>
@@ -362,7 +390,9 @@ export function QuestionList({ questions }: { questions: SurveyQuestion[] }) {
                 {q.required ? ' · obrigatória' : ' · opcional'}
                 {q.type === 'multipla' && ` · até ${q.maxSelections ?? 1}`}
                 {opts.length > 0 && q.type === 'multipla' && `: ${opts.map((o) => o.label).join(', ')}`}
+                {ends && i < questions.length - 1 && ` · só continua com “${ends.continues}”`}
               </p>
+              {gate && <p className="mt-1 text-xs text-[var(--color-brand-600)]">{gate}</p>}
             </div>
           </li>
         )

@@ -67,6 +67,8 @@ Perfil reaproveita `src/components/admin/AdminPerfil.tsx`.
 - **Modelos** (`survey_templates`): "Em branco" e "Diversidade e Inclusão" vêm do sistema (editáveis, não excluíveis); a equipe cria outros ou salva uma pesquisa como modelo.
 - **Ciclo:** rascunho → aberta → encerrada (pode reabrir). Toda pesquisa nasce rascunho. Ao abrir, **perguntas e mínimo de respostas travam** (regra no banco); para mudar, duplicar.
 - **Tipos de pergunta:** escala 1–5, frequência, sim/não, múltipla escolha (limite e "Outros"), aberta. Escala e frequência podem oferecer "Prefiro não responder".
+- **Ramificação:** uma pergunta de sim/não pode liberar as seguintes só com uma das respostas (`endIf` guarda a que encerra). Sem resposta ou com a que encerra, as seguintes não aparecem, não são exigidas e não são salvas; nos resultados, elas contam só quem chegou até elas. Na D&I, as perguntas 11 e 12 só aparecem com "Sim" na 10 (migração 029).
+- **Texto de abertura:** linha em branco separa parágrafos e `*trecho*` fica em negrito. A abertura mostra só o tempo estimado, sem o número de perguntas (com ramificação ele varia).
 - **Anonimato:** respostas sem horário (só data, definida pelo servidor), sem setor ou identificação; resultados só a partir do mínimo (padrão 5); textos em ordem aleatória.
 - **Link público:** `/pesquisa/:id`. O RPC `get_public_survey` só devolve perguntas quando a pesquisa está aberta; rascunho não existe para o público.
 - **Diagnóstico NR-1 (HSE-IT):** instrumento validado, fora do motor (dados em `submissions`, cálculo em `src/data/hseIt.ts`). Aparece na lista de pesquisas como "metodologia travada". Resultados por setor ficam ocultos abaixo de 3 respostas.

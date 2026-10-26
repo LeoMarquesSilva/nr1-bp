@@ -3,6 +3,8 @@ import { Lock, MessageSquareText, Table2, Trash2, Users } from 'lucide-react'
 import {
   ESCALA_OPTIONS,
   NR_OPTION,
+  countReached,
+  describeGate,
   getAnswerOptions,
   summarizeResponses,
   type QuestionSummary,
@@ -60,7 +62,8 @@ export function SurveyResults({
   onDeleteAll?: () => void
 }) {
   const [showTable, setShowTable] = useState(false)
-  const summary = useMemo(() => summarizeResponses(questions, responses.map((r) => r.answers)), [questions, responses])
+  const answersList = useMemo(() => responses.map((r) => r.answers), [responses])
+  const summary = useMemo(() => summarizeResponses(questions, answersList), [questions, answersList])
   // Textos em ordem aleatória: a ordem de chegada poderia ajudar a identificar quem escreveu.
   const shuffled = useMemo(
     () => Object.fromEntries(summary.filter((s) => s.kind === 'aberta' || s.kind === 'multipla').map((s) => [s.question.id, shuffle(s.kind === 'aberta' ? s.texts : s.kind === 'multipla' ? s.outros : [])])),
@@ -125,9 +128,13 @@ export function SurveyResults({
 
           {others.map((s) => {
             const n = questions.findIndex((q) => q.id === s.question.id) + 1
+            // Pergunta depois de uma resposta que encerra: só parte das pessoas chegou até ela.
+            const gate = describeGate(questions, n - 1, 'apareceu')
+            const reached = gate ? countReached(questions, answersList, s.question.id) : total
+            const gateText = gate ? `${gate.replace(/\.$/, '')}: ${pluralize(reached, 'pessoa', 'pessoas')}.` : null
             if (s.kind === 'opcoes') {
               return (
-                <QuestionPanel key={s.question.id} n={n} text={s.question.text}>
+                <QuestionPanel key={s.question.id} n={n} text={s.question.text} note={gateText ?? undefined}>
                   <BarList items={getAnswerOptions(s.question).map((o) => ({ label: o.label, count: s.counts[o.key] ?? 0 }))} total={s.total} />
                 </QuestionPanel>
               )
@@ -135,7 +142,12 @@ export function SurveyResults({
             if (s.kind === 'multipla') {
               const outros = shuffled[s.question.id] ?? []
               return (
-                <QuestionPanel key={s.question.id} n={n} text={s.question.text} note={`Até ${s.question.maxSelections ?? 1} por pessoa · percentuais sobre ${pluralize(s.respondents, 'pessoa', 'pessoas')}.`}>
+                <QuestionPanel
+                  key={s.question.id}
+                  n={n}
+                  text={s.question.text}
+                  note={[gateText, `Até ${s.question.maxSelections ?? 1} por pessoa · percentuais sobre ${pluralize(s.respondents, 'pessoa', 'pessoas')}.`].filter(Boolean).join(' ')}
+                >
                   <BarList
                     items={getAnswerOptions(s.question)
                       .map((o) => ({ label: o.label, count: s.counts[o.key] ?? 0 }))
@@ -154,7 +166,12 @@ export function SurveyResults({
             if (s.kind === 'aberta') {
               const texts = shuffled[s.question.id] ?? []
               return (
-                <QuestionPanel key={s.question.id} n={n} text={s.question.text} note={`${texts.length} de ${pluralize(total, 'pessoa respondeu', 'pessoas responderam')}. Ordem aleatória.`}>
+                <QuestionPanel
+                  key={s.question.id}
+                  n={n}
+                  text={s.question.text}
+                  note={[gateText, `${texts.length} de ${pluralize(reached, 'pessoa escreveu', 'pessoas escreveram')}. Ordem aleatória.`].filter(Boolean).join(' ')}
+                >
                   {texts.length === 0 ? <p className="text-sm text-[var(--color-brand-700)]">Nenhuma resposta escrita.</p> : <TextList texts={texts} />}
                 </QuestionPanel>
               )

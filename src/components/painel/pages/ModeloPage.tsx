@@ -99,7 +99,7 @@ function ModeloEditor({ template }: { template: SurveyTemplate }) {
             <Field label="Descrição" htmlFor="modelo-descricao" hint="Ajuda a equipe a escolher o modelo ao criar uma pesquisa.">
               <input id="modelo-descricao" value={draft.description} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value.slice(0, 240) }))} className={inputCls} />
             </Field>
-            <Field label="Texto de abertura" htmlFor="modelo-intro" className="lg:col-span-2" hint="Pode ser ajustado em cada pesquisa.">
+            <Field label="Texto de abertura" htmlFor="modelo-intro" className="lg:col-span-2" hint="Pode ser ajustado em cada pesquisa. Linha em branco separa parágrafos; *entre asteriscos* fica em negrito.">
               <textarea id="modelo-intro" value={draft.intro} onChange={(e) => setDraft((d) => ({ ...d, intro: e.target.value.slice(0, 1500) }))} rows={3} className={cn(inputCls, 'resize-y')} />
             </Field>
           </div>

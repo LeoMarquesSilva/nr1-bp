@@ -164,7 +164,8 @@ export function Sidebar({
         </button>
         <CompanySwitcher currentSlug={companySlug} collapsed={collapsed} onNavigate={onNavigate} onOpenChange={onSwitcherOpenChange} />
       </div>
-      <nav aria-label="Painel" className="flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-2 py-3">
+      {/* Em telas baixas a lista rola com a roda do mouse, mas sem a barra de rolagem nativa (que ocupa a faixa recolhida). */}
+      <nav aria-label="Painel" className="min-h-0 flex-1 space-y-5 overflow-y-auto overflow-x-hidden px-2 py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {companyItems.length > 0 && <NavList title="Esta empresa" items={companyItems} collapsed={collapsed} onNavigate={onNavigate} />}
         <NavList title="Escritório" items={officeItems} collapsed={collapsed} onNavigate={onNavigate} />
       </nav>
