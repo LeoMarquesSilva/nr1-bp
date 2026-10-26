@@ -4,9 +4,9 @@ import { getSupabase } from '@/lib/supabase'
 import { logoutAdmin } from '@/lib/adminAuth'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { AdminPerfil } from '@/components/admin/AdminPerfil'
-import { AdminUsuarios } from '@/components/admin/usuarios/AdminUsuarios'
-import { ForcePasswordChangeModal } from '@/components/admin/ForcePasswordChangeModal'
 import { PainelProvider, usePainel, type PainelProfile } from './PainelContext'
+import { PrimeiroAcesso } from './PrimeiroAcesso'
+import { EquipePage } from './pages/EquipePage'
 import { Sidebar, SIDEBAR_COLLAPSED_W, SIDEBAR_EXPANDED_W } from './Sidebar'
 import { useCanHover, useSidebarHover } from './useSidebarHover'
 import { cn } from '@/lib/utils'
@@ -35,29 +35,30 @@ export function PainelLayout({ onExit, onLogout }: Props) {
   const [profile, setProfile] = useState<PainelProfile | null>(null)
   const [checked, setChecked] = useState(false)
 
-  const loadProfile = useCallback(
-    (onDenied?: () => void) => {
-      const supabase = getSupabase()
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session?.user?.id) {
-          setChecked(true)
-          onDenied?.()
-          return
-        }
-        supabase
-          .from('users')
-          .select('id, name, email, role, avatar_url, department, requires_password_change')
-          .eq('auth_id', session.user.id)
-          .maybeSingle()
-          .then(({ data }) => {
-            setChecked(true)
-            if (data && data.role === 'admin') setProfile(data as PainelProfile)
-            else onDenied?.()
-          })
-      })
-    },
-    []
-  )
+  /** Carrega o perfil de quem está logado; devolve null se não for admin ativo. */
+  const loadProfile = useCallback(async (onDenied?: () => void): Promise<PainelProfile | null> => {
+    const supabase = getSupabase()
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    if (!session?.user?.id) {
+      setChecked(true)
+      onDenied?.()
+      return null
+    }
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, email, role, avatar_url, department, requires_password_change, is_active')
+      .eq('auth_id', session.user.id)
+      .maybeSingle()
+    setChecked(true)
+    if (data && data.role === 'admin' && data.is_active !== false) {
+      setProfile(data as PainelProfile)
+      return data as PainelProfile
+    }
+    onDenied?.()
+    return null
+  }, [])
 
   useEffect(() => {
     loadProfile(() => {
@@ -83,11 +84,13 @@ export function PainelLayout({ onExit, onLogout }: Props) {
     )
   }
 
+  // Senha provisória: só a tela de criar senha aparece; o painel nem carrega dados.
+  if (profile.requires_password_change) {
+    return <PrimeiroAcesso profile={profile} onDone={async () => (await loadProfile())?.requires_password_change === false} onLogout={handleLogout} />
+  }
+
   return (
-    <PainelProvider profile={profile} refreshProfile={() => loadProfile()}>
-      {profile.requires_password_change && (
-        <ForcePasswordChangeModal onSuccess={() => setProfile({ ...profile, requires_password_change: false })} onLogout={handleLogout} />
-      )}
+    <PainelProvider profile={profile} refreshProfile={() => void loadProfile()}>
       <Shell onExit={onExit} onLogout={handleLogout} />
     </PainelProvider>
   )
@@ -218,12 +221,7 @@ function Page({ route }: { route: PainelRoute }) {
     case 'modelo':
       return <ModeloPage id={route.id} />
     case 'equipe':
-      return (
-        <>
-          <PageHeader title="Equipe" description="Pessoas do escritório com acesso ao painel. Só a equipe tem login; colaboradores das empresas usam apenas os links públicos." />
-          <AdminUsuarios />
-        </>
-      )
+      return <EquipePage tab={route.tab} />
     case 'perfil':
       return (
         <>

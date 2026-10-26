@@ -25,7 +25,8 @@ Referência obrigatória ao alterar o painel. Princípios de produto em `PRODUCT
 | `/painel/empresas/:slug/configuracoes` | Dados, logo, CNPJs, setores, coleta, canal e exclusão |
 | `/painel/denuncias` | Todas as denúncias (filtro por empresa) |
 | `/painel/modelos`, `/painel/modelos/:id` | Modelos de pesquisa |
-| `/painel/equipe`, `/painel/perfil` | Equipe (usuários) e perfil |
+| `/painel/equipe[/departamentos]` | Equipe: pessoas com login e lista de departamentos |
+| `/painel/perfil` | Meu perfil |
 
 Rotas e geradores de caminho: `src/components/painel/router.ts` (testado em `router.test.ts`). Para nova tela: adicionar ao tipo `PainelRoute`, a `parsePainelPath`, a `paths` e ao `switch` em `PainelLayout.tsx`.
 
@@ -34,6 +35,7 @@ Rotas e geradores de caminho: `src/components/painel/router.ts` (testado em `rou
 ```
 src/components/painel/
   PainelLayout.tsx     # guarda de sessão admin, shell (barra lateral / gaveta no celular), escolhe a página pela URL
+  PrimeiroAcesso.tsx   # tela única de "Crie sua senha" enquanto a senha provisória não for trocada
   PainelContext.tsx    # empresas, totais do diagnóstico, denúncias não lidas, última empresa visitada
   Sidebar.tsx          # menu "Esta empresa" + "Escritório", perfil, ver site, sair
   CompanySwitcher.tsx  # seletor de empresa com busca e teclado
@@ -47,9 +49,18 @@ src/components/pesquisa/
   PesquisaPublica.tsx  # página pública /pesquisa/:id
 src/data/pesquisas.ts  # motor de pesquisas: tipos de pergunta, validação, agregação, modelo de D&I
 src/types/pesquisas.ts # acesso ao Supabase: modelos, pesquisas, respostas, página pública
+src/types/equipe.ts    # pessoas da equipe e departamentos (CRUD); cadastro/exclusão via edge functions
+src/lib/senha.ts       # regras da senha definitiva (testado em senha.test.ts)
 ```
 
-Equipe e Perfil reaproveitam `src/components/admin/usuarios/AdminUsuarios.tsx` e `src/components/admin/AdminPerfil.tsx`.
+Perfil reaproveita `src/components/admin/AdminPerfil.tsx`.
+
+## 3.1 Equipe, departamentos e primeiro acesso
+
+- **Departamentos** (`departments`, migração 027): lista fixa, nunca campo livre. `users.department` referencia `departments.name`: renomear atualiza as pessoas (cascade); excluir só sem ninguém vinculado (restrict); desativar tira das escolhas sem mexer em quem já está nele.
+- **Cadastro de pessoa:** nome, e-mail, departamento (da lista) e senha provisória, pela edge function `create-admin-user`. A pessoa nasce com `requires_password_change = true`.
+- **Primeiro acesso:** enquanto a flag estiver ligada, o painel mostra só a tela "Crie sua senha" e, no banco, `is_admin()` é falso (não enxerga dados nem chama as edge functions). A flag só cai quando a senha muda de fato no Supabase Auth (gatilho em `auth.users`); um gatilho em `users` impede desligá-la manualmente. Quem administra pode religá-la ("Exigir nova senha").
+- A senha nova segue `src/lib/senha.ts`: 8+ caracteres, letras e números, nada óbvio (123456, "senha123"…) e sem nome/e-mail da pessoa.
 
 ## 4. Pesquisas internas
 
@@ -62,7 +73,7 @@ Equipe e Perfil reaproveitam `src/components/admin/usuarios/AdminUsuarios.tsx` e
 
 ## 5. Segurança (RLS)
 
-- `is_admin()` controla leitura e escrita de `submissions`, `whistleblower_reports`, `tenant_registry` (escrita), `surveys`, `survey_templates` e `survey_responses` (leitura/exclusão).
+- `is_admin()` (admin ativo **e** sem senha provisória pendente) controla leitura e escrita de `submissions`, `whistleblower_reports`, `tenant_registry` (escrita), `surveys`, `survey_templates`, `survey_responses` (leitura/exclusão), `departments` e a leitura de toda a equipe em `users`.
 - Anônimo: só insere respostas/denúncias; não lê nada. Gatilhos no banco bloqueiam resposta em pesquisa não aberta.
 - Ações administrativas relevantes vão para `admin_audit_log` via `logAdminAuditAction`.
 

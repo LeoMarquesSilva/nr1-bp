@@ -19,6 +19,7 @@ describe('rotas do painel', () => {
       paths.modelos(),
       paths.modelo('xyz'),
       paths.equipe(),
+      paths.equipe('departamentos'),
       paths.perfil(),
     ]
     for (const p of casos) expect(parsePainelPath(p).name).not.toBe('nao-encontrado')
@@ -29,12 +30,15 @@ describe('rotas do painel', () => {
     expect(parsePainelPath('/painel/empresas/acme/')).toEqual({ name: 'empresa', slug: 'acme', section: 'visao-geral' })
     expect(parsePainelPath('/painel/empresas/acme/pesquisas/diagnostico-nr1')).toEqual({ name: 'diagnostico', slug: 'acme', tab: 'resultados' })
     expect(parsePainelPath('/painel/empresas/acme/pesquisas/123/compartilhar')).toEqual({ name: 'pesquisa', slug: 'acme', id: '123', tab: 'compartilhar' })
+    expect(parsePainelPath('/painel/equipe')).toEqual({ name: 'equipe', tab: 'pessoas' })
+    expect(parsePainelPath('/painel/equipe/departamentos')).toEqual({ name: 'equipe', tab: 'departamentos' })
   })
 
   it('rejeita caminhos desconhecidos', () => {
     expect(parsePainelPath('/painel/xyz').name).toBe('nao-encontrado')
     expect(parsePainelPath('/painel/empresas/acme/financeiro').name).toBe('nao-encontrado')
     expect(parsePainelPath('/painel/empresas/acme/pesquisas/123/editar').name).toBe('nao-encontrado')
+    expect(parsePainelPath('/painel/equipe/cargos').name).toBe('nao-encontrado')
     expect(isPainelPath('/painelx')).toBe(false)
     expect(isPainelPath('/painel/empresas')).toBe(true)
   })

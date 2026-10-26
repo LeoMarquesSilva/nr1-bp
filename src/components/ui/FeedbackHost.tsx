@@ -27,7 +27,7 @@ type PromptState = {
   resolve: (value: string | null) => void
 }
 
-/** z-index acima de ForcePasswordChangeModal (100) e demais overlays do admin. */
+/** z-index acima dos demais overlays do painel. */
 const MODAL_Z = 'z-[10050]'
 
 export function FeedbackHost() {

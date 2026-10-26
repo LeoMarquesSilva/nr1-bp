@@ -4,6 +4,7 @@ import { useSyncExternalStore } from 'react'
 export type EmpresaSection = 'visao-geral' | 'pesquisas' | 'denuncias' | 'configuracoes'
 export type PesquisaTab = 'perguntas' | 'compartilhar' | 'resultados'
 export type DiagnosticoTab = 'resultados' | 'setores' | 'compartilhar' | 'perguntas'
+export type EquipeTab = 'pessoas' | 'departamentos'
 
 export type PainelRoute =
   | { name: 'empresas' }
@@ -15,7 +16,7 @@ export type PainelRoute =
   | { name: 'denuncias' }
   | { name: 'modelos' }
   | { name: 'modelo'; id: string }
-  | { name: 'equipe' }
+  | { name: 'equipe'; tab: EquipeTab }
   | { name: 'perfil' }
   | { name: 'nao-encontrado' }
 
@@ -39,7 +40,7 @@ export function parsePainelPath(pathname: string): PainelRoute {
   if (!area) return { name: 'empresas' }
   if (area === 'denuncias' && !a) return { name: 'denuncias' }
   if (area === 'modelos') return a ? { name: 'modelo', id: a } : { name: 'modelos' }
-  if (area === 'equipe' && !a) return { name: 'equipe' }
+  if (area === 'equipe' && !b && (!a || a === 'departamentos')) return { name: 'equipe', tab: a ? 'departamentos' : 'pessoas' }
   if (area === 'perfil' && !a) return { name: 'perfil' }
   if (area !== 'empresas') return { name: 'nao-encontrado' }
   if (!a) return { name: 'empresas' }
@@ -72,7 +73,7 @@ export const paths = {
   denuncias: () => `${PAINEL_BASE}/denuncias`,
   modelos: () => `${PAINEL_BASE}/modelos`,
   modelo: (id: string) => `${PAINEL_BASE}/modelos/${enc(id)}`,
-  equipe: () => `${PAINEL_BASE}/equipe`,
+  equipe: (tab: EquipeTab = 'pessoas') => `${PAINEL_BASE}/equipe${tab === 'pessoas' ? '' : `/${tab}`}`,
   perfil: () => `${PAINEL_BASE}/perfil`,
 }
 

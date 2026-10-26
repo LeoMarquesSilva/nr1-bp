@@ -61,11 +61,11 @@ serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
     const { data: callerProfile, error: callerError } = await supabaseAdmin
       .from('users')
-      .select('role, is_active')
+      .select('role, is_active, requires_password_change')
       .eq('auth_id', user.id)
       .maybeSingle()
 
-    if (callerError || !callerProfile || callerProfile.role !== 'admin' || !callerProfile.is_active) {
+    if (callerError || !callerProfile || callerProfile.role !== 'admin' || !callerProfile.is_active || callerProfile.requires_password_change) {
       throw new HttpError(403, 'Acesso negado: Apenas administradores ativos podem excluir usuários.')
     }
 

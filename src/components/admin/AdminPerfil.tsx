@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { getSupabase } from '@/lib/supabase'
+import { getDepartments, type Department } from '@/types/equipe'
 
 type Profile = {
   id: string
@@ -32,6 +33,13 @@ export function AdminPerfil({ profile, onProfileUpdated }: AdminPerfilProps) {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? '')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [departments, setDepartments] = useState<Department[] | null>(null)
+
+  useEffect(() => {
+    getDepartments()
+      .then(setDepartments)
+      .catch(() => setDepartments([]))
+  }, [])
 
   useEffect(() => {
     if (profile) {
@@ -66,12 +74,13 @@ export function AdminPerfil({ profile, onProfileUpdated }: AdminPerfilProps) {
         .from('users')
         .update({
           name: name.trim() || profile.name,
-          department: department.trim() || null,
+          department: department || profile.department || null,
           avatar_url: avatarUrl.trim() || null,
         })
         .eq('auth_id', session.user.id)
       if (error) {
-        setMessage({ type: 'error', text: error.message || 'Não foi possível salvar.' })
+        const text = error.code === '23503' ? 'Departamento inválido. Escolha um departamento da lista.' : error.message || 'Não foi possível salvar.'
+        setMessage({ type: 'error', text })
         setSaving(false)
         return
       }
@@ -125,14 +134,28 @@ export function AdminPerfil({ profile, onProfileUpdated }: AdminPerfilProps) {
             <label htmlFor="perfil-department" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">
               Departamento
             </label>
-            <input
+            {/* Sempre da lista (Equipe → Departamentos): ativos, mais o atual se estiver desativado. */}
+            <select
               id="perfil-department"
-              type="text"
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-              placeholder="Ex.: RH, Jurídico"
+              disabled={departments === null}
               className="input-escritorio w-full rounded-xl px-4 py-2.5 text-sm"
-            />
+            >
+              {!department && (
+                <option value="" disabled>
+                  {departments === null ? 'Carregando…' : 'Escolha o departamento'}
+                </option>
+              )}
+              {department && !departments?.some((d) => d.name === department) && <option value={department}>{department}</option>}
+              {departments
+                ?.filter((d) => d.active || d.name === department)
+                .map((d) => (
+                  <option key={d.id} value={d.name}>
+                    {d.active ? d.name : `${d.name} (desativado)`}
+                  </option>
+                ))}
+            </select>
           </div>
           <div>
             <label htmlFor="perfil-avatar" className="mb-1 block text-sm font-medium text-[var(--color-brand-700)]">

@@ -62,11 +62,11 @@ serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
     const { data: callerProfile, error: callerError } = await supabaseAdmin
       .from('users')
-      .select('role, is_active')
+      .select('role, is_active, requires_password_change')
       .eq('auth_id', user.id)
       .maybeSingle()
 
-    if (callerError || !callerProfile || callerProfile.role !== 'admin' || !callerProfile.is_active) {
+    if (callerError || !callerProfile || callerProfile.role !== 'admin' || !callerProfile.is_active || callerProfile.requires_password_change) {
       throw new HttpError(403, 'Acesso negado: Apenas administradores ativos podem criar usuários.')
     }
 
@@ -86,6 +86,9 @@ serve(async (req) => {
     })
 
     if (createError) {
+      if (/already (been )?registered|already exists/i.test(createError.message ?? '')) {
+        throw new HttpError(409, 'Já existe um usuário com este e-mail.')
+      }
       throw createError
     }
 
@@ -107,6 +110,9 @@ serve(async (req) => {
     if (insertError) {
       // Rollback: se falhar a inserção na tabela, tentar apagar do Auth
       await supabaseAdmin.auth.admin.deleteUser(newUser.user.id)
+      if (insertError.code === '23503') {
+        throw new HttpError(400, 'Departamento inválido. Escolha um departamento da lista.')
+      }
       throw insertError
     }
 

@@ -258,6 +258,26 @@ export type Database = {
           updated_at?: string
         }
       }
+      departments: {
+        Row: {
+          id: string
+          name: string
+          active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          name?: string
+          active?: boolean
+        }
+      }
     }
     Views: {
       tenant_list: {
