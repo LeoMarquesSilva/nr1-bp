@@ -164,7 +164,7 @@ Use este documento como contexto ao pedir novas páginas, componentes ou ajustes
 
 ## 11. Área administrativa (painel pós-login)
 
-- **Layout:** Quando `view === 'admin'`, o App renderiza apenas `AdminLayout` (sem header público). Dentro do layout: Sidebar (desktop) + bottom nav (mobile) + **AdminHeader** (título da página + pesquisa) + conteúdo. Modelo em `docs/PROMPT-RESUMO-SIDEBAR-LOGIN-PERFIL.md`.
-- **Contexto detalhado:** Ver **`docs/ADMIN-CONTEXT.md`** para estrutura de pastas, destinos (`AdminPage`: dashboard, empresas, perfil), segurança (role admin, RLS), fluxo de logout, perfil, módulo Empresas (cnpj, nicho, setores) e checklist.
-- **Componentes:** `src/components/admin/` — `AdminLayout`, `AdminSidebar`, `AdminHeader`, `AdminPerfil`, `AdminEmpresas`. Dashboard em `AdminDashboard.tsx` com `hideHeaderActions` quando usado dentro do layout.
+- **Layout:** O painel fica em `/painel/...` (uma URL por tela) e é renderizado por `src/components/painel/PainelLayout.tsx`, sem o header público: barra lateral escura com seletor de empresa (gaveta no celular) + conteúdo em fundo `brand-50`. Texto e dados usam `font-reading` (system-ui); títulos usam All Round Gothic.
+- **Contexto detalhado:** Ver **`docs/ADMIN-CONTEXT.md`** (mapa de telas, arquivos, pesquisas, segurança e checklist) e **`PRODUCT.md`** (princípios do produto).
+- **Componentes:** `src/components/painel/` — `ui.tsx` (PageHeader, TabNav, Panel, StatusPill, Field, Switch), `SharePanel.tsx`, `CompanySwitcher.tsx`, páginas em `pages/` e editor/resultados de pesquisas em `survey/`.
 - **Regra Cursor:** Ao trabalhar na área admin, consultar sempre `docs/ADMIN-CONTEXT.md` e este `DESIGN_CONTEXT.md`.

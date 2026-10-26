@@ -29,6 +29,7 @@ const VIEW_TITLES: Partial<Record<View, string>> = {
   'denuncia-hub': `Canal de denúncias${suffix}`,
   'denuncia-obrigado': `Denúncia registrada${suffix}`,
   'denuncia-consultar': `Consultar denúncia${suffix}`,
+  pesquisa: `Pesquisa interna${suffix}`,
   admin: `Painel administrativo${suffix}`,
 }
 
@@ -57,6 +58,7 @@ const VIEW_DESCRIPTIONS: Partial<Record<View, string>> = {
   'denuncia-obrigado':
     'Denúncia registrada com sucesso. Guarde o protocolo para acompanhar o andamento quando permitido.',
   'denuncia-consultar': 'Consulte o status da sua denúncia informando o número do protocolo.',
+  pesquisa: 'Pesquisa interna e anônima. As respostas são analisadas apenas em conjunto.',
   admin: 'Painel administrativo Confiara: gestão de empresas, diagnósticos de riscos psicossociais e canal de denúncias.',
 }
 

@@ -1,5 +1,0 @@
-export { AdminLayout } from './AdminLayout'
-export { AdminSidebar, ADMIN_NAV, type AdminPage } from './AdminSidebar'
-export { AdminHeader } from './AdminHeader'
-export { AdminPerfil } from './AdminPerfil'
-export { AdminEmpresas } from './AdminEmpresas'

@@ -21,6 +21,7 @@ export type View =
   | "denuncia-consultar"
   | "login"
   | "contato"
+  | "pesquisa"
 
 const APP_NAV: { view: View; label: string }[] = [
   { view: "landing", label: "Início" },

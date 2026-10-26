@@ -214,6 +214,18 @@ export async function getWhistleblowerStatusByProtocol(
   return { status: row.status, created_at: row.created_at }
 }
 
+/** Denúncias ainda não lidas, por empresa (para os contadores do menu do painel). */
+export async function getUnreadReportCounts(): Promise<Record<string, number>> {
+  const { data, error } = await getSupabase().from('whistleblower_reports').select('tenant_id').is('read_at', null)
+  if (error) {
+    console.error('Supabase getUnreadReportCounts:', error)
+    return {}
+  }
+  const counts: Record<string, number> = {}
+  for (const row of (data ?? []) as { tenant_id: string }[]) counts[row.tenant_id] = (counts[row.tenant_id] ?? 0) + 1
+  return counts
+}
+
 export async function markWhistleblowerReportRead(id: string): Promise<void> {
   const supabase = getSupabase()
   const { error } = await supabase

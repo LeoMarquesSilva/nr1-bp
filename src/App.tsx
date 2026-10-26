@@ -1,9 +1,10 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { HealthqoeHeader } from './components/layout/header'
 import type { OptionKey } from './data/hseIt'
 import { saveSubmission, getTenantStatus, getTenantPublicBranding, getTenantWhistleblowerStatus } from './services/api'
 import { isAdminLoggedIn } from './lib/adminAuth'
 import { getAppName, getTenantId, isDiagnosticParticipantFlow, setTenantFromUrl } from './lib/tenant'
+import { isPainelPath, paths as painelPaths } from './components/painel/router'
 import { Footer } from './components/layout/Footer'
 import { getSeoDescriptionForView, getSeoTitleForView } from './lib/seo'
 import { buildDenunciaUrl, getPathForView, getViewFromPath, isRoutableView, normalizePath } from './lib/routes'
@@ -26,11 +27,47 @@ const RelatosBuscarEmpresa = lazy(() => import('./components/RelatosBuscarEmpres
 const CanalRelatosHub = lazy(() => import('./components/CanalRelatosHub').then((m) => ({ default: m.CanalRelatosHub })))
 const Sobre = lazy(() => import('./components/Sobre').then((m) => ({ default: m.Sobre })))
 const Privacidade = lazy(() => import('./components/Privacidade').then((m) => ({ default: m.Privacidade })))
-const AdminLayout = lazy(() => import('./components/admin').then((m) => ({ default: m.AdminLayout })))
+const PainelLayout = lazy(() => import('./components/painel/PainelLayout').then((m) => ({ default: m.PainelLayout })))
 const Login = lazy(() => import('./components/Login').then((m) => ({ default: m.Login })))
 const Contato = lazy(() => import('./components/Contato').then((m) => ({ default: m.Contato })))
+const PesquisaPublica = lazy(() => import('./components/pesquisa/PesquisaPublica').then((m) => ({ default: m.PesquisaPublica })))
 
-export type View = 'landing' | 'relatos-buscar' | 'intro-video' | 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin-gate' | 'admin' | 'coleta-encerrada' | 'denuncia-hub' | 'denuncia-intro-video' | 'denuncia' | 'denuncia-obrigado' | 'denuncia-consultar' | 'login' | 'contato'
+export type View = 'landing' | 'relatos-buscar' | 'intro-video' | 'identificacao' | 'form' | 'obrigado' | 'sobre' | 'privacidade' | 'admin-gate' | 'admin' | 'coleta-encerrada' | 'denuncia-hub' | 'denuncia-intro-video' | 'denuncia' | 'denuncia-obrigado' | 'denuncia-consultar' | 'login' | 'contato' | 'pesquisa'
+
+/** Pesquisa interna pública: /pesquisa/<uuid>. */
+function getPublicSurveyIdFromPath(): string | null {
+  if (typeof window === 'undefined') return null
+  const match = window.location.pathname.match(/^\/pesquisa\/([0-9a-f-]{36})\/?$/i)
+  return match ? match[1].toLowerCase() : null
+}
+
+/** Página do painel pedida antes do login, para voltar a ela depois de entrar. */
+const PAINEL_DESTINO_KEY = 'confiara:painel:destino'
+
+function rememberPainelDestino(): void {
+  try {
+    window.sessionStorage.setItem(PAINEL_DESTINO_KEY, `${window.location.pathname}${window.location.search}`)
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function takePainelDestino(): string {
+  try {
+    const value = window.sessionStorage.getItem(PAINEL_DESTINO_KEY)
+    window.sessionStorage.removeItem(PAINEL_DESTINO_KEY)
+    if (value && isPainelPath(value.split('?')[0])) return value
+  } catch {
+    // ignore storage errors
+  }
+  return painelPaths.empresas()
+}
+
+function getPainelView(): View {
+  if (isAdminLoggedIn()) return 'admin'
+  rememberPainelDestino()
+  return 'login'
+}
 
 /** Só após "Continuar para denúncia"; por aba — nova sessão do navegador mostra o vídeo de novo ao abrir `form=1`. */
 function denunciaFormIntroSessionKey(orgSlug: string): string {
@@ -83,12 +120,14 @@ function hasDiagnosticOrgInUrl(): boolean {
 
 function App() {
   const [view, setView] = useState<View>(() => {
+    if (getPublicSurveyIdFromPath()) return 'pesquisa'
     if (hasDiagnosticOrgInUrl()) return 'intro-video'
     if (isDenunciaChannel()) return getDenunciaViewFromUrl()
-    if (isAdminLoggedIn()) return 'admin'
+    if (typeof window !== 'undefined' && isPainelPath(window.location.pathname)) return getPainelView()
     if (typeof window !== 'undefined') return getViewFromPath(window.location.pathname) ?? 'landing'
     return 'landing'
   })
+  const [publicSurveyId, setPublicSurveyId] = useState(getPublicSurveyIdFromPath)
   const [identificacao, setIdentificacao] = useState<{ setor: string } | null>(null)
   const [tenantBlocked, setTenantBlocked] = useState<boolean | null>(null)
   const [denunciaProtocolId, setDenunciaProtocolId] = useState<string | null>(null)
@@ -116,13 +155,16 @@ function App() {
     }
   }
 
-  const closeAdmin = () => {
+  /** Sai do painel para o site (mesma ação para "Ver o site" e "Sair"). */
+  const leavePainel = useCallback(() => {
+    window.history.pushState({}, '', '/')
     setView('landing')
-  }
+  }, [])
 
-  const handleAdminLogout = () => {
-    setView('landing')
-  }
+  const handleLoginSuccess = useCallback(() => {
+    window.history.replaceState({}, '', takePainelDestino())
+    setView('admin')
+  }, [])
 
   useEffect(() => {
     if (hasDiagnosticOrgInUrl()) {
@@ -135,6 +177,16 @@ function App() {
 
   useEffect(() => {
     const onPopState = () => {
+      const surveyId = getPublicSurveyIdFromPath()
+      if (surveyId) {
+        setPublicSurveyId(surveyId)
+        setView('pesquisa')
+        return
+      }
+      if (isPainelPath(window.location.pathname)) {
+        setView(getPainelView())
+        return
+      }
       if (hasDiagnosticOrgInUrl()) {
         setView('intro-video')
         return
@@ -176,7 +228,9 @@ function App() {
           ? 'landing'
           : view.startsWith('denuncia')
             ? 'denuncia'
-            : ['intro-video', 'identificacao', 'form', 'obrigado'].includes(view)
+            : view === 'pesquisa'
+              ? 'pesquisa'
+              : ['intro-video', 'identificacao', 'form', 'obrigado'].includes(view)
               ? 'diagnostico'
               : view.startsWith('admin')
                 ? 'admin'
@@ -219,10 +273,10 @@ function App() {
 
   if (view === 'admin') {
     return (
-      <div className="app-bg min-h-screen font-sans antialiased">
+      <div className="min-h-screen bg-[var(--color-brand-50)] font-sans antialiased">
         <FeedbackHost />
         <Suspense fallback={renderFallback}>
-          <AdminLayout onClose={closeAdmin} onLogout={handleAdminLogout} />
+          <PainelLayout onExit={leavePainel} onLogout={leavePainel} />
         </Suspense>
       </div>
     )
@@ -390,10 +444,12 @@ function App() {
 
         {view === 'login' && (
           <Login
-            onSuccess={() => setView('admin')}
+            onSuccess={handleLoginSuccess}
             onCancel={() => setView('landing')}
           />
         )}
+
+        {view === 'pesquisa' && publicSurveyId && <PesquisaPublica surveyId={publicSurveyId} />}
 
         {view === 'contato' && (
           <Contato onVoltar={() => setView('landing')} />

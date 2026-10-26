@@ -36,5 +36,30 @@ export {
   type WhistleblowerStatus,
 } from '@/types/whistleblower'
 
+export {
+  createSurvey,
+  createSurveyTemplate,
+  deleteSurvey,
+  deleteSurveyResponses,
+  deleteSurveyTemplate,
+  getPublicSurvey,
+  getSurvey,
+  getSurveyResponses,
+  getSurveyStats,
+  getSurveyTemplate,
+  getSurveyTemplates,
+  getSurveys,
+  setSurveyStatus,
+  submitSurveyResponse,
+  updateSurvey,
+  updateSurveyTemplate,
+  type PublicSurvey,
+  type Survey,
+  type SurveyResponse,
+  type SurveyStats,
+  type SurveyStatus,
+  type SurveyTemplate,
+} from '@/types/pesquisas'
+
 export { logAdminAuditAction } from '@/services/api/audit'
 

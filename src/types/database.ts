@@ -32,6 +32,81 @@ export type Database = {
           tenant_id?: string | null
         }
       }
+      survey_templates: {
+        Row: {
+          id: string
+          key: string | null
+          name: string
+          description: string | null
+          intro: string | null
+          questions: Json
+          builtin: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          key?: string | null
+          name: string
+          description?: string | null
+          intro?: string | null
+          questions?: Json
+          builtin?: boolean
+        }
+        Update: {
+          name?: string
+          description?: string | null
+          intro?: string | null
+          questions?: Json
+        }
+      }
+      surveys: {
+        Row: {
+          id: string
+          tenant_id: string
+          title: string
+          intro: string | null
+          questions: Json
+          status: string
+          min_responses: number
+          template_id: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+          opened_at: string | null
+          closed_at: string | null
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          title: string
+          intro?: string | null
+          questions?: Json
+          min_responses?: number
+          template_id?: string | null
+        }
+        Update: {
+          title?: string
+          intro?: string | null
+          questions?: Json
+          status?: string
+          min_responses?: number
+        }
+      }
+      survey_responses: {
+        Row: {
+          id: string
+          survey_id: string
+          answers: Json
+          submitted_on: string
+        }
+        Insert: {
+          id?: string
+          survey_id: string
+          answers: Json
+        }
+        Update: never
+      }
       submissions: {
         Row: {
           id: string
@@ -190,6 +265,14 @@ export type Database = {
           tenant_id: string | null
         }
       }
+      survey_response_stats: {
+        Row: {
+          survey_id: string | null
+          total: number | null
+          last_on: string | null
+          first_on: string | null
+        }
+      }
       tenant_overview: {
         Row: {
           tenant_id: string | null
@@ -224,6 +307,21 @@ export type Database = {
           p_logo_url?: string
         }
         Returns: undefined
+      }
+      get_public_survey: {
+        Args: { p_id: string }
+        Returns: {
+          id: string
+          tenant_id: string
+          title: string
+          intro: string | null
+          questions: Json
+          status: string
+          min_responses: number
+          org_name: string | null
+          org_logo: string | null
+          whistleblower_enabled: boolean
+        }[]
       }
       get_whistleblower_status: {
         Args: { p_protocol_id: string }

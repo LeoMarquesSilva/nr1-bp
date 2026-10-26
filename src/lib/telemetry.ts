@@ -2,7 +2,7 @@ type TelemetryEvent = {
   name: string
   ts: string
   tenantId?: string
-  flow?: 'diagnostico' | 'denuncia' | 'landing' | 'admin'
+  flow?: 'diagnostico' | 'denuncia' | 'pesquisa' | 'landing' | 'admin'
   step?: string
   meta?: Record<string, string | number | boolean | null>
 }

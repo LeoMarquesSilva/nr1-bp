@@ -1,6 +1,6 @@
 /**
  * Sinalizador de sessão do painel admin (após login com Supabase Auth em Login).
- * Não substitui autenticação: o painel valida JWT e `public.users` em AdminLayout.
+ * Não substitui autenticação: o painel valida JWT e `public.users` em PainelLayout.
  */
 const SESSION_KEY = 'hseit_admin_session'
 
