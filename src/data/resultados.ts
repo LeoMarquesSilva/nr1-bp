@@ -19,19 +19,11 @@ export const OPEN_TEXT_MIN_SURVEY = 10
 
 // ---------- Quando mostrar ----------
 
-export type ResultsGate =
-  | { state: 'poucas'; total: number; min: number }
-  | { state: 'lote'; total: number; batch: number; missing: number }
-  | { state: 'liberado'; partial: boolean }
+export type ResultsGate = { state: 'poucas'; total: number; min: number } | { state: 'liberado'; partial: boolean }
 
-/**
- * Encerrada: mostra tudo (a partir do mínimo). Aberta: só em lotes completos de `min` respostas, para que
- * entre duas leituras entrem sempre pelo menos `min` respostas novas e ninguém deduza a resposta de alguém
- * pela hora em que ela chegou.
- */
+/** A partir do mínimo de respostas, os resultados aparecem; com a pesquisa aberta, são parciais. */
 export function resultsGate(status: string, total: number, min: number): ResultsGate {
   if (total < min) return { state: 'poucas', total, min }
-  if (status === 'aberta' && total % min !== 0) return { state: 'lote', total, batch: min, missing: min - (total % min) }
   return { state: 'liberado', partial: status === 'aberta' }
 }
 

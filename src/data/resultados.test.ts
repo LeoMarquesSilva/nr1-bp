@@ -9,10 +9,9 @@ const nao = (extra: Partial<SurveyAnswers> = {}): SurveyAnswers => ({ ...base, q
 const stat = <T,>(stats: unknown[], id: string) => (stats as { question: { id: string } }[]).find((s) => s.question.id === id) as T
 
 describe('quando mostrar os resultados', () => {
-  it('pede o mínimo e, com a pesquisa aberta, só libera lotes completos', () => {
+  it('pede o mínimo e marca como parcial enquanto a pesquisa está aberta', () => {
     expect(resultsGate('aberta', 4, 5)).toEqual({ state: 'poucas', total: 4, min: 5 })
-    expect(resultsGate('aberta', 10, 5)).toEqual({ state: 'liberado', partial: true })
-    expect(resultsGate('aberta', 12, 5)).toEqual({ state: 'lote', total: 12, batch: 5, missing: 3 })
+    expect(resultsGate('aberta', 8, 5)).toEqual({ state: 'liberado', partial: true })
     expect(resultsGate('encerrada', 12, 5)).toEqual({ state: 'liberado', partial: false })
   })
 

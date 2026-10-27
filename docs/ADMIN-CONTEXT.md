@@ -71,7 +71,7 @@ Perfil reaproveita `src/components/admin/AdminPerfil.tsx`.
 - **Texto de abertura:** linha em branco separa parágrafos e `*trecho*` fica em negrito. A abertura mostra só o tempo estimado, sem o número de perguntas (com ramificação ele varia).
 - **Anonimato:** respostas sem horário (só data, definida pelo servidor), sem setor ou identificação; textos em ordem aleatória. Regras de exibição em `src/data/resultados.ts` (testadas):
   - mínimo (padrão 5) **por pergunta**, contado sobre quem chegou a ela: pergunta depois de uma ramificação com menos de 5 pessoas fica oculta inteira, sem a contagem;
-  - com a pesquisa aberta, os resultados só aparecem em **lotes completos** (múltiplos do mínimo), para ninguém deduzir uma resposta pela hora em que chegou; encerrada, aparece tudo;
+  - com a pesquisa aberta, os resultados aparecem a partir do mínimo, marcados como parciais (a liberação em lotes foi retirada a pedido do usuário);
   - textos abertos só com **10+ respostas na pesquisa** e 5+ na pergunta; textos de "Outros" nunca aparecem literalmente (só a contagem).
   - Essas regras valem na tela; o banco ainda entrega todas as respostas a quem é admin.
 - **Resultados:** "Resumo da reunião" (3 números, pontos fortes e de atenção, sinais de alerta, panorama, prioridades e falas sorteadas; botões Apresentar e Imprimir/PDF) e "Todas as perguntas" (% que concorda em destaque, barras 100% empilhadas, frequência com cor por significado e selo "quanto maior, pior", base no título das perguntas condicionais). Fundamentos em `reports/Diversidade resultados e plano de ação.md`.

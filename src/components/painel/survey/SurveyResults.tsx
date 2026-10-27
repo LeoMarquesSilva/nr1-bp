@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Clock, FileSpreadsheet, Loader2, Lock, Table2, Trash2, Users } from 'lucide-react'
+import { FileSpreadsheet, Loader2, Lock, Table2, Trash2, Users } from 'lucide-react'
 import { feedback } from '@/lib/feedback'
 import { ESCALA_OPTIONS, NR_OPTION, type SurveyQuestion } from '@/data/pesquisas'
 import { buildMeetingSummary, computeStats, noiseFor, resultsGate, type ChoiceStat, type OpenStat, type QuestionStat } from '@/data/resultados'
@@ -116,21 +116,11 @@ export function SurveyResults({
             description={`Os resultados aparecem a partir de ${gate.min} respostas. Com menos que isso, seria possível deduzir quem respondeu o quê.`}
           />
         </Panel>
-      ) : gate.state === 'lote' ? (
-        <Panel>
-          <EmptyState
-            icon={<Clock className="h-6 w-6" />}
-            title={`Aguardando completar o lote: faltam ${pluralize(gate.missing, 'resposta', 'respostas')}`}
-            description={`Com a pesquisa aberta, os resultados atualizam a cada ${gate.batch} respostas novas, para que ninguém deduza a resposta de alguém pela hora em que chegou. Ao encerrar a pesquisa, tudo aparece.`}
-          />
-        </Panel>
       ) : (
         <>
           {gate.partial && (
             <div className="print:hidden">
-              <Notice tone="info">
-                Pesquisa aberta: resultados parciais, atualizados a cada {minResponses} respostas novas para proteger o anonimato. Ao encerrar, aparecem todas as respostas.
-              </Notice>
+              <Notice tone="info">Pesquisa aberta: resultados parciais, que mudam conforme novas respostas chegam.</Notice>
             </div>
           )}
 
