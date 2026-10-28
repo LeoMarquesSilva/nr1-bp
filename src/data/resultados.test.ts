@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { TEMPLATE_DIVERSIDADE, normalizeQuestions, type SurveyAnswers } from './pesquisas'
-import { buildAnswerRows, buildMeetingSummary, computeStats, noiseFor, resultsGate, type ChoiceStat, type MultiStat, type OpenStat } from './resultados'
+import { TEMPLATE_DIVERSIDADE, estimateMinutes, normalizeQuestions, paginateQuestions, validateQuestions, type SurveyAnswers } from './pesquisas'
+import { TEMPLATE_CULTURA } from './modeloCultura'
+import {
+  buildAnswerRows,
+  buildMeetingSummary,
+  computeStats,
+  noiseFor,
+  resultsGate,
+  summarizeSections,
+  trendOf,
+  type ChoiceStat,
+  type MultiStat,
+  type OpenStat,
+} from './resultados'
 
 const di = normalizeQuestions(TEMPLATE_DIVERSIDADE.questions)
 const base = { q1: '5', q2: '4', q3: 'nunca', q4: '4', q5: '2', q6: '1', q7: '2', q8: '3', q9: 'Respeito' }
@@ -64,7 +76,7 @@ describe('base para tabelas dinâmicas', () => {
     expect(rows).toHaveLength(10 * 9 + 5 * 2)
     expect(rows.some((r) => r.pergunta.startsWith('09.') || r.pergunta.startsWith('12.'))).toBe(false)
     expect(JSON.stringify(rows)).not.toContain('texto pessoal')
-    expect(rows.find((r) => r.pergunta.startsWith('01.'))).toMatchObject({ tipo: 'Escala de 1 a 5', valor: 5, grupo: 'Concorda (4–5)', resposta: '5 · Concordo totalmente' })
+    expect(rows.find((r) => r.pergunta.startsWith('01.'))).toMatchObject({ tipo: 'Escala de 1 a 5', valor: 5, grupo: 'Favorável (4–5)', resposta: '5 · Concordo totalmente' })
     expect(rows.find((r) => r.pergunta.startsWith('03.'))?.grupo).toBe('Não aconteceu')
   })
 
@@ -72,6 +84,52 @@ describe('base para tabelas dinâmicas', () => {
     const respostas = [sim(), sim(), ...Array.from({ length: 8 }, () => nao())]
     const rows = buildAnswerRows(di, respostas, computeStats(di, respostas, 5))
     expect(rows.some((r) => r.pergunta.startsWith('11.'))).toBe(false)
+  })
+})
+
+describe('cultura organizacional: dimensões, nota e comparação', () => {
+  const cultura = normalizeQuestions(TEMPLATE_CULTURA.questions)
+  const resposta = (fav: boolean, nota: string): SurveyAnswers => Object.fromEntries(cultura.map((q) => [q.id, q.type === 'nota' ? nota : fav ? '5' : '2']))
+
+  it('o modelo tem 46 afirmações em 5 dimensões e 7 indicadores, em partes por dimensão', () => {
+    expect(cultura).toHaveLength(53)
+    expect(new Set(cultura.filter((q) => q.section !== 'Indicadores').map((q) => q.section))).toEqual(new Set(['Credibilidade', 'Respeito', 'Imparcialidade', 'Orgulho', 'Camaradagem']))
+    expect(cultura.filter((q) => q.labels?.length === 5)).toHaveLength(52)
+    expect(validateQuestions(cultura)).toEqual([])
+    const pages = paginateQuestions(cultura)
+    expect(pages.every((p) => new Set(p.map((q) => q.section)).size === 1 && p.length <= 7)).toBe(true)
+    expect(estimateMinutes(cultura)).toBeLessThanOrEqual(10)
+  })
+
+  it('calcula média da nota e % favorável por dimensão e tema, com comparação', () => {
+    const respostas = [...Array.from({ length: 6 }, () => resposta(true, '9')), ...Array.from({ length: 4 }, () => resposta(false, '6'))]
+    const baseline = { label: 'Pesquisa anterior', total: 45, items: { p1: { shares: [0, 10, 30, 40, 20] }, ind_felicidade: { mean: 8.31 } } }
+    const stats = computeStats(cultura, respostas, 5, baseline)
+    const p1 = stat<ChoiceStat>(stats, 'p1')
+    expect(p1.favorable).toBeCloseTo(0.6)
+    expect(p1.baseline).toMatchObject({ favorable: 0.6, trend: 'estavel' })
+    expect(stat<ChoiceStat>(stats, 'ind_felicidade')).toMatchObject({ mean: 7.8, baseline: { mean: 8.31 } })
+    const secoes = summarizeSections(stats, respostas.length)
+    expect(secoes.map((s) => s.name)).toEqual(['Credibilidade', 'Respeito', 'Imparcialidade', 'Orgulho', 'Camaradagem', 'Indicadores'])
+    expect(secoes[0].favorable).toBeCloseTo(0.6)
+    expect(secoes[0].criticity).toBe('atencao')
+    expect(secoes[0].themes.map((t) => t.name)).toEqual(['Comunicação da liderança', 'Competência da liderança', 'Integridade da liderança'])
+    const resumo = buildMeetingSummary(stats, respostas.length)
+    expect(resumo.keyNota?.question.id).toBe('ind_felicidade')
+    expect(resumo.focusThemes.length).toBeGreaterThan(0)
+  })
+
+  it('leva dimensão, tema e nota para a base das dinâmicas', () => {
+    const respostas = Array.from({ length: 5 }, () => resposta(true, '10'))
+    const rows = buildAnswerRows(cultura, respostas, computeStats(cultura, respostas, 5))
+    expect(rows.find((r) => r.pergunta.startsWith('01.'))).toMatchObject({ dimensao: 'Credibilidade', tema: 'Comunicação da liderança', resposta: 'Concordo totalmente', grupo: 'Favorável (4–5)' })
+    expect(rows.find((r) => r.tipo === 'Nota de 0 a 10')).toMatchObject({ valor: 10, grupo: 'Notas 9–10' })
+  })
+
+  it('variação só conta como subida ou queda fora da margem', () => {
+    expect(trendOf(0.8, 0.5, 45, 45)).toBe('subiu')
+    expect(trendOf(0.55, 0.5, 45, 45)).toBe('estavel')
+    expect(trendOf(0.2, 0.5, 45, 45)).toBe('caiu')
   })
 })
 

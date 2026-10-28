@@ -426,6 +426,7 @@ function SurveyView({
             status={survey.status}
             title={view.title}
             companyName={companyLabel}
+            baseline={survey.baseline}
             onDeleteAll={responses.length > 0 ? apagarRespostas : undefined}
             onExported={() => logAdminAuditAction({ action: 'survey_results_exported', tenantId: slug, details: { survey: survey.id, total: responses.length } })}
           />

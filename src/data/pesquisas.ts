@@ -3,7 +3,7 @@
  * O diagnóstico NR-1 (HSE-IT) não passa por aqui: é instrumento validado, com dados e cálculo próprios (hseIt.ts).
  */
 
-export type QuestionType = 'escala' | 'frequencia' | 'sim_nao' | 'multipla' | 'aberta'
+export type QuestionType = 'escala' | 'frequencia' | 'sim_nao' | 'multipla' | 'nota' | 'aberta'
 
 /** `hint` descreve os extremos da escala de 1 a 5. */
 export type SurveyOption = { key: string; label: string; hint?: string }
@@ -23,6 +23,11 @@ export interface SurveyQuestion {
   allowOther?: boolean
   /** Sim ou não: a resposta que encerra a pesquisa (as perguntas seguintes não aparecem). */
   endIf?: 'sim' | 'nao'
+  /** Escala: rótulos dos 5 pontos, do pior para o melhor. Sem rótulos, mostra os números de 1 a 5. */
+  labels?: string[]
+  /** Agrupamento nos resultados e nas partes (ex.: dimensão "Credibilidade", tema "Comunicação da liderança"). */
+  section?: string
+  theme?: string
 }
 
 export type MultiAnswer = { selected: string[]; outro?: string }
@@ -54,11 +59,22 @@ export const SIM_NAO_OPTIONS: readonly SurveyOption[] = [
   { key: 'nao', label: 'Não' },
 ]
 
+export const NOTA_OPTIONS: readonly SurveyOption[] = Array.from({ length: 11 }, (_, i) => ({ key: String(i), label: String(i) }))
+
+/** Rótulos prontos para a escala de 5 pontos (do pior para o melhor). */
+export const SCALE_PRESETS: readonly { id: string; label: string; labels: readonly string[] | null }[] = [
+  { id: 'numeros', label: 'Números de 1 a 5 (discordo → concordo)', labels: null },
+  { id: 'concordancia', label: 'Concordância por extenso', labels: ['Discordo totalmente', 'Discordo', 'Nem discordo, nem concordo', 'Concordo', 'Concordo totalmente'] },
+  { id: 'frequencia', label: 'Frequência (nunca → sempre)', labels: ['Nunca', 'Raramente', 'Às vezes', 'Frequentemente', 'Sempre'] },
+  { id: 'qualidade', label: 'Qualidade (muito ruim → excelente)', labels: ['Muito ruim', 'Ruim', 'Média', 'Boa', 'Excelente'] },
+]
+
 export const QUESTION_TYPES: readonly { type: QuestionType; label: string; description: string }[] = [
-  { type: 'escala', label: 'Escala de 1 a 5', description: 'Discordo totalmente a concordo totalmente' },
+  { type: 'escala', label: 'Escala de 1 a 5', description: 'Discordo a concordo, ou rótulos próprios' },
   { type: 'frequencia', label: 'Frequência', description: 'Nunca, raramente, às vezes, frequentemente' },
   { type: 'sim_nao', label: 'Sim ou não', description: 'Duas opções' },
   { type: 'multipla', label: 'Múltipla escolha', description: 'Opções definidas por você, com limite' },
+  { type: 'nota', label: 'Nota de 0 a 10', description: 'Média e distribuição das notas' },
   { type: 'aberta', label: 'Resposta aberta', description: 'Texto livre, opcional' },
 ]
 
@@ -119,6 +135,7 @@ export function createQuestion(type: QuestionType): SurveyQuestion {
     case 'frequencia':
       return { ...base, required: true, allowNR: true }
     case 'sim_nao':
+    case 'nota':
       return { ...base, required: true }
     case 'multipla':
       return {
@@ -136,17 +153,26 @@ export function createQuestion(type: QuestionType): SurveyQuestion {
   }
 }
 
-/** Troca o tipo mantendo o texto da pergunta. */
+/** Troca o tipo mantendo o texto e o agrupamento da pergunta. */
 export function changeQuestionType(q: SurveyQuestion, type: QuestionType): SurveyQuestion {
   if (q.type === type) return q
-  return { ...createQuestion(type), id: q.id, text: q.text }
+  return { ...createQuestion(type), id: q.id, text: q.text, ...(q.section ? { section: q.section } : {}), ...(q.theme ? { theme: q.theme } : {}) }
+}
+
+/** Escala com 5 rótulos próprios? */
+export function hasScaleLabels(q: SurveyQuestion): q is SurveyQuestion & { labels: string[] } {
+  return q.type === 'escala' && Array.isArray(q.labels) && q.labels.length === ESCALA_OPTIONS.length
 }
 
 /** Opções que a pessoa vê (inclui "Prefiro não responder" e "Outros" quando configurados). */
 export function getAnswerOptions(q: SurveyQuestion): SurveyOption[] {
   switch (q.type) {
-    case 'escala':
-      return q.allowNR ? [...ESCALA_OPTIONS, NR_OPTION] : [...ESCALA_OPTIONS]
+    case 'escala': {
+      const opts = hasScaleLabels(q) ? q.labels.map((label, i) => ({ key: String(i + 1), label })) : [...ESCALA_OPTIONS]
+      return q.allowNR ? [...opts, NR_OPTION] : opts
+    }
+    case 'nota':
+      return [...NOTA_OPTIONS]
     case 'frequencia':
       return q.allowNR ? [...FREQUENCIA_OPTIONS, NR_OPTION] : [...FREQUENCIA_OPTIONS]
     case 'sim_nao':
@@ -233,10 +259,33 @@ export function countReached(questions: readonly SurveyQuestion[], responses: re
   return responses.filter((r) => getVisibleQuestions(questions, r).some((q) => q.id === questionId)).length
 }
 
+/** Perguntas agrupadas em dimensões: cada parte fica dentro de uma dimensão, com até 7 perguntas. */
+export const QUESTIONS_PER_SECTION_PAGE = 7
+
 export function paginateQuestions(questions: readonly SurveyQuestion[], perPage = QUESTIONS_PER_PAGE): SurveyQuestion[][] {
   const pages: SurveyQuestion[][] = []
-  for (let i = 0; i < questions.length; i += perPage) pages.push(questions.slice(i, i + perPage))
+  if (!questions.some((q) => q.section)) {
+    for (let i = 0; i < questions.length; i += perPage) pages.push(questions.slice(i, i + perPage))
+    return pages
+  }
+  // Blocos consecutivos da mesma dimensão, divididos em partes de tamanho parecido.
+  let start = 0
+  while (start < questions.length) {
+    let end = start + 1
+    while (end < questions.length && (questions[end].section ?? '') === (questions[start].section ?? '')) end++
+    const block = questions.slice(start, end)
+    const parts = Math.ceil(block.length / QUESTIONS_PER_SECTION_PAGE)
+    const size = Math.ceil(block.length / parts)
+    for (let i = 0; i < block.length; i += size) pages.push(block.slice(i, i + size))
+    start = end
+  }
   return pages
+}
+
+/** Tempo estimado em minutos: escolhas são rápidas; textos abertos levam mais. */
+export function estimateMinutes(questions: readonly SurveyQuestion[]): number {
+  const seconds = questions.reduce((s, q) => s + (q.type === 'aberta' ? 60 : q.type === 'multipla' ? 20 : 10), 0)
+  return Math.max(2, Math.ceil(seconds / 60))
 }
 
 export function isPageComplete(page: readonly SurveyQuestion[], answers: SurveyAnswers): boolean {
@@ -286,6 +335,9 @@ export function validateQuestions(questions: readonly SurveyQuestion[]): string[
       const total = getAnswerOptions(q).length
       if (maxSelectionsOf(q) > total) problems.push(`Pergunta ${n}: o limite de seleções passa do número de opções.`)
     }
+    if (q.type === 'escala' && q.labels && (q.labels.length !== ESCALA_OPTIONS.length || q.labels.some((l) => !l.trim()))) {
+      problems.push(`Pergunta ${n}: preencha os 5 rótulos da escala.`)
+    }
   })
   return problems
 }
@@ -293,8 +345,21 @@ export function validateQuestions(questions: readonly SurveyQuestion[]): string[
 /** Remove "Outros" de opções da múltipla e normaliza campos, para salvar no banco. */
 export function normalizeQuestions(questions: readonly SurveyQuestion[]): SurveyQuestion[] {
   return questions.map((q) => {
-    const base: SurveyQuestion = { id: q.id, type: q.type, text: q.text.slice(0, QUESTION_MAX_LENGTH), required: q.required }
-    if (q.type === 'escala' || q.type === 'frequencia') return { ...base, allowNR: Boolean(q.allowNR), ...(q.canalHint ? { canalHint: true } : {}) }
+    const section = q.section?.trim().slice(0, 60)
+    const theme = q.theme?.trim().slice(0, 60)
+    const base: SurveyQuestion = {
+      id: q.id,
+      type: q.type,
+      text: q.text.slice(0, QUESTION_MAX_LENGTH),
+      required: q.required,
+      ...(section ? { section } : {}),
+      ...(theme ? { theme } : {}),
+    }
+    if (q.type === 'escala') {
+      const labels = hasScaleLabels(q) ? q.labels.map((l) => l.slice(0, 40)) : null
+      return { ...base, allowNR: Boolean(q.allowNR), ...(labels ? { labels } : {}) }
+    }
+    if (q.type === 'frequencia') return { ...base, allowNR: Boolean(q.allowNR), ...(q.canalHint ? { canalHint: true } : {}) }
     if (q.type === 'multipla') {
       return {
         ...base,
@@ -306,6 +371,23 @@ export function normalizeQuestions(questions: readonly SurveyQuestion[]): Survey
     if (q.type === 'sim_nao' && (q.endIf === 'sim' || q.endIf === 'nao')) return { ...base, endIf: q.endIf }
     return base
   })
+}
+
+/** Resultado de uma aplicação anterior, guardado só em percentuais (sem respostas individuais). */
+export interface SurveyBaseline {
+  /** Ex.: "Pesquisa anterior". */
+  label: string
+  /** Quantas pessoas responderam na aplicação anterior. */
+  total: number
+  /** Por id de pergunta: % de cada opção (0–100, na ordem das opções, sem "Prefiro não responder") ou a média da nota. */
+  items: Record<string, { shares?: number[]; mean?: number }>
+}
+
+export function parseBaseline(raw: unknown): SurveyBaseline | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Partial<SurveyBaseline>
+  if (typeof r.label !== 'string' || typeof r.total !== 'number' || !r.items || typeof r.items !== 'object') return null
+  return { label: r.label, total: r.total, items: r.items }
 }
 
 /** Lê perguntas vindas do banco (jsonb), descartando o que não tiver formato válido. */

@@ -1,6 +1,6 @@
-import { EyeOff, MessageSquareText } from 'lucide-react'
-import { ESCALA_OPTIONS, FREQUENCIA_OPTIONS, SIM_NAO_OPTIONS } from '@/data/pesquisas'
-import type { ChoiceStat, MultiStat } from '@/data/resultados'
+import { ArrowDownRight, ArrowRight, ArrowUpRight, EyeOff, MessageSquareText } from 'lucide-react'
+import { ESCALA_OPTIONS, FREQUENCIA_OPTIONS, NOTA_OPTIONS, SCALE_PRESETS, SIM_NAO_OPTIONS, hasScaleLabels, type SurveyQuestion } from '@/data/pesquisas'
+import type { BaselineStat, ChoiceStat, Criticity, MultiStat, Trend } from '@/data/resultados'
 import { cn } from '@/lib/utils'
 import { pluralize } from '../ui'
 
@@ -37,10 +37,87 @@ export function segmentsOf(stat: ChoiceStat): Segment[] {
   const q = stat.question
   const opts = q.type === 'escala' ? ESCALA_OPTIONS : q.type === 'frequencia' ? FREQUENCIA_OPTIONS : SIM_NAO_OPTIONS
   const colors = q.type === 'escala' ? LIKERT_COLORS : q.type === 'frequencia' ? (q.canalHint ? FREQ_NEGATIVE_COLORS : FREQ_NEUTRAL_COLORS) : YES_NO_COLORS
-  return opts.map((o) => {
+  return opts.map((o, i) => {
     const count = stat.counts[o.key] ?? 0
-    return { key: o.key, label: q.type === 'escala' ? LIKERT_LABELS[o.key] : o.label, count, share: stat.valid ? count / stat.valid : 0, color: colors[o.key] }
+    const label = q.type === 'escala' ? (hasScaleLabels(q) ? q.labels[i] : LIKERT_LABELS[o.key]) : o.label
+    return { key: o.key, label, count, share: stat.valid ? count / stat.valid : 0, color: colors[o.key] }
   })
+}
+
+const AGREEMENT = SCALE_PRESETS.find((p) => p.id === 'concordancia')?.labels?.join('|')
+
+/** Palavras do % favorável: "concordam" na escala de concordância; "boa ou excelente" etc. nas outras. */
+export function scaleWords(q: SurveyQuestion): { favorable: string; unfavorable: string; neutral: string } {
+  if (!hasScaleLabels(q) || q.labels.join('|') === AGREEMENT) return { favorable: 'concordam', unfavorable: 'Discordam', neutral: 'Neutros' }
+  return { favorable: `${q.labels[3]} ou ${q.labels[4]}`.toLowerCase(), unfavorable: 'Desfavoráveis', neutral: 'Neutros' }
+}
+
+const TREND_STYLE: Record<Trend, { label: string; cls: string; Icon: typeof ArrowUpRight }> = {
+  subiu: { label: 'subiu', cls: 'text-[var(--color-success-700)]', Icon: ArrowUpRight },
+  caiu: { label: 'caiu', cls: 'text-[var(--color-error-700)]', Icon: ArrowDownRight },
+  estavel: { label: 'estável (dentro da margem)', cls: 'text-[var(--color-brand-600)]', Icon: ArrowRight },
+}
+
+/** "Antes 58% · +7 p.p. subiu" (ou a média, nas notas). */
+export function BaselineNote({ now, before, mean }: { now: number | null; before: BaselineStat; mean?: boolean }) {
+  if (mean) {
+    if (before.mean == null) return null
+    return (
+      <p className="mt-1 text-xs text-[var(--color-brand-600)]">
+        {before.label}: média <strong className="text-[var(--color-brand-900)]">{formatMean(before.mean)}</strong> ({before.total} respostas)
+      </p>
+    )
+  }
+  if (before.favorable == null || now == null) return null
+  const diff = Math.round((now - before.favorable) * 100)
+  const t = before.trend ? TREND_STYLE[before.trend] : null
+  return (
+    <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-[var(--color-brand-600)]">
+      {before.label}: <strong className="text-[var(--color-brand-900)]">{pctOf(before.favorable)}</strong>
+      <span aria-hidden>·</span>
+      <span className={cn('inline-flex items-center gap-0.5 font-semibold', t?.cls)}>
+        {t && <t.Icon className="h-3.5 w-3.5" aria-hidden />}
+        {diff > 0 ? `+${diff}` : diff} p.p. {t?.label}
+      </span>
+    </p>
+  )
+}
+
+const CRITICITY_STYLE: Record<Criticity, { label: string; cls: string }> = {
+  critico: { label: 'Crítico', cls: 'border-[var(--color-error-500)] text-[var(--color-error-700)]' },
+  atencao: { label: 'Atenção', cls: 'border-[var(--color-warning-500)] text-[var(--color-warning-700)]' },
+  bom: { label: 'Bom', cls: 'border-[var(--color-success-500)] text-[var(--color-success-700)]' },
+}
+
+export function CriticityPill({ value }: { value: Criticity }) {
+  const s = CRITICITY_STYLE[value]
+  return <span className={cn('rounded-full border px-2 py-0.5 text-[11px] font-semibold', s.cls)}>{s.label}</span>
+}
+
+/** Nota de 0 a 10: média em destaque e distribuição em colunas. */
+export function NotaBlock({ stat }: { stat: ChoiceStat }) {
+  const max = Math.max(1, ...NOTA_OPTIONS.map((o) => stat.counts[o.key] ?? 0))
+  return (
+    <div>
+      <p className="mb-4 flex flex-wrap items-baseline gap-x-3">
+        <span className="font-sans text-3xl font-bold tabular-nums text-[var(--color-brand-900)]">{formatMean(stat.mean)}</span>
+        <span className="text-sm text-[var(--color-brand-800)]">média de 0 a 10 · {pluralize(stat.valid, 'resposta', 'respostas')}</span>
+      </p>
+      <div className="flex h-28 items-end gap-1" role="img" aria-label={NOTA_OPTIONS.map((o) => `${o.label}: ${stat.counts[o.key] ?? 0}`).join('; ')}>
+        {NOTA_OPTIONS.map((o) => {
+          const c = stat.counts[o.key] ?? 0
+          return (
+            <div key={o.key} className="flex flex-1 flex-col items-center gap-1" title={`Nota ${o.label}: ${c}`}>
+              <span className="text-[10px] tabular-nums text-[var(--color-brand-600)]">{c > 0 ? c : ''}</span>
+              <div className="w-full rounded-t-sm bg-[var(--color-brand-700)]" style={{ height: `${(c / max) * 80}px`, minHeight: c > 0 ? 3 : 0 }} />
+              <span className="text-[11px] tabular-nums text-[var(--color-brand-700)]">{o.label}</span>
+            </div>
+          )
+        })}
+      </div>
+      {stat.baseline && <BaselineNote now={stat.mean} before={stat.baseline} mean />}
+    </div>
+  )
 }
 
 /** Barra 100% empilhada: o cinza do meio fica visível e cada segmento largo o bastante leva o percentual escrito. */
@@ -80,6 +157,7 @@ export function Legend({ segments }: { segments: Segment[] }) {
 
 /** Linha de uma escala: pergunta, % favorável em destaque, distribuição completa e a base. */
 export function FavorableRow({ stat, min }: { stat: ChoiceStat; min: number }) {
+  const words = scaleWords(stat.question)
   return (
     <li>
       <div className="flex items-start justify-between gap-4">
@@ -90,7 +168,7 @@ export function FavorableRow({ stat, min }: { stat: ChoiceStat; min: number }) {
         {!stat.hidden && (
           <p className="shrink-0 text-right leading-none">
             <span className="font-sans text-2xl font-bold tabular-nums text-[var(--color-brand-900)]">{pctOf(stat.favorable)}</span>
-            <span className="mt-1 block text-[11px] text-[var(--color-brand-600)]">concordam</span>
+            <span className="mt-1 block max-w-[8rem] text-[11px] leading-tight text-[var(--color-brand-600)]">{words.favorable}</span>
           </p>
         )}
       </div>
@@ -102,9 +180,10 @@ export function FavorableRow({ stat, min }: { stat: ChoiceStat; min: number }) {
             <StackedBar segments={segmentsOf(stat)} />
           </div>
           <p className="mt-1.5 text-xs text-[var(--color-brand-600)]">
-            Discordam {pctOf(stat.unfavorable)} · Neutros {pctOf(stat.neutral)} · {pluralize(stat.valid, 'resposta', 'respostas')}
+            {words.unfavorable} {pctOf(stat.unfavorable)} · {words.neutral} {pctOf(stat.neutral)} · {pluralize(stat.valid, 'resposta', 'respostas')}
             {stat.nr > 0 && ` · ${stat.nr} ${stat.nr > 1 ? 'preferiram' : 'preferiu'} não responder`} · média {formatMean(stat.mean)}
           </p>
+          {stat.baseline && <BaselineNote now={stat.favorable} before={stat.baseline} />}
         </>
       )}
     </li>

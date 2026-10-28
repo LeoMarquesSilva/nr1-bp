@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react'
-import { AlignLeft, ArrowDown, ArrowUp, CheckSquare, Copy, Gauge, ListChecks, Plus, ToggleLeft, Trash2, X } from 'lucide-react'
+import { AlignLeft, ArrowDown, ArrowUp, CheckSquare, Copy, Gauge, Hash, ListChecks, Plus, ToggleLeft, Trash2, X } from 'lucide-react'
 import {
-  ESCALA_OPTIONS,
-  FREQUENCIA_OPTIONS,
+  NR_OPTION,
   OTHER_LABEL,
   QUESTION_MAX_LENGTH,
   QUESTION_TYPES,
-  SIM_NAO_OPTIONS,
+  SCALE_PRESETS,
   changeQuestionType,
   createQuestion,
   describeGate,
@@ -26,6 +25,7 @@ const TYPE_ICON: Record<QuestionType, ComponentType<{ className?: string }>> = {
   frequencia: ListChecks,
   sim_nao: ToggleLeft,
   multipla: CheckSquare,
+  nota: Hash,
   aberta: AlignLeft,
 }
 
@@ -235,7 +235,8 @@ function QuestionCard({
           />
         </div>
 
-        {(q.type === 'escala' || q.type === 'frequencia' || q.type === 'sim_nao') && <OptionsPreview question={q} />}
+        {(q.type === 'escala' || q.type === 'frequencia' || q.type === 'sim_nao' || q.type === 'nota') && <OptionsPreview question={q} />}
+        {q.type === 'escala' && <ScaleLabelsEditor question={q} onChange={onChange} id={`${textId}-rotulos`} />}
         {q.type === 'multipla' && <MultipleOptionsEditor question={q} onChange={onChange} />}
         {q.type === 'aberta' && (
           <p className="text-sm text-[var(--color-brand-700)]">Texto livre de até 1.000 caracteres. Quem responde vê um aviso para não citar nomes.</p>
@@ -260,6 +261,28 @@ function QuestionCard({
               label="Sugerir o Canal de Denúncias"
               description="Se a resposta indicar ocorrência, mostra um aviso discreto com o link do canal."
             />
+          )}
+          {q.type !== 'aberta' && (
+            <div>
+              <p className="text-sm font-medium text-[var(--color-brand-900)]">Agrupar nos resultados</p>
+              <p className="mt-0.5 text-sm leading-relaxed text-[var(--color-brand-700)]">Opcional. Perguntas da mesma dimensão aparecem juntas, com o % favorável do grupo.</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <input
+                  value={q.section ?? ''}
+                  onChange={(e) => onChange({ section: e.target.value.slice(0, 60) || undefined })}
+                  placeholder="Dimensão (ex.: Credibilidade)"
+                  aria-label={`Dimensão da pergunta ${index + 1}`}
+                  className={cn(inputCls, 'py-1.5')}
+                />
+                <input
+                  value={q.theme ?? ''}
+                  onChange={(e) => onChange({ theme: e.target.value.slice(0, 60) || undefined })}
+                  placeholder="Tema (ex.: Comunicação da liderança)"
+                  aria-label={`Tema da pergunta ${index + 1}`}
+                  className={cn(inputCls, 'py-1.5')}
+                />
+              </div>
+            </div>
           )}
           {q.type === 'sim_nao' && index < total - 1 && (
             <div>
@@ -288,7 +311,7 @@ function QuestionCard({
 }
 
 function OptionsPreview({ question: q }: { question: SurveyQuestion }) {
-  const opts = q.type === 'escala' ? ESCALA_OPTIONS : q.type === 'frequencia' ? FREQUENCIA_OPTIONS : SIM_NAO_OPTIONS
+  const opts = getAnswerOptions(q).filter((o) => o.key !== NR_OPTION.key)
   return (
     <div>
       <p className="mb-2 text-xs text-[var(--color-brand-600)]">Opções de resposta</p>
@@ -298,9 +321,54 @@ function OptionsPreview({ question: q }: { question: SurveyQuestion }) {
             {o.label}
           </span>
         ))}
-        {q.type !== 'sim_nao' && q.allowNR && <span className="rounded-md border border-dashed border-[var(--color-brand-300)] px-2.5 py-1 text-sm text-[var(--color-brand-600)]">Prefiro não responder</span>}
+        {(q.type === 'escala' || q.type === 'frequencia') && q.allowNR && (
+          <span className="rounded-md border border-dashed border-[var(--color-brand-300)] px-2.5 py-1 text-sm text-[var(--color-brand-600)]">Prefiro não responder</span>
+        )}
       </div>
-      {q.type === 'escala' && <p className="mt-1.5 text-xs text-[var(--color-brand-600)]">1 = Discordo totalmente · 5 = Concordo totalmente</p>}
+      {q.type === 'escala' && !q.labels && <p className="mt-1.5 text-xs text-[var(--color-brand-600)]">1 = Discordo totalmente · 5 = Concordo totalmente</p>}
+      {q.type === 'nota' && <p className="mt-1.5 text-xs text-[var(--color-brand-600)]">Nos resultados aparecem a média e a distribuição das notas.</p>}
+    </div>
+  )
+}
+
+/** Rótulos dos 5 pontos da escala: números, um dos prontos ou personalizados (do pior para o melhor). */
+function ScaleLabelsEditor({ question: q, onChange, id }: { question: SurveyQuestion; onChange: (patch: Partial<SurveyQuestion>) => void; id: string }) {
+  const current = q.labels ?? null
+  const preset = SCALE_PRESETS.find((p) => (p.labels === null ? current === null : current !== null && p.labels.join('|') === current.join('|')))
+  const value = preset?.id ?? 'personalizado'
+  const choose = (v: string) => {
+    if (v === 'personalizado') return onChange({ labels: current ? [...current] : ['', '', '', '', ''] })
+    const labels = SCALE_PRESETS.find((p) => p.id === v)?.labels
+    onChange({ labels: labels ? [...labels] : undefined })
+  }
+  return (
+    <div>
+      <label htmlFor={id} className="mb-1.5 block text-xs text-[var(--color-brand-600)]">
+        Rótulos da escala
+      </label>
+      <select id={id} value={value} onChange={(e) => choose(e.target.value)} className={cn(inputCls, 'py-1.5 sm:w-auto')}>
+        {SCALE_PRESETS.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.label}
+          </option>
+        ))}
+        <option value="personalizado">Personalizados</option>
+      </select>
+      {value === 'personalizado' && (
+        <div className="mt-2 grid gap-2 sm:grid-cols-5">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <input
+              key={i}
+              value={current?.[i] ?? ''}
+              onChange={(e) => onChange({ labels: (current ?? ['', '', '', '', '']).map((l, k) => (k === i ? e.target.value.slice(0, 40) : l)) })}
+              placeholder={i === 0 ? '1 (pior)' : i === 4 ? '5 (melhor)' : String(i + 1)}
+              aria-label={`Rótulo do ponto ${i + 1}`}
+              className={cn(inputCls, 'py-1.5')}
+            />
+          ))}
+        </div>
+      )}
+      <p className="mt-1.5 text-xs text-[var(--color-brand-600)]">Do pior para o melhor. Nos resultados, os pontos 4 e 5 contam como favoráveis.</p>
     </div>
   )
 }

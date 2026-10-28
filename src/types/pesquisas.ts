@@ -1,9 +1,11 @@
 import {
   DEFAULT_MIN_RESPONSES,
   normalizeQuestions,
+  parseBaseline,
   parseQuestions,
   sanitizeAnswers,
   type SurveyAnswers,
+  type SurveyBaseline,
   type SurveyQuestion,
 } from '../data/pesquisas'
 import { getSupabase } from '../lib/supabase'
@@ -34,6 +36,8 @@ export interface Survey {
   updatedAt: string
   openedAt: string | null
   closedAt: string | null
+  /** Resultado de uma aplicação anterior (percentuais), para comparar. */
+  baseline: SurveyBaseline | null
 }
 
 export interface SurveyStats {
@@ -76,6 +80,7 @@ type SurveyRow = {
   updated_at: string
   opened_at: string | null
   closed_at: string | null
+  baseline: unknown
 }
 
 type TemplateRow = {
@@ -90,7 +95,7 @@ type TemplateRow = {
 }
 
 const SURVEY_COLUMNS =
-  'id, tenant_id, title, intro, questions, status, min_responses, template_id, created_at, updated_at, opened_at, closed_at'
+  'id, tenant_id, title, intro, questions, status, min_responses, template_id, created_at, updated_at, opened_at, closed_at, baseline'
 const TEMPLATE_COLUMNS = 'id, key, name, description, intro, questions, builtin, updated_at'
 
 function toSurvey(r: SurveyRow): Survey {
@@ -107,6 +112,7 @@ function toSurvey(r: SurveyRow): Survey {
     updatedAt: r.updated_at,
     openedAt: r.opened_at,
     closedAt: r.closed_at,
+    baseline: parseBaseline(r.baseline),
   }
 }
 

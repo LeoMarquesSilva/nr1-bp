@@ -8,6 +8,8 @@ import {
   getVisibleQuestions,
   isPageComplete,
   parseIntro,
+  estimateMinutes,
+  hasScaleLabels,
   isQuestionAnswered,
   paginateQuestions,
   type AnswerValue,
@@ -99,7 +101,7 @@ export function SurveyRespondent({ survey, canalHref, preview, onSubmit }: Props
   const pageComplete = isPageComplete(pageQuestions, answers)
   const isLastPage = page === pages.length - 1
   const hasDraft = Object.keys(answers).length > 0
-  const minutes = Math.max(2, Math.ceil((survey.questions.length * 25) / 60))
+  const minutes = estimateMinutes(survey.questions)
 
   useEffect(() => {
     if (preview || stage !== 'form' || submitting || !hasDraft) return
@@ -440,15 +442,25 @@ function QuestionInput({ question: q, value, onChange }: { question: SurveyQuest
   const main = options.filter((o) => o.key !== NR_OPTION.key)
   const temNaoResponder = options.length !== main.length
   const name = `q-${q.id}`
+  // Escala com rótulos por extenso: em coluna no celular, em linha no computador.
+  const labeled = hasScaleLabels(q)
 
   return (
     <div>
-      <div className={cn('grid gap-2', q.type === 'escala' && 'grid-cols-5', q.type === 'frequencia' && 'grid-cols-2 sm:grid-cols-4', q.type === 'sim_nao' && 'grid-cols-2')}>
+      <div
+        className={cn(
+          'grid gap-2',
+          q.type === 'escala' && (labeled ? 'grid-cols-1 sm:grid-cols-5' : 'grid-cols-5'),
+          q.type === 'frequencia' && 'grid-cols-2 sm:grid-cols-4',
+          q.type === 'sim_nao' && 'grid-cols-2',
+          q.type === 'nota' && 'grid-cols-6 sm:grid-cols-11'
+        )}
+      >
         {main.map((opt) => (
-          <RadioOption key={opt.key} name={name} option={opt} checked={value === opt.key} onSelect={() => onChange(opt.key)} />
+          <RadioOption key={opt.key} name={name} option={opt} checked={value === opt.key} onSelect={() => onChange(opt.key)} compact={labeled} />
         ))}
       </div>
-      {q.type === 'escala' && (
+      {q.type === 'escala' && !labeled && (
         <div className="mt-2 flex justify-between gap-4 text-xs font-medium text-[var(--muted-foreground)]" aria-hidden>
           <span>{main[0].hint}</span>
           <span className="text-right">{main[main.length - 1].hint}</span>
@@ -488,11 +500,13 @@ function OutroInput({ value, onChange }: { value: string; onChange: (value: stri
   )
 }
 
-function RadioOption({ name, option, checked, onSelect }: { name: string; option: SurveyOption; checked: boolean; onSelect: () => void }) {
+function RadioOption({ name, option, checked, onSelect, compact }: { name: string; option: SurveyOption; checked: boolean; onSelect: () => void; compact?: boolean }) {
   return (
     <label className="cursor-pointer">
       <input type="radio" name={name} value={option.key} checked={checked} onChange={onSelect} className="peer sr-only" aria-label={option.hint ? `${option.label} (${option.hint})` : option.label} />
-      <span className={cn(optionBaseCls, checked ? optionSelectedCls : optionIdleCls)}>{option.label}</span>
+      <span className={cn(optionBaseCls, compact && 'flex h-full items-center justify-center px-2 text-[13px] leading-snug sm:min-h-[3.5rem]', checked ? optionSelectedCls : optionIdleCls)}>
+        {option.label}
+      </span>
     </label>
   )
 }

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AlertTriangle, Maximize2, Minimize2, Printer, ThumbsDown, ThumbsUp } from 'lucide-react'
-import { noiseFor, type ChoiceStat, type MeetingSummary as Summary, type OpenStat } from '@/data/resultados'
+import { noiseFor, type ChoiceStat, type GroupSummary, type MeetingSummary as Summary, type OpenStat } from '@/data/resultados'
 import { cn } from '@/lib/utils'
 import { Button, pluralize } from '../ui'
-import { MultiBlock, StackedBar, TextList, pctOf, segmentsOf } from './resultCharts'
+import { CriticityPill, MultiBlock, StackedBar, TextList, formatMean, pctOf, segmentsOf } from './resultCharts'
 
 const SAMPLE_SIZE = 3
 
@@ -94,18 +94,67 @@ export function MeetingSummary({ summary, title, period, partial }: { summary: S
       {/* 1. Três números */}
       <div className="grid gap-3 sm:grid-cols-3">
         <BigNumber value={String(summary.total)} label="pessoas responderam" detail={period ?? undefined} />
-        {summary.keyYesNo && (
+        {summary.keyYesNo ? (
           <BigNumber value={pctOf((summary.keyYesNo.counts.sim ?? 0) / (summary.keyYesNo.valid || 1))} label="responderam “Sim”" detail={`${summary.keyYesNo.n}. ${summary.keyYesNo.question.text}`} />
+        ) : (
+          summary.overallFavorable != null && (
+            <BigNumber value={pctOf(summary.overallFavorable)} label="de respostas favoráveis (4 ou 5)" detail={`Média de ${summary.ranking.length} perguntas de escala. Referência de mercado: 70%.`} />
+          )
         )}
-        {summary.keyIncidence && (
+        {summary.keyIncidence ? (
           <BigNumber
             value={pctOf(summary.keyIncidence.incidence)}
             label="disseram que aconteceu ao menos raramente"
             detail={`${summary.keyIncidence.n}. ${summary.keyIncidence.question.text}`}
             badge="quanto maior, pior"
           />
+        ) : (
+          summary.keyNota && (
+            <BigNumber
+              value={formatMean(summary.keyNota.mean)}
+              label="média de 0 a 10"
+              detail={`${summary.keyNota.n}. ${summary.keyNota.question.text}${summary.keyNota.baseline?.mean != null ? ` · antes: ${formatMean(summary.keyNota.baseline.mean)}` : ''}`}
+            />
+          )
         )}
       </div>
+
+      {/* Dimensões (pesquisas agrupadas, como a de cultura organizacional) */}
+      {summary.sections.length > 0 && (
+        <Block title="Por dimensão" description="Média do % favorável (4 ou 5) das perguntas de cada dimensão e tema. A linha marca a referência de mercado de 70%.">
+          <ul className="space-y-5">
+            {summary.sections.map((sec) => (
+              <li key={sec.name}>
+                <GroupBar group={sec} strong />
+                {sec.themes.length > 1 && (
+                  <ul className="mt-2 space-y-1.5 pl-4">
+                    {sec.themes.map((t) => (
+                      <li key={t.name}>
+                        <GroupBar group={t} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Block>
+      )}
+
+      {summary.focusThemes.length > 0 && (
+        <Block title="Temas abaixo de 70%" description="Candidatos a foco de ação, do mais baixo para o mais alto.">
+          <ol className="space-y-2">
+            {summary.focusThemes.slice(0, 6).map((t) => (
+              <li key={`${t.section}-${t.name}`} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="w-12 font-sans text-lg font-bold tabular-nums text-[var(--color-brand-900)]">{pctOf(t.favorable)}</span>
+                <span className="text-sm text-[var(--color-brand-900)]">{t.name}</span>
+                <span className="text-xs text-[var(--color-brand-600)]">{t.section}</span>
+                <CriticityPill value={t.criticity} />
+              </li>
+            ))}
+          </ol>
+        </Block>
+      )}
 
       {/* 2. Fortes e atenção */}
       {summary.ranking.length >= 2 && (
@@ -115,7 +164,7 @@ export function MeetingSummary({ summary, title, period, partial }: { summary: S
             <RankCard title="Pontos de atenção" icon={<ThumbsDown className="h-4 w-4" />} items={summary.attention} />
           </div>
           <p className="mt-2 text-xs leading-relaxed text-[var(--color-brand-600)]">
-            Ordem pelo % que concorda (4 ou 5). Com {summary.total} respostas, cada pessoa vale cerca de {Math.round(noise.perPerson)} pontos percentuais e diferenças de até ~
+            Ordem pelo % favorável (4 ou 5). Com {summary.total} respostas, cada pessoa vale cerca de {Math.round(noise.perPerson)} pontos percentuais e diferenças de até ~
             {Math.round(noise.margin)} pontos podem ser só variação.
             {summary.withinNoise && ' Aqui, a distância entre o melhor e o pior item cabe nessa margem: trate a ordem com cautela.'}
           </p>
@@ -169,6 +218,29 @@ export function MeetingSummary({ summary, title, period, partial }: { summary: S
         <VoiceBlock key={stat.question.id} stat={stat} sample={sample} />
       ))}
     </section>
+  )
+}
+
+/** Barra de uma dimensão ou tema: % favorável, marca dos 70%, selo e variação em relação à aplicação anterior. */
+function GroupBar({ group, strong }: { group: GroupSummary; strong?: boolean }) {
+  const diff = group.before != null ? Math.round((group.favorable - group.before) * 100) : null
+  return (
+    <div className="grid items-center gap-x-4 gap-y-1 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto]">
+      <p className={cn('text-sm', strong ? 'font-semibold text-[var(--color-brand-900)]' : 'text-[var(--color-brand-800)]')}>{group.name}</p>
+      <div className="relative h-3 rounded-full bg-[var(--color-brand-100)]" role="img" aria-label={`${group.name}: ${pctOf(group.favorable)} favorável`}>
+        <div className={cn('h-full rounded-full', strong ? 'bg-[var(--color-brand-700)]' : 'bg-[var(--color-brand-400)]')} style={{ width: `${group.favorable * 100}%` }} />
+        <div className="absolute inset-y-[-3px] w-0.5 bg-[var(--color-brand-900)]" style={{ left: '70%' }} aria-hidden />
+      </div>
+      <div className="flex items-center gap-2">
+        <span className={cn('w-11 text-right font-sans tabular-nums text-[var(--color-brand-900)]', strong ? 'text-lg font-bold' : 'text-sm font-semibold')}>{pctOf(group.favorable)}</span>
+        {strong && <CriticityPill value={group.criticity} />}
+        {diff != null && (
+          <span className={cn('text-xs font-semibold', group.trend === 'subiu' ? 'text-[var(--color-success-700)]' : group.trend === 'caiu' ? 'text-[var(--color-error-700)]' : 'text-[var(--color-brand-600)]')}>
+            {diff > 0 ? `+${diff}` : diff} p.p.
+          </span>
+        )}
+      </div>
+    </div>
   )
 }
 

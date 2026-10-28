@@ -5,8 +5,10 @@
  */
 import ExcelJS from 'exceljs'
 import JSZip from 'jszip'
-import { ESCALA_OPTIONS, NR_OPTION, type SurveyAnswers, type SurveyQuestion } from '@/data/pesquisas'
+import { ESCALA_OPTIONS, NOTA_OPTIONS, NR_OPTION, type SurveyAnswers, type SurveyBaseline, type SurveyQuestion } from '@/data/pesquisas'
 import {
+  GRUPOS_ESCALA,
+  GRUPOS_NOTA,
   buildAnswerRows,
   buildMeetingSummary,
   computeStats,
@@ -15,6 +17,7 @@ import {
   respostaOrder,
   resultsGate,
   type ChoiceStat,
+  type Criticity,
   type MultiStat,
   type OpenStat,
 } from '@/data/resultados'
@@ -29,8 +32,12 @@ export type ExportInput = {
   minResponses: number
   questions: SurveyQuestion[]
   answers: SurveyAnswers[]
+  /** Resultado da aplicação anterior (percentuais), para as colunas de comparação. */
+  baseline?: SurveyBaseline | null
   generatedAt?: Date
 }
+
+const SITUACAO: Record<Criticity, string> = { critico: 'Crítico (< 50%)', atencao: 'Atenção (50–69%)', bom: 'Bom (70%+)' }
 
 // Cores da marca (ARGB)
 const C = {
@@ -108,7 +115,7 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   const gate = resultsGate(input.status, total, min)
   if (gate.state !== 'liberado') throw new Error('Os resultados ainda não podem ser exportados: estão protegidos pelas regras de anonimato.')
 
-  const stats = computeStats(questions, answers, min)
+  const stats = computeStats(questions, answers, min, input.baseline ?? null)
   const summary = buildMeetingSummary(stats, total)
   const noise = noiseFor(total)
   const generatedAt = input.generatedAt ?? new Date()
@@ -133,9 +140,14 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   const cards: { value: string | number; label: string; detail?: string; numFmt?: string; alert?: boolean }[] = [{ value: total, label: 'pessoas responderam', detail: input.period ?? undefined }]
   if (summary.keyYesNo) {
     cards.push({ value: (summary.keyYesNo.counts.sim ?? 0) / (summary.keyYesNo.valid || 1), numFmt: '0%', label: 'responderam “Sim”', detail: perguntaLabel(summary.keyYesNo.n, summary.keyYesNo.question.text) })
+  } else if (summary.overallFavorable != null) {
+    cards.push({ value: summary.overallFavorable, numFmt: '0%', label: 'de respostas favoráveis (4 ou 5)', detail: `Média de ${summary.ranking.length} perguntas de escala. Referência de mercado: 70%.` })
   }
   if (summary.keyIncidence) {
     cards.push({ value: pct(summary.keyIncidence.incidence), numFmt: '0%', label: 'disseram que aconteceu ao menos raramente (quanto maior, pior)', detail: perguntaLabel(summary.keyIncidence.n, summary.keyIncidence.question.text), alert: true })
+  } else if (summary.keyNota?.mean != null) {
+    const antes = summary.keyNota.baseline?.mean
+    cards.push({ value: Math.round(summary.keyNota.mean * 10) / 10, numFmt: '0.0', label: 'média de 0 a 10', detail: `${perguntaLabel(summary.keyNota.n, summary.keyNota.question.text)}${antes != null ? ` · antes: ${antes.toFixed(1).replace('.', ',')}` : ''}` })
   }
   cards.forEach((card, i) => {
     const col = 1 + i * 3
@@ -169,6 +181,29 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   ws.getRow(7).height = 42
 
   let r = 9
+  if (summary.sections.length > 0) {
+    section(ws, r, 'Por dimensão (média do % favorável das perguntas)', 8)
+    r++
+    for (const sec of summary.sections) {
+      const p = ws.getCell(r, 1)
+      p.value = sec.favorable
+      p.numFmt = '0%'
+      p.font = { name: FONT, size: 14, bold: true, color: { argb: sec.criticity === 'critico' ? C.alert : C.ink } }
+      ws.mergeCells(r, 2, r, 8)
+      const d = ws.getCell(r, 2)
+      const diff = sec.before != null ? Math.round((sec.favorable - sec.before) * 100) : null
+      d.value = `${sec.name} · ${SITUACAO[sec.criticity]}${diff != null ? ` · ${diff > 0 ? '+' : ''}${diff} p.p. em relação à anterior` : ''}`
+      d.font = { name: FONT, size: 11, bold: true, color: { argb: C.navy } }
+      d.alignment = { vertical: 'middle' }
+      ws.getRow(r).height = 22
+      r++
+    }
+    if (summary.focusThemes.length > 0) {
+      note(ws, r, `Temas abaixo de 70%: ${summary.focusThemes.map((t) => `${t.name} (${Math.round(t.favorable * 100)}%)`).join(' · ')}.`, 8, C.alert)
+      r++
+    }
+    r++
+  }
   const rankBlock = (label: string, items: ChoiceStat[]) => {
     section(ws, r, label, 8)
     r++
@@ -189,8 +224,8 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
     r++
   }
   if (summary.ranking.length >= 2) {
-    rankBlock('Pontos fortes (% que concorda: 4 ou 5)', summary.strengths)
-    rankBlock('Pontos de atenção (% que concorda: 4 ou 5)', summary.attention)
+    rankBlock('Pontos fortes (% favorável: 4 ou 5)', summary.strengths)
+    rankBlock('Pontos de atenção (% favorável: 4 ou 5)', summary.attention)
     note(ws, r, `Com ${total} respostas, cada pessoa vale cerca de ${Math.round(noise.perPerson)} pontos percentuais; diferenças de até ~${Math.round(noise.margin)} pontos podem ser só variação.${summary.withinNoise ? ' Aqui a distância entre o melhor e o pior item cabe nessa margem: trate a ordem com cautela.' : ''}`, 8)
     r += 2
   }
@@ -214,7 +249,7 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   const sobre = [
     'Pesquisa anônima: não há nome, e-mail, cargo, setor nem horário de resposta. Nenhuma aba permite ligar as respostas de uma mesma pessoa.',
     `Perguntas com menos de ${min} respostas (inclusive as que dependem de uma resposta anterior) ficam de fora. Textos abertos só aparecem com 10 ou mais respostas na pesquisa; textos de “Outros” não são exportados.`,
-    'Abas: Escalas (% que concorda em destaque), Outras perguntas, Respostas abertas (ordem aleatória), Dinâmica respostas e Dinâmica escalas (tabelas dinâmicas: arraste os campos para montar outras visões) e Base (uma linha por resposta, sem identificação).',
+    'Abas: Escalas (% favorável em destaque), Dimensões (quando a pesquisa agrupa perguntas), Outras perguntas, Respostas abertas (ordem aleatória), Dinâmica respostas e Dinâmica escalas (tabelas dinâmicas: arraste os campos para montar outras visões) e Base (uma linha por resposta, sem identificação).',
     'Se as dinâmicas aparecerem vazias, clique em “Habilitar edição” no topo do Excel: elas são montadas ao abrir.',
     'Material do comitê: não compartilhe fora dele. Antes de projetar respostas abertas, leia: um texto pode trazer detalhes que identificam alguém.',
   ]
@@ -226,55 +261,95 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   // ---------- Escalas ----------
   const scales = stats.filter((s): s is ChoiceStat => s.kind === 'escolha' && s.question.type === 'escala')
   const visibleScales = scales.filter((s) => !s.hidden).sort((a, b) => pct(b.favorable) - pct(a.favorable))
+  const grouped = scales.some((s) => s.section)
+  const withBase = scales.some((s) => s.baseline?.favorable != null)
   if (scales.length > 0) {
-    const es = sheet(wb, 'Escalas', [6, 72, 13, 11, 13, 10, 7, 7, 7, 11, 13, 11, 9])
-    title(es, 1, 'Escalas de 1 a 5', 'Ordenadas pelo % que concorda (4 ou 5). “Prefiro não responder” fica fora dos percentuais e da média.')
+    // Colunas variam: dimensão e tema (pesquisa agrupada) e comparação (quando há aplicação anterior).
+    const cols: { name: string; width: number; get: (s: ChoiceStat) => string | number | null; fmt?: string; key?: string }[] = [
+      { name: 'Nº', width: 6, get: (s) => s.n },
+      { name: 'Pergunta', width: 66, get: (s) => s.question.text, key: 'texto' },
+      ...(grouped
+        ? [
+            { name: 'Dimensão', width: 16, get: (s: ChoiceStat) => s.section ?? '' },
+            { name: 'Tema', width: 24, get: (s: ChoiceStat) => s.theme ?? '' },
+          ]
+        : []),
+      { name: '% favorável (4–5)', width: 13, get: (s) => pct(s.favorable), fmt: '0%', key: 'fav' },
+      { name: '% neutros (3)', width: 11, get: (s) => pct(s.neutral), fmt: '0%' },
+      { name: '% desfavorável (1–2)', width: 13, get: (s) => pct(s.unfavorable), fmt: '0%', key: 'desfav' },
+      ...ESCALA_OPTIONS.map((o, i) => ({ name: i === 0 ? '1 (pior)' : i === 4 ? '5 (melhor)' : o.label, width: i === 0 || i === 4 ? 10 : 6, get: (s: ChoiceStat) => s.counts[o.key] ?? 0 })),
+      { name: NR_OPTION.label, width: 13, get: (s) => s.nr },
+      { name: 'Respostas válidas', width: 11, get: (s) => s.valid },
+      { name: 'Média', width: 8, get: (s) => (s.mean == null ? null : Math.round(s.mean * 10) / 10), fmt: '0.0' },
+      ...(withBase
+        ? [
+            { name: 'Anterior % favorável', width: 13, get: (s: ChoiceStat) => s.baseline?.favorable ?? null, fmt: '0%' },
+            {
+              name: 'Variação (p.p.)',
+              width: 11,
+              get: (s: ChoiceStat) => (s.baseline?.favorable != null && s.favorable != null ? Math.round((s.favorable - s.baseline.favorable) * 100) : null),
+              fmt: '+0;-0;0',
+            },
+          ]
+        : []),
+    ]
+    const es = sheet(wb, 'Escalas', cols.map((c) => c.width))
+    title(es, 1, 'Escalas de 1 a 5', 'Ordenadas pelo % favorável (4 ou 5). “Prefiro não responder” fica fora dos percentuais e da média. 1 = pior, 5 = melhor.')
     if (visibleScales.length > 0) {
       es.addTable({
         name: 'Escalas',
         ref: 'A4',
         headerRow: true,
         style: { theme: TABLE_STYLE, showRowStripes: true },
-        columns: [
-          { name: 'Nº' },
-          { name: 'Pergunta' },
-          { name: '% concordam' },
-          { name: '% neutros' },
-          { name: '% discordam' },
-          ...ESCALA_OPTIONS.map((o) => ({ name: o.key === '1' ? '1 (discordo)' : o.key === '5' ? '5 (concordo)' : o.label })),
-          { name: NR_OPTION.label },
-          { name: 'Respostas válidas' },
-          { name: 'Média' },
-        ],
-        rows: visibleScales.map((s) => [
-          s.n,
-          s.question.text,
-          pct(s.favorable),
-          pct(s.neutral),
-          pct(s.unfavorable),
-          ...ESCALA_OPTIONS.map((o) => s.counts[o.key] ?? 0),
-          s.nr,
-          s.valid,
-          s.mean == null ? null : Math.round(s.mean * 10) / 10,
-        ]),
+        columns: cols.map((c) => ({ name: c.name })),
+        rows: visibleScales.map((s) => cols.map((c) => c.get(s))),
       })
       const last = 4 + visibleScales.length
-      headerRow(es, 4)
+      const colOf = (key: string) => cols.findIndex((c) => c.key === key) + 1
+      headerRow(es, 4, 44)
       visibleScales.forEach((s, k) => {
         const row = 5 + k
-        es.getRow(row).height = rowHeight(s.question.text, 72)
-        es.getRow(row).eachCell({ includeEmpty: true }, (c) => (c.alignment = { vertical: 'middle' }))
-        es.getCell(row, 2).alignment = { wrapText: true, vertical: 'middle' }
-        for (const c of [3, 4, 5]) es.getCell(row, c).numFmt = '0%'
-        es.getCell(row, 3).font = { name: FONT, bold: true }
-        es.getCell(row, 13).numFmt = '0.0'
+        es.getRow(row).height = rowHeight(s.question.text, 66)
+        es.getRow(row).eachCell({ includeEmpty: true }, (c) => (c.alignment = { vertical: 'middle', wrapText: true }))
+        cols.forEach((c, i) => c.fmt && (es.getCell(row, i + 1).numFmt = c.fmt))
+        es.getCell(row, colOf('fav')).font = { name: FONT, bold: true }
       })
-      dataBar(es, `C5:C${last}`, C.good)
-      dataBar(es, `E5:E${last}`, C.bad)
+      const letter = (n: number) => es.getColumn(n).letter
+      dataBar(es, `${letter(colOf('fav'))}5:${letter(colOf('fav'))}${last}`, C.good)
+      dataBar(es, `${letter(colOf('desfav'))}5:${letter(colOf('desfav'))}${last}`, C.bad)
       es.views = [{ state: 'frozen', ySplit: 4, showGridLines: false }]
     }
     const hidden = scales.filter((s) => s.hidden)
     if (hidden.length > 0) note(es, 6 + visibleScales.length, `Ocultas por terem menos de ${min} respostas válidas: ${hidden.map((s) => `${s.n}`).join(', ')}.`, 6)
+  }
+
+  // ---------- Dimensões ----------
+  if (summary.sections.length > 0) {
+    const dm = sheet(wb, 'Dimensões', [18, 30, 11, 13, 18, 13, 11])
+    title(dm, 1, 'Dimensões e temas', 'Média simples do % favorável (4 ou 5) das perguntas de cada grupo. Referência de mercado: 70%; abaixo de 50%, crítico.')
+    const rows: (string | number | null)[][] = []
+    for (const sec of summary.sections) {
+      rows.push([sec.name, '(dimensão)', sec.items.length, sec.favorable, SITUACAO[sec.criticity], sec.before, sec.before != null ? Math.round((sec.favorable - sec.before) * 100) : null])
+      for (const t of sec.themes) rows.push([sec.name, t.name, t.items.length, t.favorable, SITUACAO[t.criticity], t.before, t.before != null ? Math.round((t.favorable - t.before) * 100) : null])
+    }
+    dm.addTable({
+      name: 'Dimensoes',
+      ref: 'A4',
+      headerRow: true,
+      style: { theme: TABLE_STYLE, showRowStripes: true },
+      columns: [{ name: 'Dimensão' }, { name: 'Tema' }, { name: 'Perguntas' }, { name: '% favorável' }, { name: 'Situação' }, { name: 'Anterior' }, { name: 'Variação (p.p.)' }],
+      rows,
+    })
+    headerRow(dm, 4)
+    rows.forEach((row, k) => {
+      const line = 5 + k
+      dm.getCell(line, 4).numFmt = '0%'
+      dm.getCell(line, 6).numFmt = '0%'
+      dm.getCell(line, 7).numFmt = '+0;-0;0'
+      if (row[1] === '(dimensão)') dm.getRow(line).font = { name: FONT, bold: true }
+    })
+    dataBar(dm, `D5:D${4 + rows.length}`, C.good)
+    dm.views = [{ state: 'frozen', ySplit: 4, showGridLines: false }]
   }
 
   // ---------- Outras perguntas ----------
@@ -314,6 +389,25 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
         dataBar(os, `C${first}:C${last}`, C.blue600)
         row = last + 1
         note(os, row, `Percentuais sobre ${s.respondents} pessoas.${max > 1 ? ` Cada pessoa pôde escolher até ${max}, por isso a soma passa de 100%.` : ''}${s.otherCount > 0 ? ` ${s.otherCount} escreveram em “Outros”; os textos não são exportados.` : ''}`, 4)
+        row += 2
+        return
+      }
+      if (s.question.type === 'nota') {
+        os.addTable({
+          name: `Pergunta${s.n}`,
+          ref: `A${row}`,
+          headerRow: true,
+          style: { theme: TABLE_STYLE, showRowStripes: true },
+          columns: [{ name: 'Nota' }, { name: 'Respostas' }, { name: '% das respostas' }],
+          rows: NOTA_OPTIONS.map((o) => [Number(o.key), s.counts[o.key] ?? 0, s.valid ? (s.counts[o.key] ?? 0) / s.valid : 0]),
+        })
+        const first = row + 1
+        const last = row + NOTA_OPTIONS.length
+        for (let i = first; i <= last; i++) os.getCell(i, 3).numFmt = '0%'
+        dataBar(os, `C${first}:C${last}`, C.blue600)
+        row = last + 1
+        const antes = s.baseline?.mean != null ? ` Anterior: ${s.baseline.mean.toFixed(1).replace('.', ',')} (${s.baseline.total} respostas).` : ''
+        note(os, row, `Média: ${(s.mean ?? 0).toFixed(1).replace('.', ',')} de 10, com ${s.valid} respostas.${antes}`, 4, C.navy)
         row += 2
         return
       }
@@ -383,18 +477,36 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   const dynA = sheet(wb, 'Dinâmica respostas', [70, 14, 14, 14, 14, 14])
   title(dynA, 1, 'Dinâmica: respostas por pergunta', 'Tabela dinâmica sobre a aba Base. Arraste os campos (Pergunta, Resposta, Grupo, Tipo) para montar outras visões.')
   const dynB = sheet(wb, 'Dinâmica escalas', [70, 16, 14, 16, 16, 14])
-  title(dynB, 1, 'Dinâmica: escalas por grupo', '% de cada pergunta que discorda, fica neutra ou concorda (sem “prefiro não responder”).')
+  title(dynB, 1, grouped ? 'Dinâmica: escalas por dimensão' : 'Dinâmica: escalas por grupo', '% de cada pergunta desfavorável, neutra ou favorável (sem “prefiro não responder”).')
 
   // ---------- Base ----------
-  const base = sheet(wb, 'Base', [6, 70, 18, 30, 22, 8, 11])
-  const headers = ['Nº', 'Pergunta', 'Tipo', 'Resposta', 'Grupo', 'Valor', 'Contagem']
+  // Dimensão e tema só entram quando a pesquisa é agrupada; os campos das dinâmicas são achados pelo nome.
+  const fields: { name: string; width: number; get: (r: (typeof baseRows)[number]) => string | number | null }[] = [
+    { name: 'Nº', width: 6, get: (r) => r.n },
+    { name: 'Pergunta', width: 66, get: (r) => r.pergunta },
+    ...(grouped
+      ? [
+          { name: 'Dimensão', width: 16, get: (r: (typeof baseRows)[number]) => r.dimensao },
+          { name: 'Tema', width: 24, get: (r: (typeof baseRows)[number]) => r.tema },
+        ]
+      : []),
+    { name: 'Tipo', width: 18, get: (r) => r.tipo },
+    { name: 'Resposta', width: 26, get: (r) => r.resposta },
+    { name: 'Grupo', width: 22, get: (r) => r.grupo },
+    { name: 'Valor', width: 8, get: (r) => r.valor },
+    { name: 'Contagem', width: 11, get: () => 1 },
+  ]
+  const headers = fields.map((f) => f.name)
+  const fieldIndex = (name: string) => headers.indexOf(name)
+  const baseValues = baseRows.map((row) => fields.map((f) => f.get(row)))
+  const base = sheet(wb, 'Base', fields.map((f) => f.width))
   base.addTable({
     name: 'BaseRespostas',
     ref: 'A1',
     headerRow: true,
     style: { theme: TABLE_STYLE, showRowStripes: true },
     columns: headers.map((name) => ({ name, filterButton: true })),
-    rows: baseRows.map((row) => [row.n, row.pergunta, row.tipo, row.resposta, row.grupo, row.valor, 1]),
+    rows: baseValues,
   })
   base.views = [{ state: 'frozen', ySplit: 1, showGridLines: false }]
 
@@ -403,30 +515,36 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
 
   if (baseRows.length > 0) {
     const perguntaOrder = questions.map((q, i) => perguntaLabel(i + 1, q.text))
-    const grupoOrder = ['Discorda (1–2)', 'Neutro (3)', 'Concorda (4–5)', NR_OPTION.label, 'Não aconteceu', 'Aconteceu', 'Sim', 'Não', 'Tema escolhido']
+    const grupoOrder = [...GRUPOS_ESCALA, NR_OPTION.label, 'Não aconteceu', 'Aconteceu', 'Sim', 'Não', 'Tema escolhido', ...GRUPOS_NOTA]
     const hasScales = baseRows.some((row) => row.tipo === 'Escala de 1 a 5')
+    const [fPergunta, fDim, fTipo, fResposta, fGrupo, fContagem] = ['Pergunta', 'Dimensão', 'Tipo', 'Resposta', 'Grupo', 'Contagem'].map(fieldIndex)
     await addPivotTables(
       zip,
       {
         sheetName: 'Base',
         headers,
-        rows: baseRows.map((row) => [row.n, row.pergunta, row.tipo, row.resposta, row.grupo, row.valor, 1]),
-        itemOrder: { 1: perguntaOrder, 3: respostaOrder(questions), 4: grupoOrder },
+        rows: baseValues,
+        itemOrder: {
+          [fPergunta]: perguntaOrder,
+          [fResposta]: respostaOrder(questions),
+          [fGrupo]: grupoOrder,
+          ...(grouped ? { [fDim]: [...new Set(questions.map((q) => q.section).filter((s): s is string => Boolean(s)))] } : {}),
+        },
       },
       [
-        { name: 'DinamicaRespostas', sheetId: dynA.id, top: 4, rows: [1, 3], data: { field: 6, name: 'Respostas' }, rowCaption: 'Pergunta e resposta' },
+        { name: 'DinamicaRespostas', sheetId: dynA.id, top: 4, rows: [fPergunta, fResposta], data: { field: fContagem, name: 'Respostas' }, rowCaption: 'Pergunta e resposta' },
         ...(hasScales
           ? [
               {
                 name: 'DinamicaEscalas',
                 sheetId: dynB.id,
                 top: 6,
-                rows: [1],
-                cols: [4],
-                page: { field: 2, item: 'Escala de 1 a 5' },
-                hide: [{ field: 4, items: [NR_OPTION.label] }],
-                data: { field: 6, name: '% das respostas', percentOfRow: true },
-                rowCaption: 'Pergunta',
+                rows: grouped ? [fDim, fPergunta] : [fPergunta],
+                cols: [fGrupo],
+                page: { field: fTipo, item: 'Escala de 1 a 5' },
+                hide: [{ field: fGrupo, items: [NR_OPTION.label] }],
+                data: { field: fContagem, name: '% das respostas', percentOfRow: true },
+                rowCaption: grouped ? 'Dimensão e pergunta' : 'Pergunta',
                 colCaption: 'Grupo',
               },
             ]

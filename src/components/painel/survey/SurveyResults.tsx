@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react'
 import { FileSpreadsheet, Loader2, Lock, Table2, Trash2, Users } from 'lucide-react'
 import { feedback } from '@/lib/feedback'
-import { ESCALA_OPTIONS, NR_OPTION, type SurveyQuestion } from '@/data/pesquisas'
-import { buildMeetingSummary, computeStats, noiseFor, resultsGate, type ChoiceStat, type OpenStat, type QuestionStat } from '@/data/resultados'
+import { ESCALA_OPTIONS, NR_OPTION, type SurveyBaseline, type SurveyQuestion } from '@/data/pesquisas'
+import { buildMeetingSummary, computeStats, noiseFor, resultsGate, summarizeSections, type ChoiceStat, type OpenStat, type QuestionStat } from '@/data/resultados'
 import type { SurveyResponse, SurveyStatus } from '@/types/pesquisas'
 import { cn } from '@/lib/utils'
 import { Button, EmptyState, Notice, Panel, formatDayBR, pluralize } from '../ui'
 import { MeetingSummary } from './MeetingSummary'
-import { FavorableRow, FrequencyBlock, HiddenNote, Legend, MultiBlock, TextList, YesNoBlock, formatMean, pctOf, segmentsOf } from './resultCharts'
+import { BaselineNote, CriticityPill, FavorableRow, FrequencyBlock, HiddenNote, Legend, MultiBlock, NotaBlock, TextList, YesNoBlock, formatMean, pctOf, segmentsOf } from './resultCharts'
 
 type View = 'resumo' | 'perguntas'
 
@@ -27,6 +27,7 @@ export function SurveyResults({
   status,
   title,
   companyName,
+  baseline = null,
   onDeleteAll,
   onExported,
 }: {
@@ -36,13 +37,15 @@ export function SurveyResults({
   status: SurveyStatus
   title: string
   companyName: string
+  /** Resultado da aplicação anterior, para comparar. */
+  baseline?: SurveyBaseline | null
   onDeleteAll?: () => void
   onExported?: () => void
 }) {
   const [view, setView] = useState<View>('resumo')
   const [exporting, setExporting] = useState(false)
   const answers = useMemo(() => responses.map((r) => r.answers), [responses])
-  const stats = useMemo(() => computeStats(questions, answers, minResponses), [questions, answers, minResponses])
+  const stats = useMemo(() => computeStats(questions, answers, minResponses, baseline), [questions, answers, minResponses, baseline])
   const summary = useMemo(() => buildMeetingSummary(stats, answers.length), [stats, answers.length])
 
   const total = responses.length
@@ -55,7 +58,7 @@ export function SurveyResults({
     setExporting(true)
     try {
       const { buildSurveyWorkbook, exportFileName } = await import('@/lib/excel/exportarPesquisa')
-      const bytes = await buildSurveyWorkbook({ title, companyName, status, period, minResponses, questions, answers })
+      const bytes = await buildSurveyWorkbook({ title, companyName, status, period, minResponses, questions, answers, baseline })
       const blob = new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -162,8 +165,22 @@ function AllQuestions({ stats, total, min }: { stats: QuestionStat[]; total: num
   const [order, setOrder] = useState<'favoravel' | 'pesquisa'>('favoravel')
   const [showTable, setShowTable] = useState(false)
   const scales = stats.filter((s): s is ChoiceStat => s.kind === 'escolha' && s.question.type === 'escala')
-  const sortedScales = order === 'pesquisa' ? scales : [...scales].sort((a, b) => Number(a.hidden) - Number(b.hidden) || (b.favorable ?? 0) - (a.favorable ?? 0))
+  const sortScales = (list: ChoiceStat[]) =>
+    order === 'pesquisa' ? list : [...list].sort((a, b) => Number(a.hidden) - Number(b.hidden) || (b.favorable ?? 0) - (a.favorable ?? 0))
+  const sortedScales = sortScales(scales)
+  // Pesquisa agrupada (ex.: cultura organizacional): um painel por dimensão, com o % favorável do grupo.
+  const sections = summarizeSections(stats, total)
+  const ungrouped = sections.length > 0 ? scales.filter((s) => s.hidden || !s.section) : []
   const others = stats.filter((s) => !(s.kind === 'escolha' && s.question.type === 'escala'))
+  const orderControl = (
+    <label className="flex items-center gap-2 text-sm text-[var(--color-brand-700)]">
+      Ordem
+      <select value={order} onChange={(e) => setOrder(e.target.value as typeof order)} className="rounded-md border border-[var(--input-border)] bg-white px-2 py-1 text-sm">
+        <option value="favoravel">Mais favorável primeiro</option>
+        <option value="pesquisa">Ordem da pesquisa</option>
+      </select>
+    </label>
+  )
   // Textos em ordem aleatória (cada pergunta embaralhada à parte): a ordem de chegada poderia ajudar a identificar quem escreveu.
   const shuffled = useMemo(() => Object.fromEntries(stats.filter((s): s is OpenStat => s.kind === 'aberta').map((s) => [s.question.id, shuffle(s.texts)])), [stats])
   const noise = noiseFor(total)
@@ -175,35 +192,68 @@ function AllQuestions({ stats, total, min }: { stats: QuestionStat[]; total: num
         perguntas podem ser só variação.
       </p>
 
-      {scales.length > 0 && (
+      {sections.length > 0 && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm leading-relaxed text-[var(--color-brand-700)]">
+              Cada dimensão mostra a média do % favorável (4 ou 5) das suas perguntas. Referência de mercado: 70% ou mais; abaixo de 50%, crítico.
+            </p>
+            {orderControl}
+          </div>
+          {sections.map((sec) => (
+            <Panel
+              key={sec.name}
+              title={sec.name}
+              description={sec.themes.length > 1 ? sec.themes.map((t) => `${t.name}: ${pctOf(t.favorable)}`).join(' · ') : undefined}
+              actions={
+                <div className="flex items-center gap-2">
+                  <CriticityPill value={sec.criticity} />
+                  <span className="font-sans text-2xl font-bold tabular-nums text-[var(--color-brand-900)]">{pctOf(sec.favorable)}</span>
+                </div>
+              }
+            >
+              {sec.before != null && (
+                <div className="-mt-2 mb-4">
+                  <BaselineNote now={sec.favorable} before={{ label: sec.items[0].baseline?.label ?? 'Anterior', total: sec.items[0].baseline?.total ?? 0, favorable: sec.before, mean: null, trend: sec.trend }} />
+                </div>
+              )}
+              <ul className="space-y-6">
+                {sortScales(sec.items).map((s) => (
+                  <FavorableRow key={s.question.id} stat={s} min={min} />
+                ))}
+              </ul>
+            </Panel>
+          ))}
+        </>
+      )}
+
+      {(sections.length === 0 ? scales.length > 0 : ungrouped.length > 0) && (
         <Panel
-          title="Escalas de 1 a 5"
-          description="O número em destaque é o % que concorda (4 ou 5). A barra mostra todas as respostas; “Prefiro não responder” fica fora da conta."
+          title={sections.length > 0 ? 'Outras escalas' : 'Escalas de 1 a 5'}
+          description="O número em destaque é o % favorável (4 ou 5). A barra mostra todas as respostas; “Prefiro não responder” fica fora da conta."
           actions={
-            <>
-              <label className="flex items-center gap-2 text-sm text-[var(--color-brand-700)]">
-                Ordem
-                <select value={order} onChange={(e) => setOrder(e.target.value as typeof order)} className="rounded-md border border-[var(--input-border)] bg-white px-2 py-1 text-sm">
-                  <option value="favoravel">Mais concordância primeiro</option>
-                  <option value="pesquisa">Ordem da pesquisa</option>
-                </select>
-              </label>
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowTable((v) => !v)} aria-pressed={showTable}>
-                <Table2 />
-                {showTable ? 'Ver gráfico' : 'Ver tabela'}
-              </Button>
-            </>
+            sections.length > 0 ? undefined : (
+              <>
+                {orderControl}
+                <Button type="button" variant="outline" size="sm" onClick={() => setShowTable((v) => !v)} aria-pressed={showTable}>
+                  <Table2 />
+                  {showTable ? 'Ver gráfico' : 'Ver tabela'}
+                </Button>
+              </>
+            )
           }
         >
-          {showTable ? (
+          {showTable && sections.length === 0 ? (
             <ScaleTable rows={sortedScales} min={min} />
           ) : (
             <>
-              <div className="mb-5">
-                <Legend segments={segmentsOf(scales[0])} />
-              </div>
+              {sections.length === 0 && (
+                <div className="mb-5">
+                  <Legend segments={segmentsOf(scales[0])} />
+                </div>
+              )}
               <ul className="space-y-6">
-                {sortedScales.map((s) => (
+                {(sections.length > 0 ? sortScales(ungrouped) : sortedScales).map((s) => (
                   <FavorableRow key={s.question.id} stat={s} min={min} />
                 ))}
               </ul>
@@ -228,6 +278,8 @@ function AllQuestions({ stats, total, min }: { stats: QuestionStat[]; total: num
             </>
           ) : s.question.type === 'sim_nao' ? (
             <YesNoBlock stat={s} />
+          ) : s.question.type === 'nota' ? (
+            <NotaBlock stat={s} />
           ) : (
             <FrequencyBlock stat={s} />
           )}
