@@ -116,6 +116,78 @@ export type OpenStat = Base & {
 
 export type QuestionStat = ChoiceStat | MultiStat | OpenStat
 
+/** Números de uma pergunta de escolha única a partir das contagens por opção. */
+function choiceFigures(q: SurveyQuestion, counts: Record<string, number>) {
+  const nr = counts[NR_OPTION.key] ?? 0
+  const valid = Object.entries(counts).reduce((s, [k, c]) => (k === NR_OPTION.key ? s : s + c), 0)
+  const share = (...keys: string[]) => (valid ? keys.reduce((s, k) => s + (counts[k] ?? 0), 0) / valid : 0)
+  const weighted = () => (valid ? Object.entries(counts).reduce((s, [k, c]) => (k === NR_OPTION.key ? s : s + Number(k) * c), 0) / valid : null)
+  let favorable: number | null = null
+  let neutral: number | null = null
+  let unfavorable: number | null = null
+  let incidence: number | null = null
+  let mean: number | null = null
+  if (q.type === 'escala') {
+    favorable = share('4', '5')
+    neutral = share('3')
+    unfavorable = share('1', '2')
+    mean = weighted()
+  } else if (q.type === 'nota') {
+    mean = weighted()
+  } else if (polarityOf(q) === 'negativa') {
+    favorable = share('nunca')
+    incidence = valid ? 1 - favorable : 0
+  }
+  return { valid, nr, favorable, neutral, unfavorable, incidence, mean }
+}
+
+/**
+ * Contagens por opção a partir de percentuais (0–100) e do total da aplicação. Algumas perguntas têm uma
+ * ou outra resposta a menos (ex.: 44 de 45): testa totais um pouco menores e fica com o que reproduz os
+ * percentuais com menos erro (maior resto para fechar a soma).
+ */
+export function countsFromShares(shares: readonly number[], total: number): number[] {
+  let best: number[] = shares.map(() => 0)
+  let bestErr = Infinity
+  for (let n = total; n >= Math.max(1, total - 3); n--) {
+    const raw = shares.map((s) => (s * n) / 100)
+    const counts = raw.map(Math.floor)
+    let rest = n - counts.reduce((a, b) => a + b, 0)
+    const order = raw.map((x, i) => [x - Math.floor(x), i] as const).sort((a, b) => b[0] - a[0])
+    for (let k = 0; k < order.length && rest > 0; k++, rest--) counts[order[k][1]]++
+    const err = counts.reduce((e, c, i) => e + Math.abs((c * 100) / n - shares[i]), 0)
+    if (err < bestErr - 1e-9) {
+      best = counts
+      bestErr = err
+    }
+  }
+  return best
+}
+
+/**
+ * Resultado de uma aplicação anterior no mesmo formato do painel, calculado só dos percentuais guardados
+ * (nenhuma resposta individual existe nem é criada). Notas que só têm a média aparecem sem distribuição.
+ */
+export function statsFromBaseline(questions: readonly SurveyQuestion[], baseline: SurveyBaseline, min: number): QuestionStat[] {
+  const out: QuestionStat[] = []
+  questions.forEach((q, i) => {
+    const item = baseline.items[q.id]
+    if (!item) return
+    const base = { question: q, n: i + 1, gate: null, section: q.section ?? null, theme: q.theme ?? null, baseline: null }
+    if (q.type === 'nota' && item.mean != null && !item.shares) {
+      out.push({ ...base, kind: 'escolha', reached: baseline.total, valid: baseline.total, nr: 0, counts: {}, favorable: null, neutral: null, unfavorable: null, incidence: null, mean: item.mean, hidden: false })
+      return
+    }
+    const opts = getAnswerOptions(q).filter((o) => o.key !== NR_OPTION.key)
+    if (!item.shares || item.shares.length !== opts.length) return
+    const c = countsFromShares(item.shares, baseline.total)
+    const counts = Object.fromEntries(opts.map((o, k) => [o.key, c[k]]))
+    const figures = choiceFigures(q, counts)
+    out.push({ ...base, kind: 'escolha', reached: figures.valid, counts, ...figures, hidden: figures.valid < min })
+  })
+  return out
+}
+
 /** % favorável (4–5) a partir dos percentuais guardados de uma escala. */
 function favorableFromShares(shares: number[] | undefined): number | null {
   if (!shares || shares.length < 5) return null
@@ -166,28 +238,7 @@ export function computeStats(questions: readonly SurveyQuestion[], responses: re
       const v = r[q.id]
       if (typeof v === 'string' && v in counts) counts[v]++
     }
-    const nr = counts[NR_OPTION.key] ?? 0
-    const valid = Object.entries(counts).reduce((s, [k, c]) => (k === NR_OPTION.key ? s : s + c), 0)
-    const share = (...keys: string[]) => (valid ? keys.reduce((s, k) => s + (counts[k] ?? 0), 0) / valid : 0)
-    const pol = polarityOf(q)
-
-    let favorable: number | null = null
-    let neutral: number | null = null
-    let unfavorable: number | null = null
-    let incidence: number | null = null
-    let mean: number | null = null
-    const weighted = () => (valid ? Object.entries(counts).reduce((s, [k, c]) => (k === NR_OPTION.key ? s : s + Number(k) * c), 0) / valid : null)
-    if (q.type === 'escala') {
-      favorable = share('4', '5')
-      neutral = share('3')
-      unfavorable = share('1', '2')
-      mean = weighted()
-    } else if (q.type === 'nota') {
-      mean = weighted()
-    } else if (pol === 'negativa') {
-      favorable = share('nunca')
-      incidence = valid ? 1 - favorable : 0
-    }
+    const { valid, nr, favorable, neutral, unfavorable, incidence, mean } = choiceFigures(q, counts)
 
     let before: BaselineStat | null = null
     const item = baseline?.items[q.id]
@@ -284,6 +335,25 @@ export function respostaOrder(questions: readonly SurveyQuestion[]): string[] {
  * respeitando a ramificação; sem textos abertos nem o texto de "Outros"; sem nenhum identificador da
  * resposta; em ordem embaralhada, para que linhas da mesma pessoa não fiquem juntas.
  */
+/** Linhas da base a partir das contagens (aplicação anterior guardada só em percentuais). */
+export function answerRowsFromStats(stats: readonly QuestionStat[], random = Math.random): AnswerRow[] {
+  const rows: AnswerRow[] = []
+  for (const s of stats) {
+    if (s.kind !== 'escolha' || s.hidden) continue
+    const q = s.question
+    const base = { n: s.n, pergunta: perguntaLabel(s.n, q.text), dimensao: q.section ?? '', tema: q.theme ?? '', tipo: TIPO_LABEL[q.type] ?? q.type }
+    for (const o of getAnswerOptions(q)) {
+      const numeric = (q.type === 'escala' || q.type === 'nota') && o.key !== NR_OPTION.key
+      for (let k = 0; k < (s.counts[o.key] ?? 0); k++) rows.push({ ...base, resposta: respostaLabel(q, o), grupo: grupoOf(q, o.key, o.label), valor: numeric ? Number(o.key) : null })
+    }
+  }
+  for (let i = rows.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1))
+    ;[rows[i], rows[j]] = [rows[j], rows[i]]
+  }
+  return rows
+}
+
 export function buildAnswerRows(questions: readonly SurveyQuestion[], responses: readonly SurveyAnswers[], stats: readonly QuestionStat[], random = Math.random): AnswerRow[] {
   const visible = new Set(stats.filter((s) => !s.hidden && s.kind !== 'aberta').map((s) => s.question.id))
   const rows: AnswerRow[] = []

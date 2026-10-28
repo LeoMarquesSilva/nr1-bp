@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { FileSpreadsheet, Loader2, Lock, Table2, Trash2, Users } from 'lucide-react'
 import { feedback } from '@/lib/feedback'
 import { ESCALA_OPTIONS, NR_OPTION, type SurveyBaseline, type SurveyQuestion } from '@/data/pesquisas'
-import { buildMeetingSummary, computeStats, noiseFor, resultsGate, summarizeSections, type ChoiceStat, type OpenStat, type QuestionStat } from '@/data/resultados'
+import { buildMeetingSummary, computeStats, noiseFor, resultsGate, statsFromBaseline, summarizeSections, type ChoiceStat, type OpenStat, type QuestionStat } from '@/data/resultados'
 import type { SurveyResponse, SurveyStatus } from '@/types/pesquisas'
 import { cn } from '@/lib/utils'
 import { Button, EmptyState, Notice, Panel, formatDayBR, pluralize } from '../ui'
@@ -44,9 +44,14 @@ export function SurveyResults({
 }) {
   const [view, setView] = useState<View>('resumo')
   const [exporting, setExporting] = useState(false)
+  // Aplicação anterior (só percentuais): abre nela quando esta ainda não tem respostas.
+  const [source, setSource] = useState<'atual' | 'anterior'>(responses.length === 0 && baseline ? 'anterior' : 'atual')
   const answers = useMemo(() => responses.map((r) => r.answers), [responses])
   const stats = useMemo(() => computeStats(questions, answers, minResponses, baseline), [questions, answers, minResponses, baseline])
   const summary = useMemo(() => buildMeetingSummary(stats, answers.length), [stats, answers.length])
+  const previous = useMemo(() => (baseline ? statsFromBaseline(questions, baseline, minResponses) : null), [questions, baseline, minResponses])
+  const previousSummary = useMemo(() => (previous && baseline ? buildMeetingSummary(previous, baseline.total) : null), [previous, baseline])
+  const showingPrevious = source === 'anterior' && previous !== null && previousSummary !== null && baseline !== null
 
   const total = responses.length
   const days = responses.map((r) => r.submittedOn).sort()
@@ -58,12 +63,16 @@ export function SurveyResults({
     setExporting(true)
     try {
       const { buildSurveyWorkbook, exportFileName } = await import('@/lib/excel/exportarPesquisa')
-      const bytes = await buildSurveyWorkbook({ title, companyName, status, period, minResponses, questions, answers, baseline })
+      const bytes = await buildSurveyWorkbook(
+        showingPrevious
+          ? { title: baseline.label, companyName, status: 'encerrada', period: `base de comparação de “${title}”`, minResponses, questions, answers: [], previous: { stats: previous, total: baseline.total, label: baseline.label } }
+          : { title, companyName, status, period, minResponses, questions, answers, baseline }
+      )
       const blob = new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = exportFileName(title)
+      a.download = exportFileName(showingPrevious ? `${title} ${baseline.label}` : title)
       document.body.appendChild(a)
       a.click()
       a.remove()
@@ -77,16 +86,78 @@ export function SurveyResults({
     }
   }
 
+  const exportButton = (
+    <Button type="button" variant="outline" size="sm" onClick={exportar} disabled={exporting}>
+      {exporting ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}
+      Exportar para Excel
+    </Button>
+  )
+  const sourceTabs = baseline && previous && (
+    <Tabs
+      label="Qual aplicação"
+      value={source}
+      onChange={(v) => setSource(v as typeof source)}
+      items={[
+        ['atual', `Esta aplicação · ${pluralize(total, 'resposta', 'respostas')}`],
+        ['anterior', `${baseline.label} · ${pluralize(baseline.total, 'resposta', 'respostas')}`],
+      ]}
+    />
+  )
+  const viewTabs = (
+    <Tabs
+      label="Como ver os resultados"
+      value={view}
+      onChange={(v) => setView(v as View)}
+      items={[
+        ['resumo', 'Resumo da reunião'],
+        ['perguntas', 'Todas as perguntas'],
+      ]}
+    />
+  )
+
+  if (showingPrevious) {
+    return (
+      <div className="space-y-6">
+        {sourceTabs}
+        <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+          <p className="max-w-[70ch] text-sm leading-relaxed text-[var(--color-brand-700)]">
+            <strong className="text-[var(--color-brand-900)]">{baseline.label}</strong>: {pluralize(baseline.total, 'resposta', 'respostas')}. Calculado a partir dos percentuais
+            guardados dessa aplicação; não há respostas individuais.
+          </p>
+          {exportButton}
+        </div>
+        {viewTabs}
+        {view === 'resumo' ? (
+          <MeetingSummary summary={previousSummary} title={baseline.label} period={`base de comparação de “${title}”`} partial={false} />
+        ) : (
+          <AllQuestions stats={previous} total={baseline.total} min={minResponses} />
+        )}
+      </div>
+    )
+  }
+
   if (total === 0) {
     return (
-      <Panel>
-        <EmptyState icon={<Users className="h-6 w-6" />} title="Nenhuma resposta ainda" description="Os resultados aparecem aqui depois que as pessoas responderem pelo link." />
-      </Panel>
+      <div className="space-y-6">
+        {sourceTabs}
+        <Panel>
+          <EmptyState
+            icon={<Users className="h-6 w-6" />}
+            title="Nenhuma resposta ainda"
+            description={
+              status === 'rascunho'
+                ? 'A pesquisa ainda é rascunho: os resultados aparecem depois que ela for aberta e as pessoas responderem.'
+                : 'Os resultados aparecem aqui depois que as pessoas responderem pelo link.'
+            }
+          />
+        </Panel>
+      </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      {sourceTabs}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <p className="flex items-center gap-2 text-sm text-[var(--color-brand-700)]">
           <Users className="h-4 w-4" aria-hidden />
@@ -96,12 +167,7 @@ export function SurveyResults({
           </span>
         </p>
         <div className="flex flex-wrap items-center gap-2">
-          {gate.state === 'liberado' && (
-            <Button type="button" variant="outline" size="sm" onClick={exportar} disabled={exporting}>
-              {exporting ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}
-              Exportar para Excel
-            </Button>
-          )}
+          {gate.state === 'liberado' && exportButton}
           {onDeleteAll && (
             <Button type="button" variant="ghost" size="sm" onClick={onDeleteAll}>
               <Trash2 />
@@ -127,28 +193,7 @@ export function SurveyResults({
             </div>
           )}
 
-          <div role="tablist" aria-label="Como ver os resultados" className="inline-flex rounded-lg border border-[var(--color-brand-200)] bg-white p-1 print:hidden">
-            {(
-              [
-                ['resumo', 'Resumo da reunião'],
-                ['perguntas', 'Todas as perguntas'],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={view === key}
-                onClick={() => setView(key)}
-                className={cn(
-                  'rounded-md px-3.5 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
-                  view === key ? 'bg-[var(--color-brand-900)] text-white' : 'text-[var(--color-brand-700)] hover:text-[var(--color-brand-900)]'
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          {viewTabs}
 
           {view === 'resumo' ? (
             <MeetingSummary summary={summary} title={title} period={period} partial={gate.partial} />
@@ -157,6 +202,28 @@ export function SurveyResults({
           )}
         </>
       )}
+    </div>
+  )
+}
+
+function Tabs({ label, value, onChange, items }: { label: string; value: string; onChange: (v: string) => void; items: [string, string][] }) {
+  return (
+    <div role="tablist" aria-label={label} className="inline-flex max-w-full flex-wrap rounded-lg border border-[var(--color-brand-200)] bg-white p-1 print:hidden">
+      {items.map(([key, text]) => (
+        <button
+          key={key}
+          type="button"
+          role="tab"
+          aria-selected={value === key}
+          onClick={() => onChange(key)}
+          className={cn(
+            'rounded-md px-3.5 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]',
+            value === key ? 'bg-[var(--color-brand-900)] text-white' : 'text-[var(--color-brand-700)] hover:text-[var(--color-brand-900)]'
+          )}
+        >
+          {text}
+        </button>
+      ))}
     </div>
   )
 }

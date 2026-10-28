@@ -97,13 +97,16 @@ export function CriticityPill({ value }: { value: Criticity }) {
 /** Nota de 0 a 10: média em destaque e distribuição em colunas. */
 export function NotaBlock({ stat }: { stat: ChoiceStat }) {
   const max = Math.max(1, ...NOTA_OPTIONS.map((o) => stat.counts[o.key] ?? 0))
+  // Aplicação anterior pode ter guardado só a média.
+  const hasDistribution = NOTA_OPTIONS.some((o) => (stat.counts[o.key] ?? 0) > 0)
   return (
     <div>
       <p className="mb-4 flex flex-wrap items-baseline gap-x-3">
         <span className="font-sans text-3xl font-bold tabular-nums text-[var(--color-brand-900)]">{formatMean(stat.mean)}</span>
         <span className="text-sm text-[var(--color-brand-800)]">média de 0 a 10 · {pluralize(stat.valid, 'resposta', 'respostas')}</span>
       </p>
-      <div className="flex h-28 items-end gap-1" role="img" aria-label={NOTA_OPTIONS.map((o) => `${o.label}: ${stat.counts[o.key] ?? 0}`).join('; ')}>
+      {!hasDistribution && <p className="text-sm text-[var(--color-brand-600)]">Nessa aplicação ficou registrada só a média, sem a distribuição das notas.</p>}
+      <div className={cn('flex h-28 items-end gap-1', !hasDistribution && 'hidden')} role="img" aria-label={NOTA_OPTIONS.map((o) => `${o.label}: ${stat.counts[o.key] ?? 0}`).join('; ')}>
         {NOTA_OPTIONS.map((o) => {
           const c = stat.counts[o.key] ?? 0
           return (

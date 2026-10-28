@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { TEMPLATE_DIVERSIDADE, estimateMinutes, normalizeQuestions, paginateQuestions, validateQuestions, type SurveyAnswers } from './pesquisas'
 import { TEMPLATE_CULTURA } from './modeloCultura'
 import {
+  answerRowsFromStats,
   buildAnswerRows,
   buildMeetingSummary,
   computeStats,
+  countsFromShares,
+  statsFromBaseline,
   noiseFor,
   resultsGate,
   summarizeSections,
@@ -124,6 +127,26 @@ describe('cultura organizacional: dimensões, nota e comparação', () => {
     const rows = buildAnswerRows(cultura, respostas, computeStats(cultura, respostas, 5))
     expect(rows.find((r) => r.pergunta.startsWith('01.'))).toMatchObject({ dimensao: 'Credibilidade', tema: 'Comunicação da liderança', resposta: 'Concordo totalmente', grupo: 'Favorável (4–5)' })
     expect(rows.find((r) => r.tipo === 'Nota de 0 a 10')).toMatchObject({ valor: 10, grupo: 'Notas 9–10' })
+  })
+
+  it('mostra a aplicação anterior a partir dos percentuais, respeitando quem teve 44 respostas', () => {
+    expect(countsFromShares([0, 6.8, 15.9, 45.5, 31.8], 45)).toEqual([0, 3, 7, 20, 14])
+    expect(countsFromShares([0, 11.1, 26.7, 37.8, 24.4], 45)).toEqual([0, 5, 12, 17, 11])
+    const baseline = {
+      label: 'Pesquisa de 2024',
+      total: 45,
+      items: { p1: { shares: [0, 11.1, 26.7, 37.8, 24.4] }, p10: { shares: [0, 6.8, 15.9, 45.5, 31.8] }, ind_felicidade: { mean: 8.31 } },
+    }
+    const stats = statsFromBaseline(cultura, baseline, 5)
+    expect(stats).toHaveLength(3)
+    expect(stat<ChoiceStat>(stats, 'p1')).toMatchObject({ valid: 45, n: 1, section: 'Credibilidade', baseline: null })
+    expect(stat<ChoiceStat>(stats, 'p1').favorable).toBeCloseTo(28 / 45)
+    expect(stat<ChoiceStat>(stats, 'p10').valid).toBe(44)
+    expect(stat<ChoiceStat>(stats, 'ind_felicidade')).toMatchObject({ mean: 8.31, counts: {} })
+    expect(summarizeSections(stats, 45)[0].name).toBe('Credibilidade')
+    const rows = answerRowsFromStats(stats)
+    expect(rows.filter((r) => r.pergunta.startsWith('01.'))).toHaveLength(45)
+    expect(rows.some((r) => r.tipo === 'Nota de 0 a 10')).toBe(false)
   })
 
   it('variação só conta como subida ou queda fora da margem', () => {

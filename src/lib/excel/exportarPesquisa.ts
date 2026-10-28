@@ -9,6 +9,7 @@ import { ESCALA_OPTIONS, NOTA_OPTIONS, NR_OPTION, type SurveyAnswers, type Surve
 import {
   GRUPOS_ESCALA,
   GRUPOS_NOTA,
+  answerRowsFromStats,
   buildAnswerRows,
   buildMeetingSummary,
   computeStats,
@@ -20,6 +21,7 @@ import {
   type Criticity,
   type MultiStat,
   type OpenStat,
+  type QuestionStat,
 } from '@/data/resultados'
 import { addPivotTables } from './pivot'
 
@@ -34,6 +36,8 @@ export type ExportInput = {
   answers: SurveyAnswers[]
   /** Resultado da aplicação anterior (percentuais), para as colunas de comparação. */
   baseline?: SurveyBaseline | null
+  /** Exporta uma aplicação anterior guardada só em percentuais (contagens já refeitas, sem respostas). */
+  previous?: { stats: QuestionStat[]; total: number; label: string }
   generatedAt?: Date
 }
 
@@ -111,11 +115,13 @@ const statusLabel = (status: string) => (status === 'aberta' ? 'aberta (resultad
 
 export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Array> {
   const { questions, answers, minResponses: min } = input
-  const total = answers.length
-  const gate = resultsGate(input.status, total, min)
-  if (gate.state !== 'liberado') throw new Error('Os resultados ainda não podem ser exportados: estão protegidos pelas regras de anonimato.')
+  const prev = input.previous
+  const total = prev ? prev.total : answers.length
+  if (!prev && resultsGate(input.status, total, min).state !== 'liberado') {
+    throw new Error('Os resultados ainda não podem ser exportados: estão protegidos pelas regras de anonimato.')
+  }
 
-  const stats = computeStats(questions, answers, min, input.baseline ?? null)
+  const stats = prev ? prev.stats : computeStats(questions, answers, min, input.baseline ?? null)
   const summary = buildMeetingSummary(stats, total)
   const noise = noiseFor(total)
   const generatedAt = input.generatedAt ?? new Date()
@@ -134,7 +140,9 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   t.value = input.title
   t.font = { name: FONT, size: 22, bold: true, color: { argb: C.ink } }
   const meta = ws.getCell('A3')
-  meta.value = `${total} respostas${input.period ? ` · ${input.period}` : ''} · pesquisa ${statusLabel(input.status)} · gerado em ${generatedAt.toLocaleString('pt-BR')}`
+  meta.value = prev
+    ? `${total} respostas · ${prev.label} · calculado dos percentuais guardados (sem respostas individuais) · gerado em ${generatedAt.toLocaleString('pt-BR')}`
+    : `${total} respostas${input.period ? ` · ${input.period}` : ''} · pesquisa ${statusLabel(input.status)} · gerado em ${generatedAt.toLocaleString('pt-BR')}`
   meta.font = { name: FONT, size: 10, color: { argb: C.blue600 } }
 
   const cards: { value: string | number; label: string; detail?: string; numFmt?: string; alert?: boolean }[] = [{ value: total, label: 'pessoas responderam', detail: input.period ?? undefined }]
@@ -392,6 +400,11 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
         row += 2
         return
       }
+      if (s.question.type === 'nota' && !NOTA_OPTIONS.some((o) => (s.counts[o.key] ?? 0) > 0)) {
+        note(os, row, `Média: ${(s.mean ?? 0).toFixed(1).replace('.', ',')} de 10, com ${s.valid} respostas (só a média ficou registrada nessa aplicação).`, 4, C.navy)
+        row += 2
+        return
+      }
       if (s.question.type === 'nota') {
         os.addTable({
           name: `Pergunta${s.n}`,
@@ -473,7 +486,7 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   }
 
   // ---------- Dinâmicas (as tabelas são montadas depois, no XML) ----------
-  const baseRows = buildAnswerRows(questions, answers, stats)
+  const baseRows = prev ? answerRowsFromStats(stats) : buildAnswerRows(questions, answers, stats)
   const dynA = sheet(wb, 'Dinâmica respostas', [70, 14, 14, 14, 14, 14])
   title(dynA, 1, 'Dinâmica: respostas por pergunta', 'Tabela dinâmica sobre a aba Base. Arraste os campos (Pergunta, Resposta, Grupo, Tipo) para montar outras visões.')
   const dynB = sheet(wb, 'Dinâmica escalas', [70, 16, 14, 16, 16, 14])

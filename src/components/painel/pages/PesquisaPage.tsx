@@ -412,23 +412,24 @@ function SurveyView({
       )}
 
       {tab === 'resultados' &&
-        (isDraft ? (
+        (isDraft && !survey.baseline ? (
           <Panel>
             <EmptyState title="Ainda é rascunho" description="Os resultados aparecem aqui depois que a pesquisa for aberta e as pessoas responderem." />
           </Panel>
-        ) : responses === null ? (
+        ) : !isDraft && responses === null ? (
           <PageSkeleton />
         ) : (
+          // Rascunho com aplicação anterior: ainda sem respostas, mostra o resultado anterior.
           <SurveyResults
             questions={view.questions}
-            responses={responses}
+            responses={isDraft ? [] : (responses ?? [])}
             minResponses={view.minResponses}
             status={survey.status}
             title={view.title}
             companyName={companyLabel}
             baseline={survey.baseline}
-            onDeleteAll={responses.length > 0 ? apagarRespostas : undefined}
-            onExported={() => logAdminAuditAction({ action: 'survey_results_exported', tenantId: slug, details: { survey: survey.id, total: responses.length } })}
+            onDeleteAll={!isDraft && responses && responses.length > 0 ? apagarRespostas : undefined}
+            onExported={() => logAdminAuditAction({ action: 'survey_results_exported', tenantId: slug, details: { survey: survey.id, total: responses?.length ?? 0 } })}
           />
         ))}
 
