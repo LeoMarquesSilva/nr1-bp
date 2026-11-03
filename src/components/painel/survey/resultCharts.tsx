@@ -1,6 +1,6 @@
 import { ArrowDownRight, ArrowRight, ArrowUpRight, EyeOff, MessageSquareText } from 'lucide-react'
 import { ESCALA_OPTIONS, FREQUENCIA_OPTIONS, NOTA_OPTIONS, SCALE_PRESETS, SIM_NAO_OPTIONS, hasScaleLabels, type SurveyQuestion } from '@/data/pesquisas'
-import type { BaselineStat, ChoiceStat, Criticity, MultiStat, Trend } from '@/data/resultados'
+import { FAVORABLE_TARGET_SOURCE, type BaselineStat, type ChoiceStat, type Criticity, type MultiStat, type Trend } from '@/data/resultados'
 import { cn } from '@/lib/utils'
 import { pluralize } from '../ui'
 
@@ -83,15 +83,34 @@ export function BaselineNote({ now, before, mean }: { now: number | null; before
   )
 }
 
-const CRITICITY_STYLE: Record<Criticity, { label: string; cls: string }> = {
-  critico: { label: 'Crítico', cls: 'border-[var(--color-error-500)] text-[var(--color-error-700)]' },
-  atencao: { label: 'Atenção', cls: 'border-[var(--color-warning-500)] text-[var(--color-warning-700)]' },
-  bom: { label: 'Bom', cls: 'border-[var(--color-success-500)] text-[var(--color-success-700)]' },
+const CRITICITY_STYLE: Record<Criticity, { label: string; hint: string; cls: string }> = {
+  critico: { label: 'Crítico', hint: 'Menos de 50% favorável (critério do CONFIARA)', cls: 'border-[var(--color-error-500)] text-[var(--color-error-700)]' },
+  atencao: { label: 'Atenção', hint: 'De 50% a 69% favorável', cls: 'border-[var(--color-warning-500)] text-[var(--color-warning-700)]' },
+  bom: { label: 'Bom', hint: '70% ou mais favorável (nota mínima da certificação GPTW)', cls: 'border-[var(--color-success-500)] text-[var(--color-success-700)]' },
 }
 
 export function CriticityPill({ value }: { value: Criticity }) {
   const s = CRITICITY_STYLE[value]
-  return <span className={cn('rounded-full border px-2 py-0.5 text-[11px] font-semibold', s.cls)}>{s.label}</span>
+  return (
+    <span title={s.hint} className={cn('rounded-full border px-2 py-0.5 text-[11px] font-semibold', s.cls)}>
+      {s.label}
+    </span>
+  )
+}
+
+/** De onde vêm as faixas do selo: 70% (GPTW) e 50% (critério nosso). */
+export function ReferenceSources({ className }: { className?: string }) {
+  return (
+    <p className={cn('text-xs leading-relaxed text-[var(--color-brand-600)]', className)}>
+      <strong className="font-semibold text-[var(--color-brand-700)]">Fontes das faixas.</strong> 70% é a nota mínima para a certificação GPTW, que pede ao menos 7
+      em cada 10 pessoas avaliando a empresa de forma favorável (
+      <a href={FAVORABLE_TARGET_SOURCE.url} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-[var(--color-brand-900)]">
+        {FAVORABLE_TARGET_SOURCE.name}
+      </a>
+      ). Serve de referência: esta não é a pesquisa oficial do GPTW. O corte de 50% para “crítico” é critério do CONFIARA (menos da metade favorável); não há
+      padrão de mercado publicado para ele.
+    </p>
+  )
 }
 
 /** Nota de 0 a 10: média em destaque e distribuição em colunas. */

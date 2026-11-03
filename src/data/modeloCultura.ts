@@ -7,7 +7,7 @@
  */
 import { SCALE_PRESETS, type SurveyQuestion } from './pesquisas'
 
-/** Referência de mercado para % favorável (abaixo de 50%, crítico). */
+/** Referência de 70% favorável (nota mínima da certificação GPTW) e corte de 50% (crítico); ver resultados.ts. */
 export const FAVORABLE_TARGET = 0.7
 export const FAVORABLE_CRITICAL = 0.5
 

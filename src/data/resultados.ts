@@ -15,9 +15,18 @@ import {
   type SurveyQuestion,
 } from './pesquisas'
 
-/** Referência de mercado para % favorável; abaixo de 50%, crítico. */
+/**
+ * Faixas do % favorável. 70%: nota mínima da certificação GPTW ("pelo menos 70 pontos" no Trust Index,
+ * "7 a cada 10" pessoas avaliando a empresa de forma favorável). 50% (crítico): critério nosso, menos da
+ * metade favorável; não há padrão de mercado publicado para esse corte.
+ */
 export const FAVORABLE_TARGET = 0.7
 export const FAVORABLE_CRITICAL = 0.5
+/** Fonte da referência de 70%, citada na tela e no Excel. */
+export const FAVORABLE_TARGET_SOURCE = {
+  name: 'GPTW Brasil, “Conquiste a certificação”',
+  url: 'https://gptw.com.br/conquiste-a-certificacao-gptw/',
+}
 
 export type Criticity = 'critico' | 'atencao' | 'bom'
 

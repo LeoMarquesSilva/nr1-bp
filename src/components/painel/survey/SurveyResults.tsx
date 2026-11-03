@@ -7,7 +7,7 @@ import type { SurveyResponse, SurveyStatus } from '@/types/pesquisas'
 import { cn } from '@/lib/utils'
 import { Button, EmptyState, Notice, Panel, formatDayBR, pluralize } from '../ui'
 import { MeetingSummary } from './MeetingSummary'
-import { BaselineNote, CriticityPill, FavorableRow, FrequencyBlock, HiddenNote, Legend, MultiBlock, NotaBlock, TextList, YesNoBlock, formatMean, pctOf, segmentsOf } from './resultCharts'
+import { BaselineNote, CriticityPill, FavorableRow, FrequencyBlock, HiddenNote, Legend, MultiBlock, NotaBlock, ReferenceSources, TextList, YesNoBlock, formatMean, pctOf, segmentsOf } from './resultCharts'
 
 type View = 'resumo' | 'perguntas'
 
@@ -263,7 +263,9 @@ function AllQuestions({ stats, total, min }: { stats: QuestionStat[]; total: num
         <>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm leading-relaxed text-[var(--color-brand-700)]">
-              Cada dimensão mostra a média do % favorável (4 ou 5) das suas perguntas. Referência de mercado: 70% ou mais; abaixo de 50%, crítico.
+              Cada dimensão mostra a média do % favorável (4 ou 5) das suas perguntas. O selo marca bom a partir de 70% (nota mínima da certificação GPTW) e crítico abaixo de 50%.
+              {sections.some((s) => s.before != null) &&
+                ` Os números em p.p. comparam com a ${sections.flatMap((s) => s.items).find((i) => i.baseline)?.baseline?.label ?? 'aplicação anterior'}.`}
             </p>
             {orderControl}
           </div>
@@ -291,6 +293,7 @@ function AllQuestions({ stats, total, min }: { stats: QuestionStat[]; total: num
               </ul>
             </Panel>
           ))}
+          <ReferenceSources />
         </>
       )}
 

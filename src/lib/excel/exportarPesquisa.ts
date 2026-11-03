@@ -7,6 +7,7 @@ import ExcelJS from 'exceljs'
 import JSZip from 'jszip'
 import { ESCALA_OPTIONS, NOTA_OPTIONS, NR_OPTION, type SurveyAnswers, type SurveyBaseline, type SurveyQuestion } from '@/data/pesquisas'
 import {
+  FAVORABLE_TARGET_SOURCE,
   GRUPOS_ESCALA,
   GRUPOS_NOTA,
   answerRowsFromStats,
@@ -42,6 +43,7 @@ export type ExportInput = {
 }
 
 const SITUACAO: Record<Criticity, string> = { critico: 'Crítico (< 50%)', atencao: 'Atenção (50–69%)', bom: 'Bom (70%+)' }
+const FONTES_FAIXAS = `Fontes das faixas: 70% é a nota mínima para a certificação GPTW, que pede ao menos 7 em cada 10 pessoas avaliando a empresa de forma favorável (${FAVORABLE_TARGET_SOURCE.name}: ${FAVORABLE_TARGET_SOURCE.url}). Serve de referência: esta não é a pesquisa oficial do GPTW. O corte de 50% para "crítico" é critério do CONFIARA (menos da metade favorável); não há padrão de mercado publicado para ele.`
 
 // Cores da marca (ARGB)
 const C = {
@@ -149,7 +151,7 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   if (summary.keyYesNo) {
     cards.push({ value: (summary.keyYesNo.counts.sim ?? 0) / (summary.keyYesNo.valid || 1), numFmt: '0%', label: 'responderam “Sim”', detail: perguntaLabel(summary.keyYesNo.n, summary.keyYesNo.question.text) })
   } else if (summary.overallFavorable != null) {
-    cards.push({ value: summary.overallFavorable, numFmt: '0%', label: 'de respostas favoráveis (4 ou 5)', detail: `Média de ${summary.ranking.length} perguntas de escala. Referência de mercado: 70%.` })
+    cards.push({ value: summary.overallFavorable, numFmt: '0%', label: 'de respostas favoráveis (4 ou 5)', detail: `Média de ${summary.ranking.length} perguntas de escala. Referência: 70%, a nota mínima da certificação GPTW.` })
   }
   if (summary.keyIncidence) {
     cards.push({ value: pct(summary.keyIncidence.incidence), numFmt: '0%', label: 'disseram que aconteceu ao menos raramente (quanto maior, pior)', detail: perguntaLabel(summary.keyIncidence.n, summary.keyIncidence.question.text), alert: true })
@@ -210,7 +212,8 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
       note(ws, r, `Temas abaixo de 70%: ${summary.focusThemes.map((t) => `${t.name} (${Math.round(t.favorable * 100)}%)`).join(' · ')}.`, 8, C.alert)
       r++
     }
-    r++
+    note(ws, r, FONTES_FAIXAS, 8)
+    r += 2
   }
   const rankBlock = (label: string, items: ChoiceStat[]) => {
     section(ws, r, label, 8)
@@ -334,7 +337,7 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
   // ---------- Dimensões ----------
   if (summary.sections.length > 0) {
     const dm = sheet(wb, 'Dimensões', [18, 30, 11, 13, 18, 13, 11])
-    title(dm, 1, 'Dimensões e temas', 'Média simples do % favorável (4 ou 5) das perguntas de cada grupo. Referência de mercado: 70%; abaixo de 50%, crítico.')
+    title(dm, 1, 'Dimensões e temas', 'Média simples do % favorável (4 ou 5) das perguntas de cada grupo. Bom a partir de 70% (nota mínima da certificação GPTW); crítico abaixo de 50%.')
     const rows: (string | number | null)[][] = []
     for (const sec of summary.sections) {
       rows.push([sec.name, '(dimensão)', sec.items.length, sec.favorable, SITUACAO[sec.criticity], sec.before, sec.before != null ? Math.round((sec.favorable - sec.before) * 100) : null])
@@ -357,6 +360,7 @@ export async function buildSurveyWorkbook(input: ExportInput): Promise<Uint8Arra
       if (row[1] === '(dimensão)') dm.getRow(line).font = { name: FONT, bold: true }
     })
     dataBar(dm, `D5:D${4 + rows.length}`, C.good)
+    note(dm, 6 + rows.length, FONTES_FAIXAS, 7)
     dm.views = [{ state: 'frozen', ySplit: 4, showGridLines: false }]
   }
 

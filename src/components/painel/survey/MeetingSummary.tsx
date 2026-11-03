@@ -3,7 +3,7 @@ import { AlertTriangle, Maximize2, Minimize2, Printer, ThumbsDown, ThumbsUp } fr
 import { noiseFor, type ChoiceStat, type GroupSummary, type MeetingSummary as Summary, type OpenStat } from '@/data/resultados'
 import { cn } from '@/lib/utils'
 import { Button, pluralize } from '../ui'
-import { CriticityPill, MultiBlock, StackedBar, TextList, formatMean, pctOf, segmentsOf } from './resultCharts'
+import { CriticityPill, MultiBlock, ReferenceSources, StackedBar, TextList, formatMean, pctOf, segmentsOf } from './resultCharts'
 
 const SAMPLE_SIZE = 3
 
@@ -27,6 +27,8 @@ export function MeetingSummary({ summary, title, period, partial }: { summary: S
   // Falas sorteadas uma vez por abertura (sorteio, e não escolha, para não puxar a leitura para um lado).
   const voices = useMemo(() => summary.voices.map((v) => ({ stat: v, sample: shuffle(v.texts).slice(0, SAMPLE_SIZE) })), [summary.voices])
   const noise = noiseFor(summary.total)
+  // Nome da aplicação anterior (ex.: "Pesquisa de 2024"), quando as dimensões têm comparação.
+  const baseLabel = summary.sections.some((s) => s.before != null) ? (summary.sections.flatMap((s) => s.items).find((i) => i.baseline)?.baseline?.label ?? null) : null
 
   useEffect(() => {
     if (!fullscreen) return
@@ -98,7 +100,7 @@ export function MeetingSummary({ summary, title, period, partial }: { summary: S
           <BigNumber value={pctOf((summary.keyYesNo.counts.sim ?? 0) / (summary.keyYesNo.valid || 1))} label="responderam “Sim”" detail={`${summary.keyYesNo.n}. ${summary.keyYesNo.question.text}`} />
         ) : (
           summary.overallFavorable != null && (
-            <BigNumber value={pctOf(summary.overallFavorable)} label="de respostas favoráveis (4 ou 5)" detail={`Média de ${summary.ranking.length} perguntas de escala. Referência de mercado: 70%.`} />
+            <BigNumber value={pctOf(summary.overallFavorable)} label="de respostas favoráveis (4 ou 5)" detail={`Média de ${summary.ranking.length} perguntas de escala. Referência: 70%, a nota mínima da certificação GPTW.`} />
           )
         )}
         {summary.keyIncidence ? (
@@ -121,7 +123,12 @@ export function MeetingSummary({ summary, title, period, partial }: { summary: S
 
       {/* Dimensões (pesquisas agrupadas, como a de cultura organizacional) */}
       {summary.sections.length > 0 && (
-        <Block title="Por dimensão" description="Média do % favorável (4 ou 5) das perguntas de cada dimensão e tema. A linha marca a referência de mercado de 70%.">
+        <Block
+          title="Por dimensão"
+          description={`Média do % favorável (4 ou 5) das perguntas de cada dimensão e tema. A linha vertical na barra marca 70%, a nota mínima da certificação GPTW.${
+            baseLabel ? ` O número em p.p. é a diferença em relação à ${baseLabel} (positivo: melhorou; negativo: piorou).` : ''
+          }`}
+        >
           <ul className="space-y-5">
             {summary.sections.map((sec) => (
               <li key={sec.name}>
@@ -138,6 +145,7 @@ export function MeetingSummary({ summary, title, period, partial }: { summary: S
               </li>
             ))}
           </ul>
+          <ReferenceSources className="mt-5 border-t border-[var(--border)] pt-3" />
         </Block>
       )}
 
